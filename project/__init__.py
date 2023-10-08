@@ -41,5 +41,3 @@ def create_app():
     app.register_blueprint(main_blueprint)
 
     return app
-
-#db.create_all() # from chatGPT

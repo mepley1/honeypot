@@ -1,0 +1,8 @@
+datetime
+flask
+requests
+flask-login
+flask-sqlalchemy
+Werkzeug==2.3.0
+wheel
+gunicorn

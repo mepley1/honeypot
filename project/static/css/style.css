@@ -1,0 +1,388 @@
+@import url('https://fonts.googleapis.com/css2?family=Abel&family=Gemunu+Libre&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Gemunu+Libre:wght@300&display=swap');
+
+:root {
+	--main-bg-color: #111828;
+	--main-accent-color: #2563ea;
+	--main-heading-color: #FFFFFF;
+	--main-text-color: #D2D4D3;
+	/* --main-text-color: #f2f4f3; */
+	--content-bg-color: #202938;
+	--form-bg-color: #202938;
+	--site-title-color: #FFFFFF;
+	--dotnet-color: #FF7F02;
+	--dotnet-hover-color: #FFFFFF;
+	--nav-link-color: #DDDDDD;
+	--nav-hover-color: #FFFFFF;
+	--nav-submenu-bg: #6b818c;
+	--font1: "Gemunu Libre";
+	--font2: "Abel";
+	--orange1: #FF7F02;
+	--white1: #FFFFFF;
+	--darkblue: #111828;
+	--paleblue: #202938;
+	--blue1: #2563EA;
+	--lightgray: #D2D4D3;
+	--lightergray: #DDDDDD;
+	--midgray: #6B818C;
+	--errorColor: #BB2020;
+	--successColor: #22AA44;
+
+}
+
+/*
+*{
+	margin: 0;
+	padding: 0;
+}
+*/
+
+html{
+	font-family: var(--font2), sans-serif;
+	background-color: var(--main-bg-color);
+}
+
+body{
+	color: var(--main-text-color);
+}
+
+.everything{
+	max-width: 80%;
+	margin: auto;
+	/* margin-top: 32px; */
+}
+
+div.content{
+	display: block;
+	width: auto;
+	min-width: 380px;
+	/* max-width: 100%; */
+	padding-top: 32px;
+	padding-bottom: 32px;
+	padding-left: 16px;
+	padding-right: 16px;
+	background-color: var(--content-bg-color);
+	margin: auto;
+	text-align: center;
+	border-radius: 6px;
+	/* overflow: ; NEED TO SET OVERFLOW TO WRAP */
+}
+
+#form-div{
+	display: block;
+	width: 380px;
+	padding: 32px;
+	background-color: var(--form-bg-color);
+	margin: auto;
+	text-align: center;
+	border-radius: 6px;
+}
+
+.submit-button{
+	border: 2px solid var(--main-accent-color);
+	border-radius: 6px;
+	font-size: 18px;
+	background-color: var(--main-accent-color);
+	color: #FFFFFF;
+	padding: 10px 16px;
+	transition: all 0.4s;
+	font-family: var(--font2), sans-serif;
+	cursor: pointer;
+}
+
+.submit-button:Hover{
+	border: 2px solid var(--main-accent-color);
+	background-color: var(--form-bg-color);
+	color: var(--main-heading-color);
+}
+
+.form-box{
+	width: 90%;
+	border: none;
+	border-radius: 6px;
+	font-family: var(--font2), sans-serif;
+	font-size: 20px;
+	background-color: var(--main-bg-color);
+	color: #eee;
+	text-align: center;
+	margin-bottom: 26px;
+	transition: all 0.4s;
+	height: 2em;
+}
+
+.form-box:Focus{
+	/* outline: 2px solid var(--main-accent-color); */
+	outline: none;
+	transition: all 0.4s;
+}
+
+input:focus:invalid{
+}
+
+.h-captcha{
+	margin-bottom: 26px;
+}
+
+h1, h2, h3, h4{
+	font-family: var(--font1), sans-serif;
+	font-size: 32px;
+	color: var(--main-heading-color);
+	text-align: center;
+	font-weight: 300;
+	/*margin: 32px;*/
+}
+
+h2{
+	font-size: 26px;
+}
+
+
+p{
+	font-family: var(--font2), sans-serif;
+}
+
+table{
+	margin: auto;
+}
+
+thead{
+	font-family: var(--font1), sans-serif;
+}
+
+td{
+	padding-left: 1em;
+	padding-right: 1em;
+}
+
+a{
+	color: var(--dotnet-color);
+}
+
+a:hover{
+	text-decoration: none;
+}
+
+.notifications{
+	font-size: 18px;
+	text-align: center;
+}
+
+/* FLASH CATEGORIES */
+
+.successn{
+	color: var(--successColor);
+	font-size: 1.2em;
+}
+
+.message{
+	color: var(--main-accent-color);
+}
+
+.info{
+	color: var(--main-text-color);
+}
+
+.error{
+	color: var(--errorColor);
+	font-size: 1.2em;
+	font-weight: bold;
+}
+
+.errorn{
+	color: #bb2020;
+	font-size: 1.2em;
+	font-weight: bold;
+}
+
+.outLink{
+	color: #22aa44;
+}
+
+/* END FLASH CATEGORIES */ 
+
+/* BEGIN NAVIGATION BAR */
+
+nav {
+	background-color: var(--main-bg-color);
+	position: sticky;
+	top: 0;
+	/* border-bottom:2px solid #2563ea; */
+	width: auto;
+	border: none;
+}
+
+ul .navigation{
+  list-style-type: none;
+  position: fixed;
+  top: 0;
+  overflow: hidden;
+  margin: auto;
+}
+
+.navdiv{
+	position: fixed;
+	top: 0;
+	width: 100%;
+}
+
+li{
+	display: inline;
+}
+
+li a, .dropbtn{
+	color: var(--nav-link-color);
+	text-decoration: none;
+	padding: 16px;
+	border-right: 1px solid var(--paleblue);
+	margin-left: 0px;
+	margin-right: 0px;
+	font-family: var(--font2);
+	display: inline-block;
+}
+
+li p.loggedInUsername{
+	padding: 0px;
+	margin-left: 24px;
+	margin-right: 0px;
+	font-family: var(--font2);
+	display: inline-block;
+}
+
+li a:hover, .dropdown:hover .dropbtn{
+	color: var(--nav-hover-color);
+	border-bottom: 1px solid var(--orange1);
+}
+
+li.dropdown{
+	display: inline-block;
+}
+
+.dropdown-content{
+	display: none;
+	position: absolute;
+	z-index: 1;
+}
+
+.dropdown-content a {
+	text-decoration: none;
+	display: block;
+	border-right: none;
+	background-color: var(--main-text-color);
+	color: var(--main-bg-color);
+}
+
+.dropdown-content a:hover{
+	color: var(--main-bg-color);
+	background-color: var(--nav-hover-color);
+	/* text-decoration:underline; */
+	border-bottom: none;
+}
+
+/*  before text experiment 
+.dropdown-content a::before{
+	content: '[ ';
+	color: var(--main-text-color);
+}
+
+.dropdown-content a::after{
+	content: ' ]';
+	color: var(--main-text-color);
+}
+
+ END  ::before text experiment */
+
+.dropdown:hover .dropdown-content{
+	display: block;
+}
+
+/* END NAV BAR */
+
+/* SITE TITLE */ 
+
+.site-title{
+	color: var(--dotnet-color);
+	font-family:var(--font2);
+	font-size: 20px;
+	border-right: 1px solid var(--orange1);
+	margin-right: 0;
+}
+
+.site-title::before{
+	content: '[ ';
+	color: var(--darkblue);
+}
+
+.site-title::after{
+	content: ' ]';
+	color: var(--darkblue);
+}
+
+.site-title:hover::after{
+	color: var(--orange1);
+}
+
+.site-title:hover::before{
+	color: var(--orange1);
+}
+
+.dotnet{
+	color: var(--dotnet-hover-color);
+}
+
+.site-title:hover{
+	/* color: var(--main-heading-color); */
+	border-right: 1px solid var(--orange1);
+	border-bottom: none;
+	color: var(--white1);
+}
+
+.site-title:hover .dotnet{
+	/* color: var(--dotnet-color); */
+	color: var(--lightgray);
+}
+
+/* END SITE TITLE */
+
+::placeholder{
+	color: white;
+	opacity: 0.6;
+}
+
+.bold{
+	font-weight: bold;
+}
+
+/* TABLE DATA */
+
+td.httpHeaders {
+	font-size: 0.8em;
+}
+
+table thead tr th {
+	display: flexbox;
+	/* color: var(--main-accent-color); */
+}
+
+td.ipToLink {
+	/* color: var(--main-heading-color); */
+}
+
+td.ipToLink a {
+	text-decoration: none;
+}
+
+td.ipToLink a:hover {
+	text-decoration: underline;
+}
+
+/* for jQuery hiding columns */
+.selectt {
+	/* display: none; */
+}
+
+/* for default hidden stats columns */
+.hidden {
+	display: none;
+}
+
+/* END TABLE DATA */

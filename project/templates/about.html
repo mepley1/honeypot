@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>About</title>
+	<link rel="stylesheet" href="{{url_for('static', filename='css/style.css')}}">
+</head>
+<body>
+	{% include 'header.html' %}
+	<div class="everything">
+		<h1>About this site</h1>
+		<div id="form-div">
+		<p>A simple ｈｏｎｅｙｐｏｔ brought to you by <a href="https://www.mepley.net" target="_blank">mepley.net</a> </p>
+		<p>Records all HTTP requests made to any endpoint, and includes a fake login form to capture stuffed credentials.</p>
+		<p>Source code: <a href="https://github.com/mepley1/honeypot">Github</a></p>
+		</div>
+	</div>
+</body>
+</html>

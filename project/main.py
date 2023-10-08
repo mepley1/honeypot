@@ -237,6 +237,10 @@ def methodStats(method):
 # The FAKE(honeypot) login route
 # The real one is in auth.py (@auth.login)
 # Going to change this since I have real auth now, but leaving it here for now.
+@main.route('/nigol')
+def nigol():
+    # do stuff
+    return render_template('index.html')
 
 # Routes for security.txt + robots.txt
 # Can also just serve them from Nginx

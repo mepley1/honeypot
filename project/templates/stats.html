@@ -28,7 +28,7 @@
                     <input type="checkbox" name="dataCheckbox" value="dataQueryString" checked>Query String
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataHostname">Hostname
+                    <input type="checkbox" name="dataCheckbox" value="dataHostname" checked>Hostname
                 </label>
                 <label>
                     <input type="checkbox" name="dataCheckbox" value="dataTime" checked>Time
@@ -55,7 +55,7 @@
                     <th class="dataURL selectt">URL</th>
                     <th class="dataMethod selectt">Method</th>
                     <th class="dataQueryString selectt">Query String</th>
-                    <th class="dataHostname selectt hidden">Hostname</th>
+                    <th class="dataHostname selectt">Hostname</th>
                     <th class="dataTime selectt">Time</th>
                     <th class="dataPostData selectt">POST Data</th>
                     <th class="dataUA selectt">User Agent</th>
@@ -66,10 +66,10 @@
                 {% for row in stats: %}
                 <tr>
                     <td class="ipToLink"><a href="{{url_for('main.ipStats', ipAddr=row['remoteaddr'])}}">{{row['remoteaddr']}}</a></td>
-                    <td class="dataURL selectt">{{row['url']|e}}</td>
+                    <td class="dataURL selectt">{{row['url']}}</td>
                     <td class="dataMethod selectt">{{row['requestmethod']}}</td>
                     <td class="dataQueryString selectt">{{row['querystring']}}</td>
-                    <td class="dataHostname selectt hidden">{{row['hostname']}}</td>
+                    <td class="dataHostname selectt">{{row['hostname']}}</td>
                     <td class="dataTime selectt">{{row['time']}}</td>
                     <td class="dataPostData selectt">{{row['postjson']}}</td>
                     <td class="dataUA selectt">{{row['useragent']}}</td>

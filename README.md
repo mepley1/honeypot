@@ -8,20 +8,27 @@ Demo: [Demo](http://lab.mepley.com/) Note: May not be active at any given time. 
 ## To run locally:
 
 Create and activate a venv:
+
 `python3 -m venv venv`
+
 `source venv/bin/activate`
 
 Install required Python modules in the venv:
+
 `pip install -r requirements.txt`
 
 Edit the `SECRET_KEY` in `config.py` if you want cookies to work. 
 
 Initialize database:
+
 `./db_initialize.py`
 
 Run the app:
+
 `export FLASK_APP=project`
+
 `export FLASK_DEBUG=true` - To turn on Flask debug mode if you want/need it
+
 `flask run`
 
 Then point your browser to http://localhost:5000 and log in

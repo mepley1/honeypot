@@ -10,12 +10,6 @@ from flask_login import login_required, current_user
 
 main = Blueprint('main', __name__)
 
-@main.context_processor
-def inject_title():
-    '''Return the title to display on the navbar'''
-    #return dict(SUBDOMAIN="lab.mepley", TLD=".com")
-    return {"SUBDOMAIN": 'lab.mepley', "TLD": '.com'}
-
 # Initialize bots database
 # Should move this to __init__.py and use sqlAlchemy to do it
 def createDatabase(): # note: change column names to just match http headers, this schema is stupid and confusing.
@@ -61,6 +55,11 @@ def createDatabase(): # note: change column names to just match http headers, th
 
 createDatabase()
 
+@main.context_processor
+def inject_title():
+    '''Return the title to display on the navbar'''
+    return {"SUBDOMAIN": 'lab.mepley', "TLD": '.com'}
+
 # Define routes
 
 @main.route('/', methods = ['POST', 'GET'], defaults = {'u_path': ''})
@@ -99,8 +98,8 @@ def index(u_path):
                 postData = badData
             except Exception as e:
                 postData = str(e) # So I can see if anything is still failing
-    else: #If not a POST request, use blank
-        postData = ''
+    else:
+        postData = '' #If not a POST request, use blank
 
     # do the sqlite stuff
     conn = sqlite3.connect("bots.db")

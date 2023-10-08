@@ -21,7 +21,7 @@ Edit the `SECRET_KEY` in `config.py` if you want cookies to work.
 
 Initialize database:
 
-`./db_initialize.py`
+`python db_initialize.py`
 
 Run the app:
 

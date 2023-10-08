@@ -243,7 +243,7 @@ def methodStats(method):
 @main.route('/.well-known/security.txt')
 @main.route('/security.txt')
 def securityTxt():
-    return send_from_directory('static', path='.well-known/security.txt')
+    return send_from_directory('static', path='txt/security.txt')
 @main.route('/robots.txt')
 def robotsTxt():
-    return send_from_directory('static', path='.well-known/robots.txt')
+    return send_from_directory('static', path='txt/robots.txt')

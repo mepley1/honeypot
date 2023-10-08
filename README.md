@@ -52,6 +52,7 @@ To-do: Write guide. Include Nginx proxy conf & systemd service unit.
 
 ## Notes/issues:
 - Will have to force Werkzeug=2.3.0 for a bit until flask-login release a version compatible with Werkzeug 3
+- When refreshing stats page after toggling column views, checkboxes get out of sync - to fix, either force refresh (Ctrl+F5) or click the navbar link again. Need a better way of hiding columns.
 
 ## To-do:
 - Deployment guide - deployment.md - Include wsgi.py, Nginx vhost conf file, systemd service unit example

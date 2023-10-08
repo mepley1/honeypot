@@ -44,14 +44,14 @@ def login_post():
     return redirect(url_for('main.stats'))
 
 @auth.route('/signup')
-@login_required
+#@login_required
 def signup():
     return render_template('signup.html')
 
 # Note: After creating an account, add @login_required decorator to signup_post so
 # you must be logged in to create more accts.
 @auth.route('/signup', methods=['POST'])
-@login_required
+#@login_required
 def signup_post():
     """Validate and add user to database"""
     username = request.form.get('username')

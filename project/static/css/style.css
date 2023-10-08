@@ -47,7 +47,7 @@ body{
 }
 
 .everything{
-	max-width: 80%;
+	max-width: 80vw;
 	margin: auto;
 	/* margin-top: 32px; */
 }
@@ -66,6 +66,10 @@ div.content{
 	text-align: center;
 	border-radius: 6px;
 	/* overflow: ; NEED TO SET OVERFLOW TO WRAP */
+}
+
+div.contentSmall{
+	width: 30vw;
 }
 
 #form-div{
@@ -141,18 +145,7 @@ p{
 	font-family: var(--font2), sans-serif;
 }
 
-table{
-	margin: auto;
-}
 
-thead{
-	font-family: var(--font1), sans-serif;
-}
-
-td{
-	padding-left: 1em;
-	padding-right: 1em;
-}
 
 a{
 	color: var(--dotnet-color);
@@ -269,16 +262,18 @@ li.dropdown{
 	border-right: none;
 	background-color: var(--main-text-color);
 	color: var(--main-bg-color);
+	border-bottom: 1px solid var(--lightergray);
 }
 
 .dropdown-content a:hover{
 	color: var(--main-bg-color);
 	background-color: var(--nav-hover-color);
 	/* text-decoration:underline; */
-	border-bottom: none;
+	border-bottom: 1px solid var(--lightergray);
 }
 
-/*  before text experiment 
+/*  before text experimenting
+
 .dropdown-content a::before{
 	content: '[ ';
 	color: var(--main-text-color);
@@ -354,6 +349,32 @@ li.dropdown{
 
 /* TABLE DATA */
 
+table{
+	margin: auto;
+	overflow-wrap: break-word;
+	border-collapse: collapse;
+}
+
+thead{
+	font-family: var(--font1), sans-serif;
+}
+
+td{
+	padding-left: 1em;
+	padding-right: 1em;
+	resize: both;
+	/* width: 9%; */
+}
+
+/* Limit max width of Headers and Post Data columns*/
+td.dataHeaders, td.dataPostData {
+	max-width: 600px;
+}
+
+td.dataMethod{
+	/* width: 5%; */
+}
+
 td.httpHeaders {
 	font-size: 0.8em;
 }
@@ -383,6 +404,7 @@ td.ipToLink a:hover {
 /* for default hidden stats columns */
 .hidden {
 	display: none;
+	content-visibility: hidden;
 }
 
 /* END TABLE DATA */

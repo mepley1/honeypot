@@ -305,3 +305,22 @@ pip-selfcheck.json
 # http://iamzed.com/2009/05/07/a-primer-on-virtualenv/
 
 # End of https://www.toptal.com/developers/gitignore/api/python,database,linux,virtualenv,venv,flask,dotfilessh
+
+# mike
+*.old
+db.sqlite
+*.sqlite
+bots.db
+*.db
+__pycache__/
+__pycache__/*
+venv/
+venv/*
+NOTES.txt
+NOTES*
+THIS-IS-*
+security.txt
+instance/
+deploy.sh
+deploy*.sh
+download-db.sh

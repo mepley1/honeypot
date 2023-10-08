@@ -33,7 +33,7 @@ Run the app:
 
 Then point your browser to http://localhost:5000 and log in
 
-## Deploying with Gunicorn+Nginx+Systemd, see deployment.md 
+# Deploying with Gunicorn+Nginx+Systemd, see deployment.md 
 To-do: Write guide. Include Nginx proxy conf & systemd service unit. 
 
 # Features
@@ -41,7 +41,7 @@ To-do: Write guide. Include Nginx proxy conf & systemd service unit.
 - Filter by IP/method
 - Toggle display/hide data columns
 
-## Extra scripts for testing
+# Extra scripts for testing
 `send-request.py` | Sends a POST request to localhost:5000 for testing. Accepts up to 2 parameters, which are used as the post data. For ex., to send `{'key1', 'value1'}` you would run `./send-request.py key1 value1`. If no parameters input then some default data is used. Can also do something like `./send-request.py $(head -c 32 /dev/urandom)`
 
 `test-highvolume.py` | Send a bunch of GET + POST requests to localhost:5000, for testing with higher volume. Creates a handful of threads. Change IP in script if not running on localhost. 
@@ -50,11 +50,11 @@ To-do: Write guide. Include Nginx proxy conf & systemd service unit.
 
 `deploy.sh` | This is NOT for production deployment, it only copies the main app files to another machine for development purposes - I use it to copy over new versions of the Flask blueprints to my "production" server where the app is already deployed. 
 
-## Notes/issues:
+# Notes/issues:
 - Will have to force Werkzeug=2.3.0 for a bit until flask-login release a version compatible with Werkzeug 3
 - When refreshing stats page after toggling column views, checkboxes get out of sync - to fix, either force refresh (Ctrl+F5) or click the navbar link again. Need a better way of hiding columns.
 
-## To-do:
+# To-do:
 - Deployment guide - deployment.md - Include wsgi.py, Nginx vhost conf file, systemd service unit example
 - Edit templates to use semantic HTML tags wherever relevant, bots might read it better.
 - Make script to report to AbuseIPDb: pull all records of the IP from the database/Nginx logs, and reports it. Include POSTed data/query string as comment if relevant. Maybe auto-report after a threshold, but auto-reporting is probably better left to fail2ban. 

@@ -1,0 +1,13 @@
+[Unit]
+Description=Gunicorn instance to serve honeypot app
+After=network.target
+
+[Service]
+User=<USERNAME>
+Group=www-data
+WorkingDirectory=/path/to/honeypot
+Environment="PATH=/path/to/honeypot/venv/bin"
+ExecStart=/path/to/honeypot/venv/bin/gunicorn --bind 0.0.0.0:5000 wsgi:app
+
+[Install]
+WantedBy=multi-user.target

@@ -3,7 +3,7 @@ A simple honeypot for capturing and viewing HTTP GET/POST requests. Stores reque
 Includes a catch-all route to catch both GET and POST requests for any URI. 
 Very much a work in progress. 
 
-Demo: [Demo](http://lab.mepley.com/) Note: May not be active at any given time. (To-do: Create demo login)
+[Live Demo](http://lab.mepley.com/) Note: May not be active at any given time. Demo login: user `demo` pw `0xDEADBEEF`
 
 ## To run locally:
 

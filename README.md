@@ -3,7 +3,7 @@ A simple honeypot for capturing and viewing HTTP GET/POST requests. Stores reque
 Includes a catch-all route to catch both GET and POST requests for any URI. 
 Very much a work in progress. 
 
-[Live Demo](http://lab.mepley.com/) Note: May not be active at any given time. Demo login: user `demo` pw `0xDEADBEEF`
+[Live Demo](http://lab.mepley.com/) Note: May not be active or up to date at any given time. Demo login: user `demo` pw `0xDEADBEEF`
 
 ## To run locally:
 
@@ -33,16 +33,20 @@ Run the app:
 
 Then point your browser to http://localhost:5000 and log in
 
-# Deploying with Gunicorn+Nginx+Systemd, see deployment.md 
-To-do: Write guide. Include Nginx proxy conf & systemd service unit. 
-
 # Features
 - Catch-all route to catch requests to any URI
-- Filter by IP/method
+- Stats pages can filter by IP/method
 - Toggle display/hide data columns
+- Now has proper auth + remember me (must set `SECRET_KEY` in `config.py`)
+
+# Deploying with Gunicorn+Nginx+Systemd, see deployment.md 
+
+An example systemd service unit file is included, see `/etc/systemd/system/honeypot.service`. After configuring the service unit, place it in your systemd units directory (on Debian it's `/etc/systemd/system/`). Now you can use `sudo systemctl enable honeypot.service && sudo systemctl start honeypot.service` to enable and start it. 
+
+To-do: Write guide. Include Nginx proxy conf & systemd service unit. 
 
 # Extra scripts for testing
-`send-request.py` | Sends a POST request to localhost:5000 for testing. Accepts up to 2 parameters, which are used as the post data. For ex., to send `{'key1', 'value1'}` you would run `./send-request.py key1 value1`. If no parameters input then some default data is used. Can also do something like `./send-request.py $(head -c 32 /dev/urandom)`
+`test-send-request.py` | Sends a POST request to localhost:5000 for testing. Accepts up to 2 parameters, which are used as the post data. For ex., to send `{'key1', 'value1'}` you would run `./send-request.py key1 value1`. If no parameters input then some default data is used. Can also do something like `./send-request.py $(head -c 32 /dev/urandom)`
 
 `test-highvolume.py` | Send a bunch of GET + POST requests to localhost:5000, for testing with higher volume. Creates a handful of threads. Change IP in script if not running on localhost. 
 
@@ -55,13 +59,11 @@ To-do: Write guide. Include Nginx proxy conf & systemd service unit.
 - When refreshing stats page after toggling column views, checkboxes get out of sync - to fix, either force refresh (Ctrl+F5) or click the navbar link again. Need a better way of hiding columns.
 
 # To-do:
-- Deployment guide - deployment.md - Include wsgi.py, Nginx vhost conf file, systemd service unit example
-- Edit templates to use semantic HTML tags wherever relevant, bots might read it better.
+- Deployment guide - deployment.md - Include Nginx vhost conf file, systemd service unit example
 - Make script to report to AbuseIPDb: pull all records of the IP from the database/Nginx logs, and reports it. Include POSTed data/query string as comment if relevant. Maybe auto-report after a threshold, but auto-reporting is probably better left to fail2ban. 
-- Add routes for common login pages + files that bots look for & catch credentials+data - XMLRPC, CMS txt files etc.
-- Create a robots.txt, security.txt, etc to serve from Nginx
-- Filter stats by more data points (condense into a dynamic Flask route for this like /stats/method/post, or stats/<variable>)
-- Automatically check IPs via ipinfo.io API? This would use up a free plan quickly- check each IP only once. 
+- Mimic routes for common login pages + files that bots look for & catch credentials+data - XMLRPC, CMS txt files etc.
+- Filter stats by more data points (condense into a dynamic Flask route for this like /stats/method/post)
+- Automatically check IPs via ipinfo API? This would use up a free plan quickly- check each IP only once. 
 - Script to test high request volume, fuzz
 - Filter out private IP spaces on stats pages?
 - Script to create user acct

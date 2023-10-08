@@ -1,17 +1,21 @@
+""" PEP 257 says even an __init__.py should have a docstring. """
+
+import secrets
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
-import secrets
 from werkzeug.urls import url_decode
 
 # init SQLAlchemy so we can use it later in our models
 db = SQLAlchemy()
 
 def create_app():
+    """ Create the app and register blueprints + loginmanager.  """
     app = Flask(__name__)
 
-    # Override these in config.py if you want, just making some defaults. 
-    # To-do: check for existence of FLASK_SECRET_KEY envvar first, then config.py, then fall back to secrets.token_hex()
+    # Override these in config.py if you want, just making some defaults.
+    # To-do: check for existence of FLASK_SECRET_KEY envvar first, then config.py,
+    # then fall back to secrets.token_hex()
     app.config['SECRET_KEY'] = secrets.token_hex()
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite'
     app.config['PERMANENT_SESSION_LIFETIME'] = 86400

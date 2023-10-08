@@ -1,5 +1,4 @@
-# config.py
-# Make any extra flask app.config adjustments here to override
+"""Make any extra flask app.config adjustments here to override defaults """
 
 import secrets
 

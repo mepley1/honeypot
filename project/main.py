@@ -1,26 +1,25 @@
-from . import db
-from flask import Flask, request, redirect, render_template, jsonify, Response, send_from_directory, g, after_this_request, flash, Blueprint
-from flask_login import login_required, current_user
-import random
-import string
+""" Main blueprint for stats pages, home, etc. Anything not related to auth can go in here. """
+
 import sqlite3
-import html
-import requests
+#import requests
 import json
 import datetime
-import secrets
 from socket import gethostbyaddr
-
+from flask import request, render_template, jsonify, Response, send_from_directory, g, after_this_request, flash, Blueprint
+from flask_login import login_required, current_user
 
 main = Blueprint('main', __name__)
 
 @main.context_processor
 def inject_title():
-    return dict(SUBDOMAIN="lab.mepley", TLD=".com")
+    '''Return the title to display on the navbar'''
+    #return dict(SUBDOMAIN="lab.mepley", TLD=".com")
+    return {"SUBDOMAIN": 'lab.mepley', "TLD": '.com'}
 
 # Initialize bots database
 # Should move this to __init__.py and use sqlAlchemy to do it
 def createDatabase(): # note: change column names to just match http headers, this schema is stupid and confusing.
+    """ Create the bots.db database that will contain all the requests data. """
     conn = sqlite3.connect("bots.db")
     c = conn.cursor()
     c.execute("""
@@ -42,7 +41,8 @@ def createDatabase(): # note: change column names to just match http headers, th
     conn.close()
     print('Bots database initialized.')
 
-    # create Logins table
+    # Create Logins table for attempts at the FAKE login
+    # Might do away with the fake route and just use this table to log any failed logins, since the fake one doesn't get hits anyway.
     conn = sqlite3.connect("bots.db")
     c = conn.cursor()
     c.execute("""
@@ -66,10 +66,11 @@ createDatabase()
 @main.route('/', methods = ['POST', 'GET'], defaults = {'u_path': ''})
 @main.route('/<path:u_path>', methods = ['POST', 'GET'])
 def index(u_path):
-    print(request) #for testing
+    """ Catch-all route. Get and save all the request data into the database. """
+    #print(request) #for testing
 
     ## note: I *really* need to change these variable names to match the database/headers better
-    
+
     if 'X-Real-Ip' in request.headers:#need to get real IP from behind Nginx proxy
         clientIP = request.headers.get('X-Real-Ip')
     else:
@@ -85,52 +86,57 @@ def index(u_path):
     clientTime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     clientHeaders = dict(request.headers) # go ahead and save the full headers
     reqUrl = request.url
-    
+
+    # Get the POSTed data
     if reqMethod == 'POST':
         try:
-            #clientPostData = request.get_json() # Only if you know it will be JSON
-            #clientPostData = request.data
             clientPostJson = request.json
-            jsonData = json.dumps(clientPostJson)
-        except Exception as e:
-            jsonData = str(e) # So I can see what caused the failure
+            postData = json.dumps(clientPostJson)
+        # If not valid JSON, that will fail, so try again as request.data
+        except:
+            try:
+                badData = request.data
+                postData = badData
+            except Exception as e:
+                postData = str(e) # So I can see if anything is still failing
+    else: #If not a POST request, use blank
+        postData = ''
 
-        #if b'..' in clientPostData:
-        #    return jsonify({'error': "Dont do that."}), 400 # prevent directory traversal depending on what method I use to get the POST data
-    else:
-        #clientPostData = ''
-        jsonData = ''
-    
     # do the sqlite stuff
     conn = sqlite3.connect("bots.db")
     c = conn.cursor()
     # c = g.db.cursor() # use g.db here if I use before_request to open the db connection
-    sqlQuery = """INSERT INTO bots 
+    sqlQuery = """INSERT INTO bots
         (id,remoteaddr,hostname,useragent,requestmethod,querystring,time,postjson,headers,url)
         VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?);"""
-    dataTuple = (clientIP, clientHostname, clientUserAgent, reqMethod, clientQuery, clientTime, jsonData, str(clientHeaders), reqUrl)
+    dataTuple = (clientIP, 
+                clientHostname, 
+                clientUserAgent, 
+                reqMethod, 
+                clientQuery, 
+                clientTime, 
+                postData, 
+                str(clientHeaders), 
+                reqUrl)
 
-
-    #print('Received a hit: Wrote to database successfully.')
-    #print(request) #testing
-
-    # add the response code to the tuple, then commit, then close connection
     @after_this_request
     def closeConnection(response):
+        """ Add response code to the tuple, commit and close db connection. """
         #print('After_this_request now executing') # for testing
         c.execute(sqlQuery, dataTuple)
         conn.commit()
         c.close()
         conn.close()
+        #print(response.status)#For testing
         return response
 
     flash('IP: ' + clientIP, 'info')
     return render_template('index.html')
 
-# Profile route just for testing login, can delete it later
 @main.route('/profile')
 @login_required
 def profile():
+    """Profile route just for testing login, can delete it later."""
     return render_template('profile.html', name=current_user.username)
 
 @main.route('/about')
@@ -140,7 +146,7 @@ def about():
 @main.route('/stats')
 @login_required
 def stats():
-    # pull the most recent 100 requests from bots.db and pass the data to stats.html template to display
+    """ Pull the most recent 100 requests from bots.db and pass the data to stats.html template to display. """
     conn = sqlite3.connect("bots.db")
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
@@ -164,8 +170,8 @@ def stats():
 
     return render_template('stats.html', stats = stats, totalHits = totalHits, statName = 'All HTTP Requests')
 
-
-# To do: Change the stats routes to use a /stats/<statname> sort of scheme, with <statname> returning a certain view from database
+# To do: Change the stats routes to use a /stats/<statname> sort of scheme, 
+# with <statname> returning a certain view from database.
 # then make a new single stats template to display whatever data is returned.
 # so i dont end up w a bunch of different pages to maintain.
 # Using row factories it'll be easier to get column names when returning different views.
@@ -175,28 +181,29 @@ def stats():
 @main.route('/loginstats')
 @login_required
 def loginStats():
+    """ Query db for login attempts to the FAKE login route. """
     conn = sqlite3.connect('bots.db')
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
     # query most recent login attempts
     sqlQuery = "SELECT * FROM logins ORDER BY id DESC LIMIT 100;"
     c.execute(sqlQuery)
-    loginStats = c.fetchall()
+    loginAttempts = c.fetchall()
     # query for total # of rows
     sqlQuery = "SELECT COUNT(*) FROM logins"
     c.execute(sqlQuery)
     totalLogins = c.fetchone()[0]
-    
+
     c.close()
     conn.close()
 
-    return render_template('loginstats.html', stats = loginStats, totalLogins = totalLogins) #note: can just use flashed messages here, after I make a new stats template
+    #note: can just use flashed messages here, after I make a new stats template
+    return render_template('loginstats.html', stats = loginAttempts, totalLogins = totalLogins)
 
-# This route will return stats of an individual IP.
-# The main stats page will link to this route.
 @main.route('/ip/<ipAddr>', methods = ['GET'])
 @login_required
 def ipStats(ipAddr):
+    """ Get stats of an individual IP. The IP column on main stats page will link to this route. """
     conn = sqlite3.connect('bots.db')
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
@@ -211,13 +218,13 @@ def ipStats(ipAddr):
 
     return render_template('stats.html', stats = ipStats, totalHits = len(ipStats), statName = ipAddr)
 
-# Return all rows where request method = GET/POST
 @main.route('/stats/method/<method>', methods = ['GET'])
 @login_required
 def methodStats(method):
-    if method != 'GET' and method != 'POST':
-        #return 'Bad request, method must be GET or POST', 400
-        flash('Bad request, method must be GET or POST. Try /stats/method/GET or /stats/method/POST', 'error')
+    """ Get stats by request method """
+    #if method != 'GET' and method != 'POST':
+    if method not in ('GET', 'POST'):
+        flash('Bad request, must query for GET or POST. Try /stats/method/GET or /stats/method/POST', 'error')
         return render_template('index.html')
     conn = sqlite3.connect('bots.db')
     conn.row_factory = sqlite3.Row
@@ -233,21 +240,21 @@ def methodStats(method):
 
     return render_template('stats.html', stats = methodStats, totalHits = len(methodStats), statName = method)
 
-
-# The FAKE(honeypot) login route
-# The real one is in auth.py (@auth.login)
-# Going to change this since I have real auth now, but leaving it here for now.
 @main.route('/nigol')
 def nigol():
-    # do stuff
+    """ The FAKE(honeypot) login route. The real one is in auth.py (@auth.login).
+    Need to rewrite this since I have real auth now, so it doesn't interfere, but leaving it here for now. """
+    # Old code was here
     return render_template('index.html')
 
 # Routes for security.txt + robots.txt
 # Can also just serve them from Nginx
-@main.route('/.well-known/security.txt')
+@main.route('/.well-known/security.txt')#Standard location
 @main.route('/security.txt')
 def securityTxt():
+    """ Serve a security.txt in case Nginx isn't there to do it. """
     return send_from_directory('static', path='txt/security.txt')
 @main.route('/robots.txt')
 def robotsTxt():
+    """ It's a honeypot, of course I want to allow bots. """
     return send_from_directory('static', path='txt/robots.txt')

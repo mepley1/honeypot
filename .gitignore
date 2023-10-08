@@ -324,3 +324,6 @@ instance/
 deploy.sh
 deploy*.sh
 download-db.sh
+test-scripts/
+launch.sh
+untracked/

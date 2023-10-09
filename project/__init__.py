@@ -1,4 +1,4 @@
-""" PEP 257 says even an __init__.py should have a docstring. """
+""" The linter says even an __init__.py should have a docstring. """
 
 import secrets
 from flask import Flask

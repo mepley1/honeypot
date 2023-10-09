@@ -11,10 +11,27 @@ from . import db
 
 auth = Blueprint('auth', __name__)
 
+def insert_login_record(remoteaddr, username, password, time):
+    try:
+        conn = sqlite3.connect('bots.db')
+        c = conn.cursor()
+        sqlQuery = """
+            INSERT INTO logins
+            (id,remoteaddr,username,password,time)
+            VALUES (NULL, ?, ?, ?, ?);
+            """
+        dataTuple = (remoteaddr, username, password, time)
+        c.execute(sqlQuery, dataTuple)
+        conn.commit()
+    except sqlite3.Error as e:
+        print(f'Error inserting login record: {e}')
+    finally:
+        conn.close()
+
+
 @auth.context_processor
 def inject_title():
     """Return the title to display on the navbar"""
-    #return dict(SUBDOMAIN="lab.mepley", TLD=".com")
     return {"SUBDOMAIN": 'lab.mepley', "TLD": '.com'}
 
 @auth.route('/login')
@@ -50,6 +67,7 @@ def login_post():
             clientIP = request.remote_addr
         loginTime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
+        ''' REPLACING THIS BLOCK WITH A HELPER FUNCTION
         # begin SQL ********************
         # Note: Rewrite the sql inserts as a helper function in another module or the app factory
         # then import that module, so I can stop repeating it.
@@ -63,6 +81,10 @@ def login_post():
         conn.commit()
         conn.close()
         #  END SQL *********************
+        ''' #END REPLACING BLOCK
+
+        # Use the new insert_login_record helper function
+        insert_login_record(clientIP, username, password, loginTime)
 
         flash('Invalid credentials.', 'errorn')
         return redirect(url_for('auth.login')) # if the user doesn't exist or password is wrong, reload the page

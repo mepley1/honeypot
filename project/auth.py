@@ -12,6 +12,7 @@ from . import db
 auth = Blueprint('auth', __name__)
 
 def insert_login_record(remoteaddr, username, password, time):
+    """ sql insert helper function """
     try:
         conn = sqlite3.connect('bots.db')
         c = conn.cursor()
@@ -53,42 +54,25 @@ def login_post():
 
     user = User.query.filter_by(username=username).first()
 
+    # get IP and timestamp for logging
+    if 'X-Real-Ip' in request.headers:
+        clientIP = request.headers.get('X-Real-Ip') #get real ip from behind Nginx
+    else:
+        clientIP = request.remote_addr
+    loginTime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
     # check if the user actually exists
     # take the user-supplied password, hash it, and compare it to the hashed password in the database
     if not user or not check_password_hash(user.password, password):
-        """If credentials incorrect, log the attempt in the Logins table of bots.db.
-        Be careful doing this, can easily end up logging typos of real credentials.
-        Might move this section lower and just log all logins, with placeholders for creds on success.
-        i.e. just save the username + IP + time. """
 
-        if 'X-Real-Ip' in request.headers:
-            clientIP = request.headers.get('X-Real-Ip') #get real ip from behind Nginx
-        else:
-            clientIP = request.remote_addr
-        loginTime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-
-        ''' REPLACING THIS BLOCK WITH A HELPER FUNCTION
-        # begin SQL ********************
-        # Note: Rewrite the sql inserts as a helper function in another module or the app factory
-        # then import that module, so I can stop repeating it.
-        conn = sqlite3.connect("bots.db")
-        c = conn.cursor()
-        sqlQuery = """INSERT INTO logins
-            (id,remoteaddr,username,password,time)
-            VALUES (NULL, ?, ?, ?, ?);"""
-        dataTuple = (clientIP, username, password, loginTime)
-        c.execute(sqlQuery, dataTuple)
-        conn.commit()
-        conn.close()
-        #  END SQL *********************
-        ''' #END REPLACING BLOCK
-
-        # Use the new insert_login_record helper function
+        # Record the attempt in the database
         insert_login_record(clientIP, username, password, loginTime)
 
-        flash('Invalid credentials. EDITING', 'errorn')
+        flash('Invalid credentials.', 'errorn')
         return redirect(url_for('auth.login')) # if the user doesn't exist or password is wrong, reload the page
 
+    # Record the successful login, but obviously don't log the password
+    insert_login_record(clientIP, username, 'Successful Login', loginTime)
     # if the above check passes, then we know the user has the right credentials
     login_user(user, remember=remember)
     return redirect(url_for('main.stats'))

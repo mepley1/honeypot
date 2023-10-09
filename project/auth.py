@@ -1,5 +1,7 @@
 """ Authentication routes & functions"""
 
+import datetime #for logging
+import sqlite3 #for logging bad logins
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, login_required, logout_user
@@ -36,6 +38,31 @@ def login_post():
     # check if the user actually exists
     # take the user-supplied password, hash it, and compare it to the hashed password in the database
     if not user or not check_password_hash(user.password, password):
+        """If credentials incorrect, log the attempt in the Logins table of bots.db.
+        Be careful doing this, can easily end up logging typos of real credentials.
+        Might move this section lower and just log all logins, with placeholders for creds on success.
+        i.e. just save the username + IP + time. """
+
+        if 'X-Real-Ip' in request.headers:
+            clientIP = request.headers.get('X-Real-Ip') #get real ip from behind Nginx
+        else:
+            clientIP = request.remote_addr
+        loginTime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+        # begin SQL ********************
+        # Note: Rewrite the sql inserts as a helper function in another module or the app factory
+        # then import that module, so I can stop repeating it.
+        conn = sqlite3.connect("bots.db")
+        c = conn.cursor()
+        sqlQuery = """INSERT INTO logins
+            (id,remoteaddr,username,password,time)
+            VALUES (NULL, ?, ?, ?, ?);"""
+        dataTuple = (clientIP, username, password, loginTime)
+        c.execute(sqlQuery, dataTuple)
+        conn.commit()
+        conn.close()
+        #  END SQL *********************
+
         flash('Invalid credentials.', 'errorn')
         return redirect(url_for('auth.login')) # if the user doesn't exist or password is wrong, reload the page
 

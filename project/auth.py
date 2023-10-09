@@ -86,7 +86,7 @@ def login_post():
         # Use the new insert_login_record helper function
         insert_login_record(clientIP, username, password, loginTime)
 
-        flash('Invalid credentials.', 'errorn')
+        flash('Invalid credentials. EDITING', 'errorn')
         return redirect(url_for('auth.login')) # if the user doesn't exist or password is wrong, reload the page
 
     # if the above check passes, then we know the user has the right credentials

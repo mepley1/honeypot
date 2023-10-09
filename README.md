@@ -62,7 +62,7 @@ To-do: Write guide. Include Nginx proxy conf & systemd service unit.
 - Deployment guide - deployment.md - Include Nginx vhost conf file, systemd service unit example
 - Make script to report to AbuseIPDb: pull all records of the IP from the database/Nginx logs, and reports it. Include POSTed data/query string as comment if relevant. Maybe auto-report after a threshold, but auto-reporting is probably better left to fail2ban. 
 - Mimic routes for common login pages + files that bots look for & catch credentials+data - XMLRPC, CMS txt files etc.
-- Filter stats by more data points (condense into a dynamic Flask route for this like /stats/method/post)
+- Filter stats by more data points - URL next? (condense into a dynamic Flask route for this like /stats/method/post)
 - Automatically check IPs via ipinfo API? This would use up a free plan quickly- check each IP only once. 
 - Script to test high request volume, fuzz
 - Filter out private IP spaces on stats pages?

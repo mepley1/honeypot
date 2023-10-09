@@ -126,7 +126,7 @@ def index(u_path):
         conn.commit()
         c.close()
         conn.close()
-        #print(response.status)#For testing
+        #print(response.status) #For testing
         return response
 
     flash('IP: ' + clientIP, 'info')

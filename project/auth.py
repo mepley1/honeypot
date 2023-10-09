@@ -1,5 +1,4 @@
 """ Authentication routes & functions"""
-# Editing branch
 
 import datetime #for logging
 import sqlite3 #for logging bad logins
@@ -10,35 +9,25 @@ from .models import User
 from . import db
 
 auth = Blueprint('auth', __name__)
-'''
-def insert_login_record(remoteaddr, username, password, time):
-    """ sql insert helper function """
-    try:
-        conn = sqlite3.connect('bots.db')
-        c = conn.cursor()
-        sqlQuery = """
-            INSERT INTO logins
-            (id,remoteaddr,username,password,time)
-            VALUES (NULL, ?, ?, ?, ?);
-            """
-        dataTuple = (remoteaddr, username, password, time)
-        c.execute(sqlQuery, dataTuple)
-        conn.commit()
-    except sqlite3.Error as e:
-        print(f'Error inserting login record: {e}')
-    finally:
-        conn.close()
-'''
 
-def insert_login_record(remoteaddr, username, password, time):
-    """ sql insert helper function """
-    # get IP and timestamp for logging
+def get_ip():
+    """ Get client's IP from behind Nginx. Move this to a separate module later, so I can use it in the other blueprints. """
+    if 'X-Real-Ip' in request.headers:
+        clientIP = request.headers.get('X-Real-Ip') #get real ip from behind Nginx
+    else:
+        clientIP = request.remote_addr
+    return clientIP
+
+def insert_login_record(username, password):
+    """ sql insert helper function, for logging auth attempts. """
+
     if 'X-Real-Ip' in request.headers:
         clientIP = request.headers.get('X-Real-Ip') #get real ip from behind Nginx
     else:
         clientIP = request.remote_addr
     loginTime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
+    #make the sqlite insert
     try:
         conn = sqlite3.connect('bots.db')
         c = conn.cursor()
@@ -55,13 +44,12 @@ def insert_login_record(remoteaddr, username, password, time):
     finally:
         conn.close()
 
-
-
-
 @auth.context_processor
 def inject_title():
     """Return the title to display on the navbar"""
     return {"SUBDOMAIN": 'lab.mepley', "TLD": '.com'}
+
+# ROUTES
 
 @auth.route('/login')
 def login():
@@ -82,28 +70,21 @@ def login_post():
 
     user = User.query.filter_by(username=username).first()
 
-    # TEST DOING THIS IN HELPER FUNCTION  
-    '''
-    # get IP and timestamp for logging
-    if 'X-Real-Ip' in request.headers:
-        clientIP = request.headers.get('X-Real-Ip') #get real ip from behind Nginx
-    else:
-        clientIP = request.remote_addr
-    loginTime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    '''
-
     # check if the user actually exists
     # take the user-supplied password, hash it, and compare it to the hashed password in the database
     if not user or not check_password_hash(user.password, password):
 
         # Record the attempt in the database
-        insert_login_record(clientIP, username, password, loginTime)
+        insert_login_record(username, password)
+        print('Failed login attempt: ', username)
 
         flash('Invalid credentials.', 'errorn')
         return redirect(url_for('auth.login')) # if the user doesn't exist or password is wrong, reload the page
 
-    # Record the successful login, but obviously don't log the password
-    insert_login_record('x', username, 'Successful Login', 'x')
+    # Record the successful login, but obviously don't log the password.
+    # Can query where password = placeholder later, to query for successful logins.
+    insert_login_record(username, '*** SUCCESSFUL LOGIN ***')
+    print('Successful login: ', username)
     # if the above check passes, then we know the user has the right credentials
     login_user(user, remember=remember)
     return redirect(url_for('main.stats'))
@@ -143,5 +124,5 @@ def signup_post():
 def logout():
     """Log the user out & display home page"""
     logout_user()
-    flash('Logged out successfully.', 'successn')
+    flash('Logged out.', 'successn')
     return redirect(url_for('main.index'))

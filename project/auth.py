@@ -10,7 +10,7 @@ from .models import User
 from . import db
 
 auth = Blueprint('auth', __name__)
-
+'''
 def insert_login_record(remoteaddr, username, password, time):
     """ sql insert helper function """
     try:
@@ -28,6 +28,34 @@ def insert_login_record(remoteaddr, username, password, time):
         print(f'Error inserting login record: {e}')
     finally:
         conn.close()
+'''
+
+def insert_login_record(remoteaddr, username, password, time):
+    """ sql insert helper function """
+    # get IP and timestamp for logging
+    if 'X-Real-Ip' in request.headers:
+        clientIP = request.headers.get('X-Real-Ip') #get real ip from behind Nginx
+    else:
+        clientIP = request.remote_addr
+    loginTime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    try:
+        conn = sqlite3.connect('bots.db')
+        c = conn.cursor()
+        sqlQuery = """
+            INSERT INTO logins
+            (id,remoteaddr,username,password,time)
+            VALUES (NULL, ?, ?, ?, ?);
+            """
+        dataTuple = (clientIP, username, password, loginTime)
+        c.execute(sqlQuery, dataTuple)
+        conn.commit()
+    except sqlite3.Error as e:
+        print(f'Error inserting login record: {e}')
+    finally:
+        conn.close()
+
+
 
 
 @auth.context_processor
@@ -54,12 +82,15 @@ def login_post():
 
     user = User.query.filter_by(username=username).first()
 
+    # TEST DOING THIS IN HELPER FUNCTION  
+    '''
     # get IP and timestamp for logging
     if 'X-Real-Ip' in request.headers:
         clientIP = request.headers.get('X-Real-Ip') #get real ip from behind Nginx
     else:
         clientIP = request.remote_addr
     loginTime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    '''
 
     # check if the user actually exists
     # take the user-supplied password, hash it, and compare it to the hashed password in the database
@@ -72,7 +103,7 @@ def login_post():
         return redirect(url_for('auth.login')) # if the user doesn't exist or password is wrong, reload the page
 
     # Record the successful login, but obviously don't log the password
-    insert_login_record(clientIP, username, 'Successful Login', loginTime)
+    insert_login_record('x', username, 'Successful Login', 'x')
     # if the above check passes, then we know the user has the right credentials
     login_user(user, remember=remember)
     return redirect(url_for('main.stats'))

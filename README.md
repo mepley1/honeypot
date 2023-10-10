@@ -66,4 +66,4 @@ To-do: Write guide. Include Nginx proxy conf & systemd service unit.
 - Automatically check IPs via ipinfo API? This would use up a free plan quickly- check each IP only once. 
 - Script to test high request volume, fuzz
 - Filter out private IP spaces on stats pages?
-- Script to create user acct
+- Script to create first user acct

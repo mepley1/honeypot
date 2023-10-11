@@ -11,7 +11,7 @@ from flask_login import login_required, current_user
 main = Blueprint('main', __name__)
 
 # Initialize bots database
-# Should move this to __init__.py and use sqlAlchemy to do it
+# Should move this to models.py as a sqlAlchemy model, since I switched to blueprints.
 def createDatabase(): # note: change column names to just match http headers, this schema is stupid and confusing.
     """ Create the bots.db database that will contain all the requests data. """
     conn = sqlite3.connect("bots.db")
@@ -33,10 +33,9 @@ def createDatabase(): # note: change column names to just match http headers, th
     conn.commit()
     c.close()
     conn.close()
-    print('Bots database initialized.')
+    #print('Bots database initialized.')
 
-    # Create Logins table for attempts at the FAKE login
-    # Might do away with the fake route and just use this table to log any failed logins, since the fake one doesn't get hits anyway.
+    # Create Logins table
     conn = sqlite3.connect("bots.db")
     c = conn.cursor()
     c.execute("""
@@ -51,7 +50,7 @@ def createDatabase(): # note: change column names to just match http headers, th
     conn.commit()
     c.close()
     conn.close()
-    print('Logins database intialized.')
+    #print('Logins database intialized.')
 
 createDatabase()
 
@@ -66,7 +65,7 @@ def inject_title():
 @main.route('/<path:u_path>', methods = ['POST', 'GET'])
 def index(u_path):
     """ Catch-all route. Get and save all the request data into the database. """
-    #print(request) #for testing
+    print(request) #for testing/ journalctl
 
     ## note: I *really* need to change these variable names to match the database/headers better
 

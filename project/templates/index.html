@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | Login</title>
+    <title>Dashboard</title>
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
@@ -11,34 +11,6 @@
     {% include 'header.html' %}
     <div class="everything">
         <h1>Home</h1>
-
-        <!--
-        <div id="form-div">
-            <h2>Log In</h2>
-            
-            <form action="/nigol" method="POST" id="loginForm">
-                <p>
-                    <input type="username" id="username" name="username" placeholder="Username" class="form-box" title="Enter your username/email" required />
-                </p>
-                <p>
-                    <input type="password" id="password" name="password" placeholder="Password" class="form-box" title="Password" />
-                </p>
-                <p>
-                    <button type="submit" class="submit-button">Login</button>
-                </p>
-            </form>
-        <p>{{message}}</p>
-        {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                    {% for msg in messages %}
-                        <p>{{msg}}</p>
-                    {% endfor %}
-                {% endif %}
-        {% endwith %}
-
-        </div>
-        -->
-
         <div class="content contentSmall">
             <p>{{message}}</p>
             {% with messages = get_flashed_messages(with_categories=true) %}
@@ -49,10 +21,6 @@
                     {% endif %}
             {% endwith %}
         </div>
-
-
     </div>
-    
 </body>
 </html>
-

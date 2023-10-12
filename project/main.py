@@ -132,16 +132,6 @@ def index(u_path):
     flash('IP: ' + clientIP, 'info')
     return render_template('index.html')
 
-@main.route('/profile')
-@login_required
-def profile():
-    """Profile route just for testing login, can delete it later."""
-    return render_template('profile.html', name=current_user.username)
-
-@main.route('/about')
-def about():
-    return render_template('about.html')
-
 @main.route('/stats')
 @login_required
 def stats():
@@ -239,12 +229,16 @@ def methodStats(method):
 
     return render_template('stats.html', stats = methodStats, totalHits = len(methodStats), statName = method)
 
-@main.route('/nigol')
-def nigol():
-    """ The FAKE(honeypot) login route. The real one is in auth.py (@auth.login).
-    Need to rewrite this since I have real auth now, so it doesn't interfere, but leaving it here for now. """
-    # Old code was here
-    return render_template('index.html')
+@main.route('/profile')
+@login_required
+def profile():
+    """Profile route just for testing login, can delete it later."""
+    return render_template('profile.html', name=current_user.username)
+
+@main.route('/about')
+@login_required
+def about():
+    return render_template('about.html')
 
 # Routes for security.txt + robots.txt
 # Can also just serve them from Nginx

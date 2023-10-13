@@ -23,6 +23,10 @@ Initialize database:
 
 `python db_initialize.py`
 
+Create a login:
+
+`python create-user.py <username>`
+
 Run the app:
 
 `export FLASK_APP=project`
@@ -46,11 +50,13 @@ An example systemd service unit file is included, see `/etc/systemd/system/honey
 To-do: Write guide. Include Nginx proxy conf & systemd service unit. 
 
 # Extra scripts for testing
-`test-send-request.py` | Sends a POST request to localhost:5000 for testing. Accepts up to 2 parameters, which are used as the post data. For ex., to send `{'key1', 'value1'}` you would run `./send-request.py key1 value1`. If no parameters input then some default data is used. Can also do something like `./send-request.py $(head -c 32 /dev/urandom)`
+`test-send-request.py` | Sends a POST request to localhost:5000 for testing. Accepts up to 2 parameters, which are used as the post data. For ex., to send `{'key1', 'value1'}` you would run `python test-send-request.py key1 value1`. If no parameters input then some default data is used. Can also do something like `./test-send-request.py $(head -c 32 /dev/urandom)` in a Bash shell.
 
 `test-highvolume.py` | Send a bunch of GET + POST requests to localhost:5000, for testing with higher volume. Creates a handful of threads. Change IP in script if not running on localhost. 
 
-`create-venv.sh` | Creates a venv named `venv` in the current directory.
+`test-post-bad-data.py` | POST some random data, not JSON-formatted.
+
+`create-venv.sh` | Just creates a venv named `venv` in the current directory.
 
 `deploy.sh` | This is NOT for production deployment, it only copies the main app files to another machine for development purposes - I use it to copy over new versions of the Flask blueprints to my "production" server where the app is already deployed. 
 
@@ -66,4 +72,3 @@ To-do: Write guide. Include Nginx proxy conf & systemd service unit.
 - Automatically check IPs via ipinfo API? This would use up a free plan quickly- check each IP only once. 
 - Script to test high request volume, fuzz
 - Filter out private IP spaces on stats pages?
-- Script to create user acct

@@ -108,20 +108,19 @@ def index(u_path):
     sqlQuery = """INSERT INTO bots
         (id,remoteaddr,hostname,useragent,requestmethod,querystring,time,postjson,headers,url)
         VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?);"""
-    dataTuple = (clientIP, 
-                clientHostname, 
-                clientUserAgent, 
-                reqMethod, 
-                clientQuery, 
-                clientTime, 
-                postData, 
-                str(clientHeaders), 
+    dataTuple = (clientIP,
+                clientHostname,
+                clientUserAgent,
+                reqMethod,
+                clientQuery,
+                clientTime,
+                postData,
+                str(clientHeaders),
                 reqUrl)
 
     @after_this_request
     def closeConnection(response):
         """ Add response code to the tuple, commit and close db connection. """
-        #print('After_this_request now executing') # for testing
         c.execute(sqlQuery, dataTuple)
         conn.commit()
         c.close()
@@ -135,7 +134,7 @@ def index(u_path):
 @main.route('/stats')
 @login_required
 def stats():
-    """ Pull the most recent 100 requests from bots.db and pass the data to stats.html template to display. """
+    """ Pull the most recent requests from bots.db and pass data to stats template to display. """
     conn = sqlite3.connect("bots.db")
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
@@ -143,30 +142,29 @@ def stats():
     c.execute(sqlQuery)
     stats = c.fetchall()
     totalHits = len(stats)
-    c.close()
-    conn.close()
 
     # get total number of rows (= number of hits)
-    # note: don't really need to make 2 separate connections, I'll consolidate queries later
-    conn = sqlite3.connect("bots.db")
-    c = conn.cursor()
     sqlQuery = "SELECT COUNT(*) FROM bots"
     c.execute(sqlQuery)
     result = c.fetchone()
     totalHits = result[0]
+
     c.close()
     conn.close()
 
-    return render_template('stats.html', stats = stats, totalHits = totalHits, statName = 'All HTTP Requests')
+    return render_template('stats.html',
+        stats = stats,
+        totalHits = totalHits,
+        statName = 'All HTTP Requests')
 
-# To do: Change the stats routes to use a /stats/<statname> sort of scheme, 
+# To do: Change the stats routes to use a /stats/<statname> sort of scheme,
 # with <statname> returning a certain view from database.
-# then make a new single stats template to display whatever data is returned.
+# Then make a new single stats template to display whatever data is returned.
 # so i dont end up w a bunch of different pages to maintain.
 # Using row factories it'll be easier to get column names when returning different views.
 
 # Stats for the FAKE login
-@main.route('/stats/logins') 
+@main.route('/stats/logins')
 @main.route('/loginstats')
 @login_required
 def loginStats():
@@ -187,7 +185,9 @@ def loginStats():
     conn.close()
 
     #note: can just use flashed messages here, after I make a new stats template
-    return render_template('loginstats.html', stats = loginAttempts, totalLogins = totalLogins)
+    return render_template('loginstats.html',
+        stats = loginAttempts,
+        totalLogins = totalLogins)
 
 @main.route('/ip/<ipAddr>', methods = ['GET'])
 @login_required
@@ -205,7 +205,10 @@ def ipStats(ipAddr):
     c.close()
     conn.close()
 
-    return render_template('stats.html', stats = ipStats, totalHits = len(ipStats), statName = ipAddr)
+    return render_template('stats.html',
+        stats = ipStats,
+        totalHits = len(ipStats),
+        statName = ipAddr)
 
 @main.route('/stats/method/<method>', methods = ['GET'])
 @login_required
@@ -213,7 +216,7 @@ def methodStats(method):
     """ Get stats by request method """
     #if method != 'GET' and method != 'POST':
     if method not in ('GET', 'POST'):
-        flash('Bad request, must query for GET or POST. Try /stats/method/GET or /stats/method/POST', 'error')
+        flash('Bad request, must query for GET or POST. Try /method/GET or /method/POST', 'error')
         return render_template('index.html')
     conn = sqlite3.connect('bots.db')
     conn.row_factory = sqlite3.Row
@@ -227,7 +230,11 @@ def methodStats(method):
     c.close()
     conn.close()
 
-    return render_template('stats.html', stats = methodStats, totalHits = len(methodStats), statName = method)
+    return render_template('stats.html',
+        stats = methodStats,
+        totalHits = len(methodStats),
+        statName = method
+        )
 
 @main.route('/profile')
 @login_required

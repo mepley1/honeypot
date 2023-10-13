@@ -404,7 +404,7 @@ td.ipToLink a:hover {
 /* for default hidden stats columns */
 .hidden {
 	display: none;
-	content-visibility: hidden;
+	/* content-visibility: hidden; */ /* This is making it not display at all, even after toggling the checkbox */
 }
 
 /* END TABLE DATA */

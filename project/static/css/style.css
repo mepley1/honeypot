@@ -366,7 +366,7 @@ td{
 	/* width: 9%; */
 }
 
-/* Limit max width of Headers and Post Data columns*/
+/* Limit max width of Headers and Post Data columns, otherwise they get huge */
 td.dataHeaders, td.dataPostData {
 	max-width: 600px;
 }
@@ -382,7 +382,7 @@ td.httpHeaders {
 table thead tr th {
 	display: flexbox;
 	/* color: var(--main-accent-color); */
-}
+	padding-bottom: 1em;}
 
 td.ipToLink {
 	/* color: var(--main-heading-color); */

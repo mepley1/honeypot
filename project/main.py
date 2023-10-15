@@ -143,7 +143,6 @@ def stats():
     sqlQuery = "SELECT * FROM bots ORDER BY id DESC LIMIT 100;"
     c.execute(sqlQuery)
     stats = c.fetchall()
-    totalHits = len(stats)
 
     # get total number of rows (= number of hits)
     sqlQuery = "SELECT COUNT(*) FROM bots"
@@ -157,15 +156,15 @@ def stats():
     return render_template('stats.html',
         stats = stats,
         totalHits = totalHits,
-        statName = 'All HTTP Requests')
+        statName = 'Most Recent HTTP Requests')
 
-# To do: Change the stats routes to use a /stats/<statname> sort of scheme,
+# To do: Change the stats routes to use a single /stats/<statname> sort of scheme,
 # with <statname> returning a certain view from database.
 # Then make a new single stats template to display whatever data is returned.
-# so i dont end up w a bunch of different pages to maintain.
+# so i dont end up w a bunch of different pages+routes to maintain.
 # Using row factories it'll be easier to get column names when returning different views.
 
-# Stats for the FAKE login
+# Login attempt stats
 @main.route('/stats/logins')
 @main.route('/loginstats')
 @login_required
@@ -216,7 +215,6 @@ def ipStats(ipAddr):
 @login_required
 def methodStats(method):
     """ Get stats by request method """
-    #if method != 'GET' and method != 'POST':
     if method not in ('GET', 'POST'):
         flash('Bad request, must query for GET or POST. Try /method/GET or /method/POST', 'error')
         return render_template('index.html')
@@ -290,7 +288,7 @@ def urlStats():
 @login_required
 def queriesStats():
     query_params = request.args.get('query', '')
-    """ Get stats matching the Query String. """
+    """ Get records matching the Query String. """
     conn = sqlite3.connect('bots.db')
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
@@ -308,6 +306,30 @@ def queriesStats():
         stats = queriesStats,
         totalHits = len(queriesStats),
         statName = "Query String: " + query_params
+        )
+
+@main.route('/stats/body', methods = ['GET'])
+@login_required
+def bodyStats():
+    """ Get records matching the POST request body. """
+    body = request.args.get('body', '')
+    conn = sqlite3.connect('bots.db')
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    # Query for matching request body
+    sqlQuery = """
+        SELECT * FROM bots WHERE postjson = ? ORDER BY id DESC;
+        """
+    dataTuple = (body,)
+    c.execute(sqlQuery, dataTuple)
+    bodyStats = c.fetchall()
+    c.close()
+    conn.close()
+
+    return render_template('stats.html',
+        stats = bodyStats,
+        totalHits = len(bodyStats),
+        statName = "Request Body: " + body
         )
 
 # Misc routes

@@ -411,7 +411,8 @@ td.ipToLink a:hover {
 }
 
 td.dataToLink a:hover {
-	background-color: #1b2433;
+	/*background-color: #1b2433; */
+	filter:brightness(170%);
 }
 
 .mono {

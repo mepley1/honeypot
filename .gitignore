@@ -327,3 +327,4 @@ download-db.sh
 test-scripts/
 launch.sh
 untracked/
+config.py

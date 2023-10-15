@@ -1,5 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Abel&family=Gemunu+Libre&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Gemunu+Libre:wght@300&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Oxygen+Mono&display=swap');
 
 :root {
 	--main-bg-color: #111828;
@@ -17,6 +18,7 @@
 	--nav-submenu-bg: #6b818c;
 	--font1: "Gemunu Libre";
 	--font2: "Abel";
+	--mono-font: "Oxygen Mono";
 	--orange1: #FF7F02;
 	--white1: #FFFFFF;
 	--darkblue: #111828;
@@ -366,8 +368,8 @@ td{
 	/* width: 9%; */
 }
 
-/* Limit max width of Headers and Post Data columns*/
-td.dataHeaders, td.dataPostData {
+/* Limit max width of Headers and Post Data columns, otherwise they get huge */
+td.dataHeaders, td.dataPostData, td.dataURL {
 	max-width: 600px;
 }
 
@@ -375,15 +377,21 @@ td.dataMethod{
 	/* width: 5%; */
 }
 
-td.httpHeaders {
+/* For a couple columns that I want to shrink a little */
+td.smaller {
 	font-size: 0.8em;
+}
+
+td.smallerer {
+	font-size: 0.7em;
 }
 
 table thead tr th {
 	display: flexbox;
 	/* color: var(--main-accent-color); */
-}
+	padding-bottom: 1em;}
 
+/* remote IP on the stats page */
 td.ipToLink {
 	/* color: var(--main-heading-color); */
 }
@@ -396,6 +404,24 @@ td.ipToLink a:hover {
 	text-decoration: underline;
 }
 
+/* For data columns that I'll turn into links, so it's not distracting */
+.dataToLink a {
+	color: var(--main-text-color);
+	text-decoration: none;
+}
+
+td.dataToLink a:hover {
+	background-color: #1b2433;
+}
+
+.mono {
+	font-family: var(--mono-font);
+}
+
+.dim {
+	filter:opacity(50%);
+}
+
 /* for jQuery hiding columns */
 .selectt {
 	/* display: none; */
@@ -404,7 +430,7 @@ td.ipToLink a:hover {
 /* for default hidden stats columns */
 .hidden {
 	display: none;
-	content-visibility: hidden;
+	/* content-visibility: hidden; */ /* This is making it not display at all, even after toggling the checkbox */
 }
 
 /* END TABLE DATA */

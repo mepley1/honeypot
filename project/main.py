@@ -81,8 +81,11 @@ def index(u_path):
     clientUserAgent = request.headers.get('User-Agent')
     reqMethod = request.method
     clientQuery = request.environ.get("QUERY_STRING")
-    clientTime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    #clientTime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    clientTime = datetime.datetime.now().isoformat() #ISO8601
     clientHeaders = dict(request.headers) # go ahead and save the full headers
+    if 'Cookie' in clientHeaders:
+        clientHeaders['Cookie'] = '[REDACTED]' # Don't expose session cookies!
     reqUrl = request.url
 
     # Get the POSTed data
@@ -167,7 +170,7 @@ def stats():
 @main.route('/loginstats')
 @login_required
 def loginStats():
-    """ Query db for login attempts to the FAKE login route. """
+    """ Query db for login attempts. """
     conn = sqlite3.connect('bots.db')
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
@@ -234,6 +237,80 @@ def methodStats(method):
         totalHits = len(methodStats),
         statName = method
         )
+
+@main.route('/stats/useragent', methods = ['GET'])
+@login_required
+def uaStats():
+    ua = request.args.get('ua', '')
+    """ Get stats matching the user agent string. """
+    conn = sqlite3.connect('bots.db')
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    # Query for matching user agent
+    sqlQuery = """
+        SELECT * FROM bots WHERE useragent = ? ORDER BY id DESC;
+        """
+    dataTuple = (ua,)
+    c.execute(sqlQuery, dataTuple)
+    uaStats = c.fetchall()
+    c.close()
+    conn.close()
+
+    return render_template('stats.html',
+        stats = uaStats,
+        totalHits = len(uaStats),
+        statName = "User-Agent: " + ua
+        )
+
+@main.route('/stats/url', methods = ['GET'])
+@login_required
+def urlStats():
+    url = request.args.get('url', '')
+    """ Get stats matching the URL. """
+    conn = sqlite3.connect('bots.db')
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    # Query for matching user agent
+    sqlQuery = """
+        SELECT * FROM bots WHERE url = ? ORDER BY id DESC;
+        """
+    dataTuple = (url,)
+    c.execute(sqlQuery, dataTuple)
+    urlStats = c.fetchall()
+    c.close()
+    conn.close()
+
+    return render_template('stats.html',
+        stats = urlStats,
+        totalHits = len(urlStats),
+        statName = "URL: " + url
+        )
+
+@main.route('/stats/query', methods = ['GET'])
+@login_required
+def queriesStats():
+    query_params = request.args.get('query', '')
+    """ Get stats matching the Query String. """
+    conn = sqlite3.connect('bots.db')
+    conn.row_factory = sqlite3.Row
+    c = conn.cursor()
+    # Query for matching user agent
+    sqlQuery = """
+        SELECT * FROM bots WHERE querystring = ? ORDER BY id DESC;
+        """
+    dataTuple = (query_params,)
+    c.execute(sqlQuery, dataTuple)
+    queriesStats = c.fetchall()
+    c.close()
+    conn.close()
+
+    return render_template('stats.html',
+        stats = queriesStats,
+        totalHits = len(queriesStats),
+        statName = "Query String: " + query_params
+        )
+
+# Misc routes
 
 @main.route('/profile')
 @login_required

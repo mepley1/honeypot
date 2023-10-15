@@ -150,13 +150,29 @@ def stats():
     result = c.fetchone()
     totalHits = result[0]
 
+    # Get most common IP
+    sqlQuery = """
+        SELECT remoteaddr, COUNT(*) AS count
+        FROM bots
+        GROUP BY remoteaddr
+        ORDER BY count DESC
+        LIMIT 1;
+        """
+    c.execute(sqlQuery)
+    top_ip = c.fetchone()
+    if top_ip:
+        top_ip_addr = top_ip['remoteaddr']
+        top_ip_count = top_ip['count']
+
     c.close()
     conn.close()
 
     return render_template('stats.html',
         stats = stats,
         totalHits = totalHits,
-        statName = 'Most Recent HTTP Requests')
+        statName = 'Most Recent HTTP Requests',
+        top_ip = top_ip
+        )
 
 # To do: Change the stats routes to use a single /stats/<statname> sort of scheme,
 # with <statname> returning a certain view from database.
@@ -193,7 +209,7 @@ def loginStats():
 @main.route('/ip/<ipAddr>', methods = ['GET'])
 @login_required
 def ipStats(ipAddr):
-    """ Get stats of an individual IP. The IP column on main stats page will link to this route. """
+    """ Get records of an individual IP. The IP column on stats page will link to this route. """
     conn = sqlite3.connect('bots.db')
     conn.row_factory = sqlite3.Row
     c = conn.cursor()

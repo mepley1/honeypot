@@ -14,6 +14,11 @@
         <h1>Stats -> {{statName}}</h1>
         <div class="content">
             <p>Total hits in database: {{totalHits}}</p>
+
+            {% if top_ip %}
+            <p>Most common IP: <a href="{{url_for('main.ipStats', ipAddr=top_ip['remoteaddr'])}}">{{top_ip['remoteaddr']}}</a> seen {{top_ip['count']}} times.</p>
+            {% endif %}
+
             <h2>100 Most Recent Requests</h2>
 
             <div id="dataToggles">

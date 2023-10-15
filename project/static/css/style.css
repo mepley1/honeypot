@@ -131,15 +131,18 @@ input:focus:invalid{
 
 h1, h2, h3, h4{
 	font-family: var(--font1), sans-serif;
-	font-size: 32px;
 	color: var(--main-heading-color);
 	text-align: center;
 	font-weight: 300;
 	/*margin: 32px;*/
 }
 
+h1{
+	font-size: 32px;
+}
+
 h2{
-	font-size: 26px;
+	font-size: 28px;
 }
 
 

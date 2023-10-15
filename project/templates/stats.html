@@ -69,15 +69,15 @@
                 {% for row in stats: %}
                 <tr>
                     <td class="dataIP ipToLink selectt"><a href="{{url_for('main.ipStats', ipAddr=row['remoteaddr'])}}">{{row['remoteaddr']}}</a></td>
-                    <td class="dataURL selectt">{{row['url']}}</td>
+                    <td class="dataURL dataToLink selectt"><a href="{{url_for('main.urlStats', url=row['url'])}}">{{row['url']}}</a></td>
                     <td class="dataMethod selectt">{{row['requestmethod']}}</td>
-                    <td class="dataQueryString selectt">{{row['querystring']}}</td>
+                    <td class="dataQueryString dataToLink mono smaller selectt"><a href="{{url_for('main.queriesStats', query=row['querystring'])}}">{{row['querystring']}}</a></td>
                     <td class="dataHostname selectt">{{row['hostname']}}</td>
                     <td class="dataTime selectt">{{row['time']}}</td>
-                    <td class="dataPostData selectt">{{row['postjson']}}</td>
-                    <td class="dataUA selectt">{{row['useragent']}}</td>
-                    <td class="dataHeaders httpHeaders selectt hidden">{{row['headers']}}</td>
-                    <td class="dataLinks ipToLink"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> | <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a></td>
+                    <td class="dataPostData mono smaller selectt">{{row['postjson']}}</td>
+                    <td class="dataUA dataToLink selectt"><a href="{{url_for('main.uaStats', ua=row['useragent'])}}">{{row['useragent']|e}}</a></td>
+                    <td class="dataHeaders smallerer mono selectt hidden">{{row['headers']}}</td>
+                    <td class="dataLinks ipToLink"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> <span class="dim">|</span> <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a></td>
                 </tr>
                 {% endfor %}
             </table>

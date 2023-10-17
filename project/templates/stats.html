@@ -53,6 +53,9 @@
                 <label>
                     <input type="checkbox" name="dataCheckbox" value="dataLinks" checked>Info Links
                 </label>
+                <label>
+                    <input type="checkbox" name="dataCheckbox" value="dataReported">Reported
+                </label>
             </div>
             <br />
 
@@ -69,6 +72,7 @@
                     <th class="dataUA selectt">User Agent</th>
                     <th class="dataHeaders selectt hidden">Headers</th>
                     <th class="dataLinks">Links</th>
+                    <th class="dataReported hidden">Reported</th>
                 </tr>
                 </thead>
                 {% for row in stats: %}
@@ -83,6 +87,7 @@
                     <td class="dataUA dataToLink selectt"><a href="{{url_for('main.uaStats', ua=row['useragent'])}}">{{row['useragent']|e}}</a></td>
                     <td class="dataHeaders smallerer mono selectt hidden">{{row['headers']}}</td>
                     <td class="dataLinks ipToLink"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> <span class="dim">|</span> <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a></td>
+                    <td class="dataReported hidden">{{row['reported']}}</td>
                 </tr>
                 {% endfor %}
             </table>

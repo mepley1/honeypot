@@ -19,6 +19,7 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite'
     app.config['PERMANENT_SESSION_LIFETIME'] = 86400
     app.config.from_pyfile('config.py')
+    app.config.from_prefixed_env()
 
     db.init_app(app)
 

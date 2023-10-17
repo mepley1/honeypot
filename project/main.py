@@ -1,11 +1,12 @@
 """ Main blueprint for stats pages, home, etc. Anything not related to auth can go in here. """
 
 import sqlite3
-#import requests
+import requests #for reporting
 import json
 import datetime
+from .shared_functions import report_all_post
 from socket import gethostbyaddr
-from flask import request, render_template, jsonify, Response, send_from_directory, g, after_this_request, flash, Blueprint
+from flask import request, render_template, jsonify, Response, send_from_directory, g, after_this_request, flash, Blueprint, current_app
 from flask_login import login_required, current_user
 
 main = Blueprint('main', __name__)
@@ -27,7 +28,8 @@ def createDatabase(): # note: change column names to just match http headers, th
             time DATETIME,
             postjson TEXT,
             headers TEXT,
-            url TEXT
+            url TEXT,
+            reported NUMERIC
             );
     """)
     conn.commit()
@@ -73,15 +75,14 @@ def index(u_path):
         clientIP = request.headers.get('X-Real-Ip')
     else:
         clientIP = request.remote_addr
-    # Get hostname by performing a DNS lookup
-    try:
+    
+    try: # Get hostname by performing a DNS lookup
         clientHostname = gethostbyaddr(clientIP)[0]
     except:
         clientHostname = 'Unavailable'
     clientUserAgent = request.headers.get('User-Agent')
     reqMethod = request.method
     clientQuery = request.environ.get("QUERY_STRING")
-    #clientTime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     clientTime = datetime.datetime.now().isoformat() #ISO8601
     clientHeaders = dict(request.headers) # go ahead and save the full headers
     if 'Cookie' in clientHeaders:
@@ -93,7 +94,7 @@ def index(u_path):
         try:
             clientPostJson = request.json
             postData = json.dumps(clientPostJson)
-        # If not valid JSON, that will fail, so try again as request.data
+        # If not valid JSON, that will fail, so try again as request.data in case it's XML etc
         except:
             try:
                 badData = request.data
@@ -103,13 +104,15 @@ def index(u_path):
     else:
         postData = '' #If not a POST request, use blank
 
+    reported = report_all_post() #Report if POST request, and set reported to 1 or 0 (see shared_functions.py)
+
     # do the sqlite stuff
     conn = sqlite3.connect("bots.db")
     c = conn.cursor()
     # c = g.db.cursor() # use g.db here if I use before_request to open the db connection
     sqlQuery = """INSERT INTO bots
-        (id,remoteaddr,hostname,useragent,requestmethod,querystring,time,postjson,headers,url)
-        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?);"""
+        (id,remoteaddr,hostname,useragent,requestmethod,querystring,time,postjson,headers,url,reported)
+        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"""
     dataTuple = (clientIP,
                 clientHostname,
                 clientUserAgent,
@@ -118,7 +121,8 @@ def index(u_path):
                 clientTime,
                 postData,
                 str(clientHeaders),
-                reqUrl)
+                reqUrl,
+                reported)
 
     @after_this_request
     def closeConnection(response):

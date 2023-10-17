@@ -23,6 +23,7 @@
 	--white1: #FFFFFF;
 	--darkblue: #111828;
 	--paleblue: #202938;
+	--altblue: #1B2433;
 	--blue1: #2563EA;
 	--lightgray: #D2D4D3;
 	--lightergray: #DDDDDD;
@@ -45,6 +46,7 @@ html{
 }
 
 body{
+	padding: 0;
 	color: var(--main-text-color);
 }
 
@@ -358,6 +360,10 @@ table{
 	margin: auto;
 	overflow-wrap: break-word;
 	border-collapse: collapse;
+}
+
+tr:nth-child(even) {
+	background-color: #1d2635;
 }
 
 thead{

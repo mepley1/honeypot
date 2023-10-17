@@ -84,7 +84,7 @@ def index(u_path):
     clientUserAgent = request.headers.get('User-Agent')
     reqMethod = request.method
     clientQuery = request.environ.get("QUERY_STRING")
-    clientTime = datetime.datetime.now().isoformat() #ISO8601
+    clientTime = datetime.datetime.now().astimezone().replace(microsecond=0).isoformat() #Compatible with ApuseIPDB API
     clientHeaders = dict(request.headers) # go ahead and save the full headers
     if 'Cookie' in clientHeaders:
         clientHeaders['Cookie'] = '[REDACTED]' # Don't expose session cookies!

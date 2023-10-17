@@ -42,7 +42,7 @@ def insert_login_record(username, password):
 
 def get_post_body():
     # Get the POSTed data
-    if reqMethod == 'POST':
+    if request.method == 'POST':
         try:
             clientPostJson = request.json
             postData = json.dumps(clientPostJson)
@@ -56,12 +56,14 @@ def get_post_body():
     else:
         postData = '' #If not a POST request, use blank
 
+# Move anything reporting-related to a separate reporting module
+
 def report_all_post():
     """ Report any POST requests, and set value of reported to 1 or 0 """
     if request.method == 'POST':
         print('Reporting POST request to AbuseIPDB...')
         api_url = 'https://api.abuseipdb.com/api/v2/report'
-        comment = f'Honeypot detected attack: <{request.method} http://[redacted]{request.path}>'
+        comment = f'Honeypot detected attack: <{request.method} {request.path}>'
 
         params = {
             'ip': get_ip(),
@@ -90,4 +92,3 @@ def report_all_post():
         return reported
 
 # Make a report button on stats page too. Like a form, pull the row[whatever] values and pass to a /report route or something.
-# /report route can go in its own blueprint file with other reporting shit

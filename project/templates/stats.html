@@ -84,7 +84,7 @@
                     <td class="dataHostname selectt">{{row['hostname']}}</td>
                     <td class="dataTime selectt">{{row['time']}}</td>
                     <td class="dataPostData dataToLink mono smaller selectt"><a href="{{url_for('main.bodyStats', body=row['postjson'])}}">{{row['postjson']}}</a></td>
-                    <td class="dataUA dataToLink selectt"><a href="{{url_for('main.uaStats', ua=row['useragent'])}}">{{row['useragent']|e}}</a></td>
+                    <td class="dataUA dataToLink selectt"><a href="{{url_for('main.uaStats', ua=row['useragent']|urlencode)}}">{{row['useragent']|e}}</a></td>
                     <td class="dataHeaders smallerer mono selectt hidden">{{row['headers']}}</td>
                     <td class="dataLinks ipToLink"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> <span class="dim">|</span> <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a></td>
                     <td class="dataReported hidden">{{row['reported']}}</td>

@@ -8,6 +8,7 @@ from .shared_functions import report_all_post
 from socket import gethostbyaddr
 from flask import request, render_template, jsonify, Response, send_from_directory, g, after_this_request, flash, Blueprint, current_app
 from flask_login import login_required, current_user
+from urllib.parse import unquote # for uaStats()
 
 main = Blueprint('main', __name__)
 
@@ -235,7 +236,7 @@ def ipStats(ipAddr):
 @login_required
 def methodStats(method):
     """ Get stats by request method """
-    if method not in ('GET', 'POST'):
+    if method not in ('GET', 'POST', 'HEAD'):
         flash('Bad request, must query for GET or POST. Try /method/GET or /method/POST', 'error')
         return render_template('index.html')
     conn = sqlite3.connect('bots.db')
@@ -259,7 +260,7 @@ def methodStats(method):
 @main.route('/stats/useragent', methods = ['GET'])
 @login_required
 def uaStats():
-    ua = request.args.get('ua', '')
+    ua = unquote(request.args.get('ua', ''))
     """ Get stats matching the user agent string. """
     conn = sqlite3.connect('bots.db')
     conn.row_factory = sqlite3.Row
@@ -332,7 +333,7 @@ def queriesStats():
 @login_required
 def bodyStats():
     """ Get records matching the POST request body. """
-    body = request.args.get('body', '')
+    body = request.args.get('body')
     conn = sqlite3.connect('bots.db')
     conn.row_factory = sqlite3.Row
     c = conn.cursor()

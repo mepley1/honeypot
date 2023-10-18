@@ -91,4 +91,3 @@ def report_all_post():
         reported = 0
         return reported
 
-# Make a report button on stats page too. Like a form, pull the row[whatever] values and pass to a /report route or something.

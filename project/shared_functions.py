@@ -63,7 +63,7 @@ def report_all_post():
     if request.method == 'POST':
         print('Reporting POST request to AbuseIPDB...')
         api_url = 'https://api.abuseipdb.com/api/v2/report'
-        comment = f'Honeypot detected attack: <{request.method} {request.full_path}>'
+        comment = f'Honeypot detected attack: <{request.method} {request.path}>'
 
         params = {
             'ip': get_ip(),

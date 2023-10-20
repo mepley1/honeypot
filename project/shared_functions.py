@@ -4,7 +4,9 @@ import datetime
 import sqlite3
 import requests #for AbuseIPDB reporting
 import json
+import logging
 from flask import request, current_app
+from urllib.parse import urlencode #encode ip when reporting
 
 def get_ip():
     """ Get client's IP from behind Nginx. """
@@ -40,54 +42,77 @@ def insert_login_record(username, password):
     finally:
         conn.close()
 
-def get_post_body():
+def get_post_body(request):
     # Get the POSTed data
     if request.method == 'POST':
         try:
             clientPostJson = request.json
-            postData = json.dumps(clientPostJson)
+            posted_data = json.dumps(clientPostJson)
         # If not valid JSON, that will fail, so try again as request.data in case it's XML etc
         except:
             try:
                 badData = request.data
-                postData = badData
+                posted_data = badData
             except Exception as e:
-                postData = str(e) # So I can see if anything is still failing
+                posted_data = str(e) # So I can see if anything is still failing
     else:
-        postData = '' #If not a POST request, use blank
+        posted_data = '' #If not a POST request, use blank
 
-# Move anything reporting-related to a separate reporting module
+#rewriting this from main blueprint
+# Take a dict of the data as arg, instead of each one individually
+def insert_request_data(clientIP, clientHostname, clientUserAgent, reqMethod, clientQuery, clientTime, posted_data, clientHeaders, reqUrl, reported):
+    sql_query = """
+        INSERT INTO bots
+        (remoteaddr, hostname, useragent, requestmethod, querystring, time, postjson, headers, url, reported)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+        """
+    data_dict = {
+        'remoteaddr': clientIP,
+        'hostname': clientHostname,
+        'useragent': clientUserAgent,
+        'requestmethod':reqMethod,
+        'querystring': clientQuery,
+        'time': clientTime,
+        'postjson': posted_data,
+        'headers': str(clientHeaders),
+        'url': reqUrl,
+        'reported': reported
+        }
+    
+    with sqlite3.connect('bots.db') as conn:
+        cursor = conn.cursor()
+        cursor.execute(sql_query, data_dict)
+        conn.commit()
 
+# Note: Move everything reporting-related to a separate reporting module
 def report_all_post():
     """ Report any POST requests, and set value of reported to 1 or 0 """
     if request.method == 'POST':
-        print('Reporting POST request to AbuseIPDB...')
+        logging.info('Reporting POST request to AbuseIPDB...')
         api_url = 'https://api.abuseipdb.com/api/v2/report'
         comment = f'Honeypot detected attack: <{request.method} {request.path}>'
-
         params = {
             'ip': get_ip(),
             'categories': '21',
             'comment': comment,
             'timestamp':datetime.datetime.now().astimezone().replace(microsecond=0).isoformat(), #https://stackoverflow.com/questions/2150739/iso-time-iso-8601-in-python
             }
-
         headers = {
             'Accept': 'application/json',
             'Key': current_app.config["ABUSEIPDB"],
             }
-
         response = requests.post(url = api_url, headers = headers, params = params)
         decodedResponse = json.loads(response.text)
-        #print(json.dumps(decodedResponse, sort_keys=True, indent=4))
+        #logging.debug(json.dumps(decodedResponse, sort_keys=True, indent=4))
         if 'errors' in decodedResponse:
-            print('Error while reporting.')
+            for error in decodedResponse['errors']:
+                logging.error(error['detail'])
+            #logging.error(error['detail'] for error in decodedResponse['errors'] if 'detail' in error)
             reported = 0
         else:
-            print('Success.')
+            logging.info('Success.')
             reported = 1
         return reported
     else:
         reported = 0
         return reported
-

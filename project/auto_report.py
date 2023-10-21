@@ -49,7 +49,7 @@ def is_env_probing(request):
     env_probe_paths = ['.env', 'config', 'admin', '.git', 'backend', 'phpinfo']
     return any(target in path for target in env_probe_paths)
 
-def is_phpmyadmin_probe(reqeust):
+def is_phpmyadmin_probe(request):
     path = request.path
     pma_probe_paths = ['phpmyadmin', '/mysql/', '/sqladmin/', '/mysqlmanager/', '/myadmin/']
     return any(target in path for target in pma_probe_paths)

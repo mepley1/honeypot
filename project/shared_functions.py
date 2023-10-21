@@ -51,12 +51,13 @@ def get_post_body(request):
         # If not valid JSON, that will fail, so try again as request.data in case it's XML etc
         except:
             try:
-                badData = request.data
-                posted_data = badData
+                bad_data = request.data
+                posted_data = bad_data
             except Exception as e:
                 posted_data = str(e) # So I can see if anything is still failing
     else:
         posted_data = '' #If not a POST request, use blank
+    return posted_data
 
 #rewriting this from main blueprint
 # Take a dict of the data as arg, instead of each one individually

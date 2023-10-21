@@ -82,7 +82,8 @@ def append_to_report(comment, category, report_categories, report_comment):
     return report_comment
 
 def check_all_rules():
-    #This is the command we'll call from the main route
+    """ This is the command we'll call from the main route; returns reported 0/1.
+    Usage: reported = check_all_rules() """
 
     # Initialize these empty, then append_to_report() will fill them in if any rules match.
     report_categories = set()

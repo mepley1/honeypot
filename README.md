@@ -1,5 +1,5 @@
 # Webpot
-A simple honeypot for capturing and viewing HTTP GET/POST requests. Stores request data in a SQLite database for further analysis. 
+A simple honeypot for capturing and viewing HTTP GET/POST requests + auto reporting. Stores request data in a SQLite database for further analysis. 
 Includes a catch-all route to catch both GET and POST requests for any URI. 
 Very much a work in progress. 
 
@@ -65,12 +65,12 @@ To-do: Deployment guide. Include Nginx proxy conf & systemd service unit.
 # Notes/issues:
 - Will have to force Werkzeug=2.3.0 for a bit until flask-login release a version compatible with Werkzeug 3
 - When refreshing stats page after toggling column views, checkboxes get out of sync - to fix, either force refresh (Ctrl+F5) or click the navbar link again. Need a better way of hiding columns.
+- Querying for records by POST request body fails in some cases due to encoding discrepancies.
 
 # To-do:
 - More rules/filters for auto-reporting - still deciding how I want to handle rules.
 - Deployment guide - deployment.md - Include Nginx vhost conf file, systemd service unit example
-- Make script to report to AbuseIPDb: pull all records of the IP from the database/Nginx logs, and reports it. Include POSTed data/query string as comment if relevant. Maybe auto-report after a threshold, but auto-reporting is probably better left to fail2ban jails.
-- Filter stats by more data points - URL next? (condense into a dynamic Flask route for this like /stats/method/post)
+- Filter stats by more data points. (condense into a dynamic Flask route for this like /stats/method/post)
 - Automatically check IPs via ipinfo API? This would use up a free plan quickly- check each IP only once every so often. 
 - Scripts to test high request volume, + fuzz
-- Filter out private IP ranges on stats pages?
+- Filter out private IP ranges on stats pages? / Include config variable to not record requests from specific CIDR subnets.

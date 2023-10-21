@@ -17,44 +17,40 @@ main = Blueprint('main', __name__)
 # Should move this to models.py as a sqlAlchemy model, since I switched to blueprints.
 def createDatabase(): # note: change column names to just match http headers, this schema is stupid and confusing.
     """ Create the bots.db database that will contain all the requests data. """
-    conn = sqlite3.connect("bots.db")
-    c = conn.cursor()
-    c.execute("""
-            CREATE TABLE IF NOT EXISTS bots(
-            id INTEGER PRIMARY KEY,
-            remoteaddr TEXT,
-            hostname TEXT,
-            useragent TEXT,
-            requestmethod TEXT,
-            querystring TEXT,
-            time DATETIME,
-            postjson TEXT,
-            headers TEXT,
-            url TEXT,
-            reported NUMERIC
-            );
-    """)
-    conn.commit()
-    c.close()
-    conn.close()
-    #print('Bots database initialized.')
+    with sqlite3.connect("bots.db") as conn:
+        c = conn.cursor()
+        c.execute("""
+                CREATE TABLE IF NOT EXISTS bots(
+                id INTEGER PRIMARY KEY,
+                remoteaddr TEXT,
+                hostname TEXT,
+                useragent TEXT,
+                requestmethod TEXT,
+                querystring TEXT,
+                time DATETIME,
+                postjson TEXT,
+                headers TEXT,
+                url TEXT,
+                reported NUMERIC
+                );
+        """)
+        #logging.debug('Bots table initialized.')
 
-    # Create Logins table
-    conn = sqlite3.connect("bots.db")
-    c = conn.cursor()
-    c.execute("""
-            CREATE TABLE IF NOT EXISTS logins(
-            id INTEGER PRIMARY KEY,
-            remoteaddr TEXT,
-            username TEXT,
-            password TEXT,
-            time DATETIME
-            );
-    """)
-    conn.commit()
-    c.close()
+        # Create Logins table
+        c.execute("""
+                CREATE TABLE IF NOT EXISTS logins(
+                id INTEGER PRIMARY KEY,
+                remoteaddr TEXT,
+                username TEXT,
+                password TEXT,
+                time DATETIME
+                );
+        """)
+
+        conn.commit()
+        c.close()
     conn.close()
-    #print('Logins database intialized.')
+        #logging.debug('Logins table intialized.')
 
 createDatabase()
 
@@ -142,34 +138,36 @@ def index(u_path):
 @login_required
 def stats():
     """ Pull the most recent requests from bots.db and pass data to stats template to display. """
-    conn = sqlite3.connect("bots.db")
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    sqlQuery = "SELECT * FROM bots ORDER BY id DESC LIMIT 100;"
-    c.execute(sqlQuery)
-    stats = c.fetchall()
+    with sqlite3.connect("bots.db") as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
 
-    # get total number of rows (= number of hits)
-    sqlQuery = "SELECT COUNT(*) FROM bots"
-    c.execute(sqlQuery)
-    result = c.fetchone()
-    totalHits = result[0]
+        # Grab most recent hits.
+        sqlQuery = "SELECT * FROM bots ORDER BY id DESC LIMIT 100;"
+        c.execute(sqlQuery)
+        stats = c.fetchall()
 
-    # Get most common IP
-    sqlQuery = """
-        SELECT remoteaddr, COUNT(*) AS count
-        FROM bots
-        GROUP BY remoteaddr
-        ORDER BY count DESC
-        LIMIT 1;
-        """
-    c.execute(sqlQuery)
-    top_ip = c.fetchone()
-    if top_ip:
-        top_ip_addr = top_ip['remoteaddr']
-        top_ip_count = top_ip['count']
+        # get total number of rows (= number of hits)
+        sqlQuery = "SELECT COUNT(*) FROM bots"
+        c.execute(sqlQuery)
+        result = c.fetchone()
+        totalHits = result[0]
 
-    c.close()
+        # Get most common IP
+        sqlQuery = """
+            SELECT remoteaddr, COUNT(*) AS count
+            FROM bots
+            GROUP BY remoteaddr
+            ORDER BY count DESC
+            LIMIT 1;
+            """
+        c.execute(sqlQuery)
+        top_ip = c.fetchone()
+        if top_ip:
+            top_ip_addr = top_ip['remoteaddr']
+            top_ip_count = top_ip['count']
+
+        c.close()
     conn.close()
 
     return render_template('stats.html',
@@ -191,7 +189,6 @@ def stats():
 @login_required
 def loginStats():
     """ Query db for login attempts. """
-
     with sqlite3.connect('bots.db') as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
@@ -226,6 +223,7 @@ def ipStats(ipAddr):
         dataTuple = (ipAddr,)
         c.execute(sqlQuery, dataTuple)
         ipStats = c.fetchall()
+
         c.close()
     conn.close()
 
@@ -237,20 +235,22 @@ def ipStats(ipAddr):
 @main.route('/stats/method/<method>', methods = ['GET'])
 @login_required
 def methodStats(method):
-    """ Get stats by request method """
+    """ Get records by request method """
+    # Flash an error message if querying for a method not in db
     if method not in ('GET', 'POST', 'HEAD'):
         flash('Bad request. Try /method/GET or /method/POST', 'error')
         return render_template('index.html')
-    conn = sqlite3.connect('bots.db')
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    sqlQuery = """
-        SELECT * FROM bots WHERE requestmethod = ? ORDER BY id DESC;
-        """
-    dataTuple = (method,)
-    c.execute(sqlQuery, dataTuple)
-    methodStats = c.fetchall()
-    c.close()
+
+    with sqlite3.connect('bots.db') as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        sqlQuery = """
+            SELECT * FROM bots WHERE requestmethod = ? ORDER BY id DESC;
+            """
+        dataTuple = (method,)
+        c.execute(sqlQuery, dataTuple)
+        methodStats = c.fetchall()
+        c.close()
     conn.close()
 
     return render_template('stats.html',
@@ -262,19 +262,20 @@ def methodStats(method):
 @main.route('/stats/useragent', methods = ['GET'])
 @login_required
 def uaStats():
-    ua = unquote(request.args.get('ua', ''))
     """ Get stats matching the user agent string. """
-    conn = sqlite3.connect('bots.db')
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    # Query for matching user agent
-    sqlQuery = """
-        SELECT * FROM bots WHERE useragent = ? ORDER BY id DESC;
-        """
-    dataTuple = (ua,)
-    c.execute(sqlQuery, dataTuple)
-    uaStats = c.fetchall()
-    c.close()
+    ua = unquote(request.args.get('ua', '')) #The link on stats page encodes it
+
+    with sqlite3.connect('bots.db') as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        # Query for matching user agent
+        sqlQuery = """
+            SELECT * FROM bots WHERE useragent = ? ORDER BY id DESC;
+            """
+        dataTuple = (ua,)
+        c.execute(sqlQuery, dataTuple)
+        uaStats = c.fetchall()
+        c.close()
     conn.close()
 
     return render_template('stats.html',
@@ -286,19 +287,20 @@ def uaStats():
 @main.route('/stats/url', methods = ['GET'])
 @login_required
 def urlStats():
-    url = request.args.get('url', '')
     """ Get stats matching the URL. """
-    conn = sqlite3.connect('bots.db')
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    # Query for matching user agent
-    sqlQuery = """
-        SELECT * FROM bots WHERE url = ? ORDER BY id DESC;
-        """
-    dataTuple = (url,)
-    c.execute(sqlQuery, dataTuple)
-    urlStats = c.fetchall()
-    c.close()
+    url = request.args.get('url', '')
+
+    with sqlite3.connect('bots.db') as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        # Query for matching user agent
+        sqlQuery = """
+            SELECT * FROM bots WHERE url = ? ORDER BY id DESC;
+            """
+        dataTuple = (url,)
+        c.execute(sqlQuery, dataTuple)
+        urlStats = c.fetchall()
+        c.close()
     conn.close()
 
     return render_template('stats.html',
@@ -310,19 +312,20 @@ def urlStats():
 @main.route('/stats/query', methods = ['GET'])
 @login_required
 def queriesStats():
-    query_params = request.args.get('query', '')
     """ Get records matching the Query String. """
-    conn = sqlite3.connect('bots.db')
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    # Query for matching user agent
-    sqlQuery = """
-        SELECT * FROM bots WHERE querystring = ? ORDER BY id DESC;
-        """
-    dataTuple = (query_params,)
-    c.execute(sqlQuery, dataTuple)
-    queriesStats = c.fetchall()
-    c.close()
+    query_params = request.args.get('query', '')
+
+    with sqlite3.connect('bots.db') as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        # Query for matching user agent
+        sqlQuery = """
+            SELECT * FROM bots WHERE querystring = ? ORDER BY id DESC;
+            """
+        dataTuple = (query_params,)
+        c.execute(sqlQuery, dataTuple)
+        queriesStats = c.fetchall()
+        c.close()
     conn.close()
 
     return render_template('stats.html',
@@ -336,17 +339,18 @@ def queriesStats():
 def bodyStats():
     """ Get records matching the POST request body. """
     body = request.args.get('body')
-    conn = sqlite3.connect('bots.db')
-    conn.row_factory = sqlite3.Row
-    c = conn.cursor()
-    # Query for matching request body
-    sqlQuery = """
-        SELECT * FROM bots WHERE postjson = ? ORDER BY id DESC;
-        """
-    dataTuple = (body,)
-    c.execute(sqlQuery, dataTuple)
-    bodyStats = c.fetchall()
-    c.close()
+
+    with sqlite3.connect('bots.db') as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        # Query for matching request body
+        sqlQuery = """
+            SELECT * FROM bots WHERE postjson = ? ORDER BY id DESC;
+            """
+        dataTuple = (body,)
+        c.execute(sqlQuery, dataTuple)
+        bodyStats = c.fetchall()
+        c.close()
     conn.close()
 
     return render_template('stats.html',

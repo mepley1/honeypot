@@ -5,7 +5,7 @@ import requests #for reporting
 import json
 import datetime
 import logging
-from .shared_functions import report_all_post
+from .auto_report import check_all_rules #The new report module. Will check rules + report
 from socket import gethostbyaddr
 from flask import request, render_template, jsonify, Response, send_from_directory, g, after_this_request, flash, Blueprint, current_app
 from flask_login import login_required, current_user
@@ -50,7 +50,7 @@ def createDatabase(): # note: change column names to just match http headers, th
         conn.commit()
         c.close()
     conn.close()
-        #logging.debug('Logins table intialized.')
+    #logging.debug('Logins table intialized.')
 
 createDatabase()
 
@@ -103,7 +103,7 @@ def index(u_path):
     else:
         posted_data = '' #If not a POST request, use blank
 
-    reported = report_all_post() #Report if POST request, and set reported to 1 or 0 (see shared_functions.py)
+    reported = check_all_rules() #see auto_report.py
 
     sqlQuery = """INSERT INTO bots
         (id,remoteaddr,hostname,useragent,requestmethod,querystring,time,postjson,headers,url,reported)
@@ -154,6 +154,7 @@ def stats():
         totalHits = result[0]
 
         # Get most common IP
+        '''
         sqlQuery = """
             SELECT remoteaddr, COUNT(*) AS count
             FROM bots
@@ -161,6 +162,29 @@ def stats():
             ORDER BY count DESC
             LIMIT 1;
             """
+        '''
+
+        #Get most common IP; break tie in favor of most recent
+        sqlQuery = """
+        SELECT remoteaddr, COUNT(*) AS count
+        FROM bots
+        GROUP BY remoteaddr
+        HAVING count = (
+            SELECT MAX(count)
+            FROM (
+                SELECT COUNT(*) AS count
+                FROM bots
+                GROUP BY remoteaddr
+            )
+        )
+        ORDER BY (
+            SELECT MAX(time)
+            FROM bots AS b
+            WHERE b.remoteaddr = bots.remoteaddr
+        ), count DESC
+        LIMIT 1;
+        """
+
         c.execute(sqlQuery)
         top_ip = c.fetchone()
         if top_ip:

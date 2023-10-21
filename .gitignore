@@ -328,3 +328,4 @@ test-scripts/
 launch.sh
 untracked/
 config.py
+project/config.py

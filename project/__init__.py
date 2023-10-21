@@ -1,6 +1,7 @@
 """ The linter says even an __init__.py should have a docstring. """
 
 import secrets
+import logging
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
@@ -19,6 +20,7 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///db.sqlite'
     app.config['PERMANENT_SESSION_LIFETIME'] = 86400
     app.config.from_pyfile('config.py')
+    app.config.from_prefixed_env()
 
     db.init_app(app)
 
@@ -42,5 +44,7 @@ def create_app():
     # blueprint for non-auth parts of app
     from .main import main as main_blueprint
     app.register_blueprint(main_blueprint)
+
+    logging.basicConfig(encoding='utf-8', level=logging.INFO)
 
     return app

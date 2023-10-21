@@ -11,9 +11,14 @@
 <body>
 	{% include 'header.html' %}
 	<div class="everything"><center>
-        <h1>Stats -> {{statName}}</h1>
+        <h1><span class="dim">Stats -></span> {{statName}}</h1>
         <div class="content">
             <p>Total hits in database: {{totalHits}}</p>
+
+            {% if top_ip %}
+            <p>Most common IP: <a href="{{url_for('main.ipStats', ipAddr=top_ip['remoteaddr'])}}">{{top_ip['remoteaddr']}}</a> seen {{top_ip['count']}} times.</p>
+            {% endif %}
+
             <h2>100 Most Recent Requests</h2>
 
             <div id="dataToggles">
@@ -48,6 +53,9 @@
                 <label>
                     <input type="checkbox" name="dataCheckbox" value="dataLinks" checked>Info Links
                 </label>
+                <label>
+                    <input type="checkbox" name="dataCheckbox" value="dataReported">Reported
+                </label>
             </div>
             <br />
 
@@ -64,20 +72,22 @@
                     <th class="dataUA selectt">User Agent</th>
                     <th class="dataHeaders selectt hidden">Headers</th>
                     <th class="dataLinks">Links</th>
+                    <th class="dataReported hidden">Reported</th>
                 </tr>
                 </thead>
                 {% for row in stats: %}
                 <tr>
                     <td class="dataIP ipToLink selectt"><a href="{{url_for('main.ipStats', ipAddr=row['remoteaddr'])}}">{{row['remoteaddr']}}</a></td>
                     <td class="dataURL dataToLink selectt"><a href="{{url_for('main.urlStats', url=row['url'])}}">{{row['url']}}</a></td>
-                    <td class="dataMethod selectt">{{row['requestmethod']}}</td>
+                    <td class="dataMethod dataToLink selectt"><a href="{{url_for('main.methodStats', method=row['requestmethod'])}}">{{row['requestmethod']}}</a></td>
                     <td class="dataQueryString dataToLink mono smaller selectt"><a href="{{url_for('main.queriesStats', query=row['querystring'])}}">{{row['querystring']}}</a></td>
                     <td class="dataHostname selectt">{{row['hostname']}}</td>
                     <td class="dataTime selectt">{{row['time']}}</td>
-                    <td class="dataPostData mono smaller selectt">{{row['postjson']}}</td>
-                    <td class="dataUA dataToLink selectt"><a href="{{url_for('main.uaStats', ua=row['useragent'])}}">{{row['useragent']|e}}</a></td>
+                    <td class="dataPostData dataToLink mono smaller selectt"><a href="{{url_for('main.bodyStats', body=row['postjson'])}}">{{row['postjson']}}</a></td>
+                    <td class="dataUA dataToLink selectt"><a href="{{url_for('main.uaStats', ua=row['useragent']|urlencode)}}">{{row['useragent']|e}}</a></td>
                     <td class="dataHeaders smallerer mono selectt hidden">{{row['headers']}}</td>
                     <td class="dataLinks ipToLink"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> <span class="dim">|</span> <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a></td>
+                    <td class="dataReported hidden">{{row['reported']}}</td>
                 </tr>
                 {% endfor %}
             </table>

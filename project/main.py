@@ -359,6 +359,60 @@ def bodyStats():
         statName = f"Request Body: {body}"
         )
 
+@main.route('/stats/reported', methods = ['GET'])
+@login_required
+def reported_stats():
+    """ Get records of requests that were reported. """
+    reported_status = request.args.get('reported')
+    # Flash an error message if querying for a method not in db
+    if reported_status not in ('0', '1'):
+        flash('Bad request. Try reported=0 or reported=1', 'error')
+        return render_template('index.html')
+
+    with sqlite3.connect('bots.db') as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        # Query for reported 0/1
+        sql_query = """
+            SELECT * FROM bots
+            WHERE reported = ?
+            ORDER BY id DESC;
+            """
+        data_tuple = (reported_status,)
+        c.execute(sql_query, data_tuple)
+        reported_stats = c.fetchall()
+
+        # Get total number of reports, most reported IP
+        sql_query = """
+            SELECT remoteaddr, COUNT(*) AS count
+            FROM bots
+            WHERE reported = ?
+            GROUP BY remoteaddr
+            ORDER BY count DESC, MAX(id) DESC
+            LIMIT 1;
+            """
+        c.execute(sql_query, data_tuple)
+        top_reported = c.fetchone()
+        top_reported_ip_count = top_reported['count']
+        top_reported_ip_addr = top_reported['remoteaddr']
+
+        c.close()
+    conn.close()
+
+    # Flash a message based on reported or unreported
+    if reported_status == '1':
+        message_a = f'Most reported IP: {top_reported_ip_addr}, reported {top_reported_ip_count} times.'
+    elif reported_status == '0':
+        message_a = f'Most unreported IP: {top_reported_ip_addr}, slipped by {top_reported_ip_count} times.'
+
+    flash(message_a, 'info')
+    return render_template('stats.html',
+        stats = reported_stats,
+        totalHits = len(reported_stats),
+        statName = f'Reported (1=True, 0=False): {reported_status}',
+        #top_ip = top_reported
+        )
+
 # Misc routes
 
 @main.route('/profile')

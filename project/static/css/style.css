@@ -69,7 +69,7 @@ div.content{
 	background-color: var(--content-bg-color);
 	margin: auto;
 	text-align: center;
-	border-radius: 6px;
+	border-radius: 8px;
 	/* overflow: ; NEED TO SET OVERFLOW TO WRAP */
 }
 
@@ -84,12 +84,12 @@ div.contentSmall{
 	background-color: var(--form-bg-color);
 	margin: auto;
 	text-align: center;
-	border-radius: 6px;
+	border-radius: 8px;
 }
 
 .submit-button{
 	border: 2px solid var(--main-accent-color);
-	border-radius: 6px;
+	border-radius: 8px;
 	font-size: 18px;
 	background-color: var(--main-accent-color);
 	color: #FFFFFF;
@@ -108,7 +108,7 @@ div.contentSmall{
 .form-box{
 	width: 90%;
 	border: none;
-	border-radius: 6px;
+	border-radius: 8px;
 	font-family: var(--text-font), sans-serif;
 	font-size: 20px;
 	background-color: var(--main-bg-color);
@@ -361,7 +361,7 @@ table{
 	margin: auto;
 	overflow-wrap: break-word;
 	border-collapse: collapse;
-	font-size: 0.9em;
+	font-size: 0.94em;
 }
 
 tr:nth-child(even) {
@@ -402,6 +402,7 @@ table thead tr th {
 	color: var(--midgray);
 	padding-bottom: 1em;
 	font-weight: 300;
+	letter-spacing: 1px;
 }
 
 /* remote IP on the stats page */

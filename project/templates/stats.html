@@ -19,6 +19,14 @@
             <p>Most common IP: <a href="{{url_for('main.ipStats', ipAddr=top_ip['remoteaddr'])}}">{{top_ip['remoteaddr']}}</a> seen {{top_ip['count']}} times.</p>
             {% endif %}
 
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, msg in messages %}
+                        <p class="{{category}}">{{msg}}</p>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
             <h2>100 Most Recent Requests</h2>
 
             <div id="dataToggles">

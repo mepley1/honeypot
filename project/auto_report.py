@@ -45,7 +45,7 @@ def submit_report(report_comment, report_categories):
 def is_env_probing(request):
     """ Returns True if path contains any of target strings. """
     path = request.path
-    env_probe_paths = ['.env', 'config', 'admin', '.git', 'backend', 'phpinfo', '/eval', 'echo.php']
+    env_probe_paths = ['.env', 'config', 'admin', '.git', 'backend', 'phpinfo', '/eval', 'echo.php', 'webui']
     return any(target in path for target in env_probe_paths)
 
 def is_phpmyadmin_probe(request):

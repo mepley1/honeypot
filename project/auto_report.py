@@ -168,8 +168,16 @@ def check_all_rules():
     
     # If any rules matched, report it.
     if rules_matched > 0:
-        reported = submit_report(report_comment, report_categories)
-        logging.info(f'Reported to AbuseIPDB. Matched {rules_matched} rules')
+        if current_app.config.get('ABUSEIPDB'):
+            try:
+                reported = submit_report(report_comment, report_categories)
+                logging.info(f'Reported to AbuseIPDB. Matched {rules_matched} rules')
+            except Exception as e:
+                reported = 0
+                logging.error(str(e))
+        else:
+            reported = 0
+            logging.info(f'Matched {rules_matched} rules. No AbuseIPDB key found, not reported.')
         return reported
     else:
         reported = 0

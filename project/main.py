@@ -153,38 +153,14 @@ def stats():
         result = c.fetchone()
         totalHits = result[0]
 
-        # Get most common IP
-        '''
+        # Get most common IP. Break ties in favor of most recent.
         sqlQuery = """
             SELECT remoteaddr, COUNT(*) AS count
             FROM bots
             GROUP BY remoteaddr
-            ORDER BY count DESC
+            ORDER BY count DESC, MAX(id) DESC
             LIMIT 1;
             """
-        '''
-
-        #Get most common IP; break tie in favor of most recent
-        sqlQuery = """
-        SELECT remoteaddr, COUNT(*) AS count
-        FROM bots
-        GROUP BY remoteaddr
-        HAVING count = (
-            SELECT MAX(count)
-            FROM (
-                SELECT COUNT(*) AS count
-                FROM bots
-                GROUP BY remoteaddr
-            )
-        )
-        ORDER BY (
-            SELECT MAX(time)
-            FROM bots AS b
-            WHERE b.remoteaddr = bots.remoteaddr
-        ), count DESC
-        LIMIT 1;
-        """
-
         c.execute(sqlQuery)
         top_ip = c.fetchone()
         if top_ip:

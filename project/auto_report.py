@@ -45,10 +45,11 @@ def submit_report(report_comment, report_categories):
 def is_env_probing(request):
     """ Returns True if path contains any of target strings. """
     path = request.path
-    env_probe_paths = ['.env', 'config', 'admin', '.git', 'backend', 'phpinfo', '/eval']
+    env_probe_paths = ['.env', 'config', 'admin', '.git', 'backend', 'phpinfo', '/eval', 'echo.php']
     return any(target in path for target in env_probe_paths)
 
 def is_phpmyadmin_probe(request):
+    """ Probing for PHPMyAdmin instances. """
     path = request.path
     pma_probe_paths = ['phpmyadmin', '/mysql/', '/sqladmin/', '/mysqlmanager/', '/myadmin/']
     return any(target in path for target in pma_probe_paths)
@@ -95,8 +96,8 @@ def is_research(request):
     if user_agent is None:
         return False
     #return any(target in user_agent for target in research_user_agents)
-    for target in research_user_agents:
-        if target in user_agent:
+    for research_user_agent in research_user_agents:
+        if research_user_agent in user_agent:
             return True
     return False
 

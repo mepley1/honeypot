@@ -138,13 +138,23 @@ def index(u_path):
 @login_required
 def stats():
     """ Pull the most recent requests from bots.db and pass data to stats template to display. """
+    records_limit = request.args.get('limit') or '100' # Limit to certain # of records
+
+    if records_limit.isnumeric():
+        records_limit = int(records_limit)
+    else:
+        #flash('Bad request. Limit must be an integer.', 'error')
+        #return render_template('index.html')
+        return jsonify({'error' : {'Bad request':'$limit must be a positive integer.'}}), 400
+
     with sqlite3.connect("bots.db") as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
 
         # Grab most recent hits.
-        sqlQuery = "SELECT * FROM bots ORDER BY id DESC LIMIT 100;"
-        c.execute(sqlQuery)
+        sqlQuery = "SELECT * FROM bots ORDER BY id DESC LIMIT ?;"
+        data_tuple = (records_limit,)
+        c.execute(sqlQuery, data_tuple)
         stats = c.fetchall()
 
         # get total number of rows (= number of hits)
@@ -173,7 +183,7 @@ def stats():
     return render_template('stats.html',
         stats = stats,
         totalHits = totalHits,
-        statName = 'Most Recent HTTP Requests',
+        statName = f'Most Recent {records_limit} HTTP Requests',
         top_ip = top_ip
         )
 

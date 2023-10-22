@@ -42,17 +42,20 @@ def submit_report(report_comment, report_categories):
 
 # BEGIN RULES
 
-def is_env_probing(request):
-    """ Returns True if path contains any of target strings. """
+def is_env_probe(request):
+    """ Returns True if path contains any of target strings. Only catch GET. """
     path = request.path
+    method = request.method
     env_probe_paths = ['.env', 'config', 'admin', '.git', 'backend', 'phpinfo', '/eval', 'echo.php', 'webui']
-    return any(target in path for target in env_probe_paths)
+    return any(target in path for target in env_probe_paths) if method == 'GET' else False
 
 def is_phpmyadmin_probe(request):
     """ Probing for PHPMyAdmin instances. """
     path = request.path
     pma_probe_paths = ['phpmyadmin', '/mysql/', '/sqladmin/', '/mysqlmanager/', '/myadmin/']
     return any(target in path for target in pma_probe_paths)
+
+# More specific bots
 
 def is_mirai_dvr(request):
     """ Mirai botnet looking for Hi3520 dvr interfaces to exploit.
@@ -62,16 +65,21 @@ def is_mirai_dvr(request):
     path = request.path
     body = request.data
     user_agent = request.headers.get('User-Agent')
-
     mirai_dvr_path = '/dvr/cmd'
     mirai_dvr_payloads = ['<DVR Platform="Hi3520">', '<SetConfiguration File="service.xml">', 
         '&wget', '|sh', 'NTP Enable=', 'http://']
-
     # If path==/dvr/cmd and any of the payload strings are there, it's definitely an attempt,
     # though not necessarily always Mirai- would have to check the file it downloads, but each one
     # that I've seen has been a Mirai loader.
     if path == mirai_dvr_path:
         return any(target in body for target in mirai_dvr_payloads)
+
+def is_androx(request):
+    """ AndroxGh0st malware, searching for leaked app secrets in exposed Laravel .env.
+    Method usually POST. """
+    path = request.path
+    body = request.get_data()
+    return '.env' in path and 'androxgh0st' in body #True if both conditions met, else False
 
 # more generic rules
 
@@ -121,7 +129,7 @@ def check_all_rules():
     rules_matched = 0 #This will be our "score"; if score > 0, then report it.
 
     # Check against our rules. There's probably a better way to do this.
-    if is_env_probing(request):
+    if is_env_probe(request):
         report_comment = append_to_report(f'Environment/config probe: {request.method} {request.path}\n',
             '21',
             report_categories,
@@ -145,12 +153,20 @@ def check_all_rules():
         logging.debug('Rule matched: HiSense DVR exploit')
         rules_matched += 1
 
+    if is_androx(request):
+        append_to_report(f'Detected AndroxGh0st: {request.data}\n',
+            '21',
+            report_categories,
+            report_comment)
+        logging.debug('Rule matched: AndroxGh0st')
+        rules_matched += 1
+
     if is_post_request(request):
         report_comment = append_to_report(f'Suspicious POST request: {request.method} {request.path}\n',
             '21',
             report_categories,
             report_comment)
-        logging.debug('Rule matched: suspicious POST request')
+        logging.debug('Rule matched: any POST request')
         rules_matched += 1
 
     if no_host_header(request):
@@ -172,9 +188,9 @@ def check_all_rules():
             try:
                 reported = submit_report(report_comment, report_categories)
                 logging.info(f'Reported to AbuseIPDB. Matched {rules_matched} rules')
-            except Exception as e:
+            except requests.exceptions.ConnectionError as e:
                 reported = 0
-                logging.error(str(e))
+                logging.error(f'Connection error while submitting report: {str(e)}')
         else:
             reported = 0
             logging.info(f'Matched {rules_matched} rules. No AbuseIPDB key found, not reported.')

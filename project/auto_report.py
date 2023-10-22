@@ -37,7 +37,6 @@ def submit_report(report_comment, report_categories):
             logging.error(error['detail'])
         reported = 0
     else:
-        logging.info(f'Reported to AbuseIPDB. Matched {rules_matched} rules')
         reported = 1
     return reported
 
@@ -46,7 +45,7 @@ def submit_report(report_comment, report_categories):
 def is_env_probing(request):
     """ Returns True if path contains any of target strings. """
     path = request.path
-    env_probe_paths = ['.env', 'config', 'admin', '.git', 'backend', 'phpinfo']
+    env_probe_paths = ['.env', 'config', 'admin', '.git', 'backend', 'phpinfo', '/eval']
     return any(target in path for target in env_probe_paths)
 
 def is_phpmyadmin_probe(request):
@@ -93,7 +92,13 @@ def is_research(request):
         'CensysInspect',
         'Expanse, a Palo Alto Networks company',
     ]
-    return any(target in user_agent for target in research_user_agents)
+    if user_agent is None:
+        return False
+    #return any(target in user_agent for target in research_user_agents)
+    for target in research_user_agents:
+        if target in user_agent:
+            return True
+    return False
 
 # END RULES
 
@@ -121,10 +126,10 @@ def check_all_rules():
             report_categories,
             report_comment)
         rules_matched += 1
-        logging.debug('Rule matched: Environment probing')
+        logging.debug('Rule matched: Environment probe')
 
     if is_phpmyadmin_probe(request):
-        append_to_report(f'PhpMyAdmin probing: {request.method} {request.path}\n',
+        append_to_report(f'PhpMyAdmin probe: {request.method} {request.path}\n',
             '21',
             report_categories,
             report_comment)
@@ -163,6 +168,7 @@ def check_all_rules():
     # If any rules matched, report it.
     if rules_matched > 0:
         reported = submit_report(report_comment, report_categories)
+        logging.info(f'Reported to AbuseIPDB. Matched {rules_matched} rules')
         return reported
     else:
         reported = 0

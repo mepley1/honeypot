@@ -1,8 +1,8 @@
 """ Functions related to auto-reporting. """
 
-import logging
 import datetime
 import json
+import logging
 import requests
 from flask import request, current_app
 
@@ -37,7 +37,7 @@ def submit_report(report_comment, report_categories):
             logging.error(error['detail'])
         reported = 0
     else:
-        logging.info('Success.')
+        logging.info(f'Reported to AbuseIPDB. Matched {rules_matched} rules')
         reported = 1
     return reported
 
@@ -54,17 +54,40 @@ def is_phpmyadmin_probe(request):
     pma_probe_paths = ['phpmyadmin', '/mysql/', '/sqladmin/', '/mysqlmanager/', '/myadmin/']
     return any(target in path for target in pma_probe_paths)
 
+def is_mirai_dvr(request):
+    """ Mirai botnet looking for Hi3520 dvr interfaces to exploit.
+    Usually a POST to /dvr/cmd with user-agent Abcd, posting XML including a wget command injection
+    to download a Mirai loader with varying filename, followed by another POST attempting to
+    trigger a device restart. """
+    path = request.path
+    body = request.data
+    user_agent = request.headers.get('User-Agent')
+
+    mirai_dvr_path = '/dvr/cmd'
+    mirai_dvr_payloads = ['<DVR Platform="Hi3520">', '<SetConfiguration File="service.xml">', 
+        '&wget', '|sh', 'NTP Enable=', 'http://']
+
+    # If path==/dvr/cmd and any of the payload strings are there, it's definitely an attempt,
+    # though not necessarily always Mirai- would have to check the file it downloads, but each one
+    # that I've seen has been a Mirai loader.
+    if path == mirai_dvr_path:
+        return any(target in body for target in mirai_dvr_payloads)
+
+# more generic rules
+
 def is_post_request(request):
     """ Return True if POST. Any POST requests we receive are suspicious to begin with. """
     return request.method == 'POST'
 
 def no_host_header(request):
     """ True if request contains no HOST header. """
-    host_header = request.headers.get("Host")
+    host_header = request.headers.get('Host')
     return host_header is None
 
+# some misc rules to help prevent false positives
+
 def is_research(request):
-    """ We can reduce score if it's known research orgs, don't really need to report them. """
+    """ We can reduce score if it's known research orgs/scanners, don't really need to report. """
     user_agent = request.headers.get('User-Agent')
     research_user_agents = [
         'CensysInspect',
@@ -93,7 +116,7 @@ def check_all_rules():
 
     # Check against our rules. There's probably a better way to do this.
     if is_env_probing(request):
-        report_comment = append_to_report(f'Environment/config probing: {request.method} {request.path}\n',
+        report_comment = append_to_report(f'Environment/config probe: {request.method} {request.path}\n',
             '21',
             report_categories,
             report_comment)
@@ -107,6 +130,14 @@ def check_all_rules():
             report_comment)
         rules_matched += 1
         logging.debug('Rule matched: PhpMyAdmin probing')
+
+    if is_mirai_dvr(request):
+        append_to_report(f'HiSense DVR exploit: {request.method} {request.path}\n'
+            '23',
+            report_categories,
+            report_comment)
+        logging.debug('Rule matched: HiSense DVR exploit')
+        rules_matched += 1
 
     if is_post_request(request):
         report_comment = append_to_report(f'Suspicious POST request: {request.method} {request.path}\n',
@@ -124,12 +155,16 @@ def check_all_rules():
         logging.debug('Rule matched: no Host header.')
         rules_matched += 1
     
-    # If no matching rules, then don't report it. Need to figure this out.
+    # Lower the score for known researchers
+    if is_research(request):
+        if rules_matched > 0:
+            rules_matched -= 1
+    
+    # If any rules matched, report it.
     if rules_matched > 0:
         reported = submit_report(report_comment, report_categories)
-        logging.info(f'>> Reported to AbuseIPDB. Matched {rules_matched} rules')
         return reported
     else:
         reported = 0
-        logging.debug('Request matched 0 reporting rules.')
+        logging.debug('Request matched no report rules.')
         return reported

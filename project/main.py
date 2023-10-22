@@ -345,7 +345,7 @@ def bodyStats():
         c = conn.cursor()
         # Query for matching request body
         sqlQuery = """
-            SELECT * FROM bots WHERE postjson = ? ORDER BY id DESC;
+            SELECT * FROM bots WHERE (postjson LIKE ?) ORDER BY id DESC;
             """
         dataTuple = (body,)
         c.execute(sqlQuery, dataTuple)

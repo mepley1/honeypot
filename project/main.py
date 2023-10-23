@@ -143,9 +143,8 @@ def stats():
     if records_limit.isnumeric():
         records_limit = int(records_limit)
     else:
-        #flash('Bad request. Limit must be an integer.', 'error')
-        #return render_template('index.html')
-        return jsonify({'error' : {'Bad request':'$limit must be a positive integer.'}}), 400
+        flash('Bad request. Limit must be a positive integer.', 'error')
+        return render_template('index.html')
 
     with sqlite3.connect("bots.db") as conn:
         conn.row_factory = sqlite3.Row
@@ -195,7 +194,6 @@ def stats():
 
 # Login attempt stats
 @main.route('/stats/logins')
-@main.route('/loginstats')
 @login_required
 def loginStats():
     """ Query db for login attempts. """

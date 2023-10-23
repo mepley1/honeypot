@@ -50,7 +50,6 @@ def createDatabase(): # note: change column names to just match http headers, th
         conn.commit()
         c.close()
     conn.close()
-    #logging.debug('Logins table intialized.')
 
 createDatabase()
 
@@ -68,8 +67,8 @@ def index(u_path):
     logging.info(request)
 
     ## note: I *really* need to change these variable names to match the database/headers better
-
-    if 'X-Real-Ip' in request.headers:#need to get real IP from behind Nginx proxy
+    # Need to get real IP from behind Nginx proxy
+    if 'X-Real-Ip' in request.headers:
         clientIP = request.headers.get('X-Real-Ip')
     else:
         clientIP = request.remote_addr
@@ -92,12 +91,16 @@ def index(u_path):
         try:
             posted_json = request.json
             posted_data = json.dumps(posted_json)
-        # If not valid JSON, that will fail, so try again as request.data in case it's XML etc
         except:
+            # If not valid JSON, fall back to request.data
             try:
-                #bad_data = request.data
-                bad_data = request.get_data() #get_data will save it as is
+                saved_data = request.get_data() #If calling get_data() AFTER request.data, it'll return empty bytes obj, so save it first
+                bad_data = request.data.decode('utf-8')
                 posted_data = bad_data
+                if not posted_data:
+                    #If request.data can't parse it and returns an empty object
+                    posted_data = saved_data
+                    logging.debug('Couldnt parse data, falling back to request.get_data')
             except Exception as e:
                 posted_data = str(e) # So I can see if anything is still failing
     else:

@@ -46,14 +46,19 @@ def is_env_probe(request):
     """ Returns True if path contains any of target strings. Only catch GET. """
     path = request.path
     method = request.method
-    env_probe_paths = ['.env', 'config', 'admin', '.git', 'backend', 'phpinfo', '/eval', 'echo.php', 'webui']
-    return any(target in path for target in env_probe_paths) if method == 'GET' else False
+    env_probe_paths = ['.env', 'config', '/admin', '.git', 'backend', 'phpinfo', '/eval', 'echo.php', 'webui', 'api/']
+    return any(target in path.lower() for target in env_probe_paths) if method == 'GET' else False
 
 def is_phpmyadmin_probe(request):
     """ Probing for PHPMyAdmin instances. """
     path = request.path
     pma_probe_paths = ['phpmyadmin', '/mysql/', '/sqladmin/', '/mysqlmanager/', '/myadmin/']
-    return any(target in path for target in pma_probe_paths)
+    return any(target in path.lower() for target in pma_probe_paths)
+
+def is_misc_software_probe(request):
+    path = request.path
+    misc_software_probe_paths = ['/adminer', '/ReportServer']
+    return any(target in path for target in misc_software_probe_paths)
 
 # More specific bots
 
@@ -63,23 +68,24 @@ def is_mirai_dvr(request):
     to download a Mirai loader with varying filename, followed by another POST attempting to
     trigger a device restart. """
     path = request.path
-    body = request.data
-    user_agent = request.headers.get('User-Agent')
     mirai_dvr_path = '/dvr/cmd'
-    mirai_dvr_payloads = ['<DVR Platform="Hi3520">', '<SetConfiguration File="service.xml">', 
-        '&wget', '|sh', 'NTP Enable=', 'http://']
-    # If path==/dvr/cmd and any of the payload strings are there, it's definitely an attempt,
-    # though not necessarily always Mirai- would have to check the file it downloads, but each one
-    # that I've seen has been a Mirai loader.
-    if path == mirai_dvr_path:
-        return any(target in body for target in mirai_dvr_payloads)
+    if request.method == 'POST' and path.lower() == mirai_dvr_path and request.content_type == 'application/x-www-form-urlencoded':
+        form_data = request.form.get('data')
+        mirai_dvr_payloads = ['<DVR Platform="Hi3520">', '<SetConfiguration File="service.xml">', 
+            '&wget', '|sh', 'NTP Enable=', 'http://']
+        # If path==/dvr/cmd and any of the payload strings are there, it's definitely an attempt,
+        # though not necessarily always Mirai- would have to check the file it downloads, but each one
+        # that I've seen has been a Mirai loader.
+        return any(target in form_data for target in mirai_dvr_payloads)
+    return False
 
 def is_androx(request):
     """ AndroxGh0st malware, searching for leaked app secrets in exposed Laravel .env.
-    Method usually POST. """
-    path = request.path
-    body = request.get_data()
-    return '.env' in path and 'androxgh0st' in body #True if both conditions met, else False
+    Method usually POST as form data. Path varies. """
+    if request.method == 'POST' and request.content_type == 'application/x-www-form-urlencoded':
+        form_data = request.form.get('data', '')
+        return 'androxgh0st' in form_data #True if both conditions met, else False
+    return False
 
 # more generic rules
 
@@ -111,77 +117,52 @@ def is_research(request):
 
 # END RULES
 
-def append_to_report(comment, category, report_categories, report_comment):
+def append_to_report(comment, category_codes, report_categories, report_comment):
     """ Append a note and category to the report params. """
-    if category not in report_categories:
-        report_categories.add(category)
+    for category in category_codes:
+        # Avoid duplicate categories
+        if category not in report_categories:
+            report_categories.add(category)
     report_comment += comment
     return report_comment
 
 def check_all_rules():
-    """ This is the command we'll call from the main route; returns reported 0/1.
-    Usage: reported = check_all_rules() """
+    """ Will call this function from the main route; Check request object against all
+    detection rules, and submit report to AbuseIPDB.
+    Usage: reported = check_all_rules() #returns reported = 0/1. """
 
     # Initialize these empty, then append_to_report() will fill them in if any rules match.
     report_categories = set()
-    report_comment = "Honeypot detected attack:\n"
-
+    report_comment = f'Honeypot detected attack: {request.method} {request.path}\nDetections triggered: '
     rules_matched = 0 #This will be our "score"; if score > 0, then report it.
 
-    # Check against our rules. There's probably a better way to do this.
-    if is_env_probe(request):
-        report_comment = append_to_report(f'Environment/config probe: {request.method} {request.path}\n',
-            '21',
-            report_categories,
-            report_comment)
-        rules_matched += 1
-        logging.debug('Rule matched: Environment probe')
+    # Define rules as a list of tuples, where each tuple contains:
+    # (rule function, log message, category code)
+    rules = [
+        (is_env_probe, 'Environment/config probe', ['21']),
+        (is_phpmyadmin_probe, 'PhpMyAdmin probe', ['21']),
+        (is_mirai_dvr, 'HiSense DVR exploit', ['23','21']),
+        (is_androx, 'Detected AndroxGh0st', ['21']),
+        (is_post_request, 'Suspicious POST request', ['21']),
+        (no_host_header, 'No Host header', ['21']),
+    ]
 
-    if is_phpmyadmin_probe(request):
-        append_to_report(f'PhpMyAdmin probe: {request.method} {request.path}\n',
-            '21',
-            report_categories,
-            report_comment)
-        rules_matched += 1
-        logging.debug('Rule matched: PhpMyAdmin probing')
+    for detection_rule, log_message, category_code in rules:
+        if detection_rule(request):
+            report_comment = append_to_report(
+                f'{log_message}\n',
+                category_code,
+                report_categories,
+                report_comment
+            )
+            logging.debug(f'Rule matched: {log_message}')
+            rules_matched += 1
 
-    if is_mirai_dvr(request):
-        append_to_report(f'HiSense DVR exploit: {request.method} {request.path}\n'
-            '23',
-            report_categories,
-            report_comment)
-        logging.debug('Rule matched: HiSense DVR exploit')
-        rules_matched += 1
-
-    if is_androx(request):
-        append_to_report(f'Detected AndroxGh0st: {request.data}\n',
-            '21',
-            report_categories,
-            report_comment)
-        logging.debug('Rule matched: AndroxGh0st')
-        rules_matched += 1
-
-    if is_post_request(request):
-        report_comment = append_to_report(f'Suspicious POST request: {request.method} {request.path}\n',
-            '21',
-            report_categories,
-            report_comment)
-        logging.debug('Rule matched: any POST request')
-        rules_matched += 1
-
-    if no_host_header(request):
-        report_comment = append_to_report(f'No Host header: {request.method} {request.path}\n',
-            '21',
-            report_categories,
-            report_comment)
-        logging.debug('Rule matched: no Host header.')
-        rules_matched += 1
-    
     # Lower the score for known researchers
     if is_research(request):
         if rules_matched > 0:
             rules_matched -= 1
-    
+
     # If any rules matched, report it.
     if rules_matched > 0:
         if current_app.config.get('ABUSEIPDB'):

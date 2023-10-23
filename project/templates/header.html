@@ -13,10 +13,11 @@
 		<li class="dropdown">
 			<a href="#" class="dropbtn">Stats</a>
 			<div class="dropdown-content">
-				<a href="{{url_for('main.stats')}}">Requests</a>
+				<a href="{{url_for('main.stats', limit='100')}}">Requests</a>
 				<a href="{{url_for('main.loginStats')}}">Logins</a>
 				<a href="{{url_for('main.methodStats', method='GET')}}">Method: GET</a>
 				<a href="{{url_for('main.methodStats', method='POST')}}">Method: POST</a>
+				<a href="{{url_for('main.reported_stats', reported='1')}}">Reported</a>
 			</div>
 		</li>
 		{% endif %}

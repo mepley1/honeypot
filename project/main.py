@@ -72,11 +72,12 @@ def index(u_path):
         clientIP = request.headers.get('X-Real-Ip')
     else:
         clientIP = request.remote_addr
-    
+
     try: # Get hostname by performing a DNS lookup
         clientHostname = gethostbyaddr(clientIP)[0]
     except:
         clientHostname = 'Unavailable'
+
     clientUserAgent = request.headers.get('User-Agent')
     reqMethod = request.method
     clientQuery = request.query_string.decode()
@@ -141,12 +142,12 @@ def index(u_path):
 @login_required
 def stats():
     """ Pull the most recent requests from bots.db and pass data to stats template to display. """
-    records_limit = request.args.get('limit') or '100' # Limit to certain # of records
+    records_limit = request.args.get('limit') or '100' # Limit to certain # of records, default 100
 
     if records_limit.isnumeric():
         records_limit = int(records_limit)
     else:
-        flash('Bad request. Limit must be a positive integer.', 'error')
+        flash('Bad request: `limit` must be a positive integer.', 'error')
         return render_template('index.html')
 
     with sqlite3.connect("bots.db") as conn:

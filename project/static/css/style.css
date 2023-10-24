@@ -361,7 +361,7 @@ table{
 	margin: auto;
 	overflow-wrap: break-word;
 	border-collapse: collapse;
-	font-size: 0.94em;
+	font-size: 0.9em;
 }
 
 tr:nth-child(even) {

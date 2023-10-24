@@ -46,8 +46,8 @@ def is_env_probe(request):
     """ Returns True if path contains any of target strings. Only catch GET. """
     path = request.path
     method = request.method
-    env_probe_paths = ['.env', 'config', '/admin', '.git', 'backend', 'phpinfo', '/eval', 'echo.php', 'webui', 'api/']
-    return any(target in path.lower() for target in env_probe_paths) if method == 'GET' else False
+    ENV_PROBE_PATHS = ['.env', 'config', '/admin', '.git', 'backend', 'phpinfo', '/eval', 'echo.php', '/api', '/system/deviceinfo']
+    return any(target in path.lower() for target in ENV_PROBE_PATHS) if method == 'GET' else False
 
 def is_phpmyadmin_probe(request):
     """ Probing for PHPMyAdmin instances. """
@@ -55,10 +55,30 @@ def is_phpmyadmin_probe(request):
     pma_probe_paths = ['phpmyadmin', '/mysql/', '/sqladmin/', '/mysqlmanager/', '/myadmin/']
     return any(target in path.lower() for target in pma_probe_paths)
 
-def is_misc_software_probe(request):
+def is_cgi_probe(request):
     path = request.path
-    misc_software_probe_paths = ['/adminer', '/ReportServer']
-    return any(target in path for target in misc_software_probe_paths)
+    cgi_probe_paths = ['.cgi', '.cc']
+    return any(target in path.lower() for target in cgi_probe_paths)
+
+def is_injection_attack(request):
+    path_full = request.full_path
+    injection_signatures = [';sh', '|sh', '/tmp', 'file=', ';wget',]
+    # Check for signatures in the path+query
+    return any(target in path_full.lower() for target in injection_signatures)
+
+def is_misc_software_probe(request):
+    """ Misc software probes I see often. """
+    path = request.path
+    misc_software_probe_paths = ['/adminer',
+        '/ReportServer',
+        '/boaform', '/formLogin', #/boaform/admin/formLogin = Some OEM Fiber gear. Usually seen POSTing `username=admin&psd=Feefifofum`
+        '/actuator', #/actuator/health - Sping Boot health check
+        '/geoserver',
+        '/systembc',
+        '/phpunit', '/eval-stdin.php', #phpunit framework
+        '/webui', #Cisco ios xe - recent vuln being exploited - usually seen as /webui/logoutconfirm.html?logon_hash=1
+    ]
+    return any(target.lower() in path.lower() for target in misc_software_probe_paths)
 
 # More specific bots
 
@@ -68,15 +88,29 @@ def is_mirai_dvr(request):
     to download a Mirai loader with varying filename, followed by another POST attempting to
     trigger a device restart. """
     path = request.path
-    mirai_dvr_path = '/dvr/cmd'
-    if request.method == 'POST' and path.lower() == mirai_dvr_path and request.content_type == 'application/x-www-form-urlencoded':
+    MIRAI_DVR_PATH = '/dvr/cmd'
+    if request.method == 'POST' and path.lower() == MIRAI_DVR_PATH and request.content_type == 'application/x-www-form-urlencoded':
         form_data = request.form.get('data')
-        mirai_dvr_payloads = ['<DVR Platform="Hi3520">', '<SetConfiguration File="service.xml">', 
+        MIRAI_DVR_PAYLOADS = ['<DVR Platform="Hi3520">', '<SetConfiguration File="service.xml">', 
             '&wget', '|sh', 'NTP Enable=', 'http://']
         # If path==/dvr/cmd and any of the payload strings are there, it's definitely an attempt,
         # though not necessarily always Mirai- would have to check the file it downloads, but each one
         # that I've seen has been a Mirai loader.
-        return any(target in form_data for target in mirai_dvr_payloads)
+        return any(target in form_data for target in MIRAI_DVR_PAYLOADS)
+    return False
+ 
+def is_mirai_netgear(request):
+    """ Mirai attempting to exploit old Netgear DGN interface command injection vuln. """
+    path = request.path
+    MIRAI_NETGEAR_PATH = '/setup.cgi'
+    MIRAI_NETGEAR_SIGNATURES = ['next_file=netgear.cfg&todo=syscmd&cmd=', ';wget', '/tmp/netgear', 'curpath=/&currentsetting.htm=1']
+    # Exit early if path doesn't match, for performance.
+    if path.lower() != MIRAI_NETGEAR_PATH:
+        return False
+    # Check query params for the mirai signatures
+    if request.query_string is not None:
+        query_string_decoded = request.query_string.decode()
+        return any(target in query_string_decoded for target in MIRAI_NETGEAR_SIGNATURES)
     return False
 
 def is_androx(request):
@@ -133,7 +167,11 @@ def check_all_rules():
 
     # Initialize these empty, then append_to_report() will fill them in if any rules match.
     report_categories = set()
-    report_comment = f'Honeypot detected attack: {request.method} {request.path}\nDetections triggered: '
+    #Check length of query string; if longer than 2, include it.
+    if len(request.query_string.decode()) > 2:
+        report_comment = f'Honeypot detected attack: {request.method} {request.full_path} \nDetections triggered: '
+    else:
+        report_comment = f'Honeypot detected attack: {request.method} {request.path} \nDetections triggered: '
     rules_matched = 0 #This will be our "score"; if score > 0, then report it.
 
     # Define rules as a list of tuples, where each tuple contains:
@@ -141,7 +179,11 @@ def check_all_rules():
     rules = [
         (is_env_probe, 'Environment/config probe', ['21']),
         (is_phpmyadmin_probe, 'PhpMyAdmin probe', ['21']),
+        (is_cgi_probe, 'CGI probe', ['21']),
+        (is_injection_attack, 'Command injection generic', ['21']),
+        (is_misc_software_probe, 'Misc software probe', ['21']),
         (is_mirai_dvr, 'HiSense DVR exploit', ['23','21']),
+        (is_mirai_netgear, 'Netgear command injection exploit', ['23','21']),
         (is_androx, 'Detected AndroxGh0st', ['21']),
         (is_post_request, 'Suspicious POST request', ['21']),
         (no_host_header, 'No Host header', ['21']),

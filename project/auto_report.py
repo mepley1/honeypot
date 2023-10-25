@@ -132,19 +132,20 @@ def no_host_header(request):
     host_header = request.headers.get('Host')
     return host_header is None
 
-# some misc rules to help prevent false positives
+# Some misc rules to help prevent false positives.
+# Don't be that dumbass admin who reports NTP servers etc.
 
 def is_research(request):
     """ We can reduce score if it's known research orgs/scanners, don't really need to report. """
     user_agent = request.headers.get('User-Agent')
-    research_user_agents = [
+    RESEARCH_USER_AGENTS = [
         'CensysInspect',
         'Expanse, a Palo Alto Networks company',
     ]
     if user_agent is None:
         return False
-    #return any(target in user_agent for target in research_user_agents)
-    for research_user_agent in research_user_agents:
+    #return any(target in user_agent for target in RESEARCH_USER_AGENTS)
+    for research_user_agent in RESEARCH_USER_AGENTS:
         if research_user_agent in user_agent:
             return True
     return False

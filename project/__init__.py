@@ -45,6 +45,6 @@ def create_app():
     from .main import main as main_blueprint
     app.register_blueprint(main_blueprint)
 
-    logging.basicConfig(encoding='utf-8', level=logging.INFO)
+    logging.basicConfig(encoding='utf-8', level=logging.DEBUG)
 
     return app

@@ -1,6 +1,7 @@
 # Webpot
-A simple honeypot for capturing and viewing HTTP GET/POST requests + auto reporting. Stores request data in a SQLite database for further analysis. 
-Includes a catch-all route to catch both GET and POST requests for any URI. 
+A simple HTTP honeypot for capturing and viewing HTTP requests + auto reporting. 
+Stores request data in a SQLite database and includes some stats views for easy analysis of all the bot traffic hitting your web services. Includes a catch-all route to catch requests using any HTTP method for any URI.
+
 Very much a work in progress. 
 
 [Live Demo](http://lab.mepley.com/) Note: May not be active or up to date at any given time. Demo login: user `demo` pw `0xDEADBEEF`
@@ -17,9 +18,9 @@ Install required Python modules in the venv:
 
 `pip install -r requirements.txt`
 
-Configuration (Set either in config.py or as environment variables):
-1. Edit the `SECRET_KEY` in `config.py` if you want cookies to work, or export it as an environment variable: `export FLASK_SECRET_KEY=0123456789`
-2. `export FLASK_ABUSEIPDB=0123456789` - Set your AbuseIPDB API key, for auto-reporting.
+Configuration (Set either in config.py or as environment variables prepended with _FLASK):
+1. Edit the `SECRET_KEY` in `config.py` if you want cookies to work, or export it as an environment variable: `export FLASK_SECRET_KEY=0123456789` (To generate a good key, in a Python shell run `secrets.token_hex()`)
+2. `export FLASK_ABUSEIPDB=0123456789` - Set your AbuseIPDB API key, for auto-reporting. If not set, nothing will be reported to AbuseIPDB.
 3. `export FLASK_DEBUG=true` - To turn on Flask debug mode if you want/need it for development.
 
 Initialize database:
@@ -36,14 +37,21 @@ Run the app:
 
 `flask run`
 
-Then point your browser to http://localhost:5000 and log in
+Then point your browser to http://localhost:5000 and log in.
 
 # Features
 - Catch-all route to catch requests for any URI
-- Stats views to filter by IP/method/UA/URL/query/body
-- Toggle display/hide data columns
+- Stats views to filter by IP/method/user-agent/URL/query - click on any piece of data that becomes a link to query for matching records.
+- Toggle display/hide data columns.
 - Now has proper auth + remember me (must set `SECRET_KEY` in `config.py`/ env vars.)
-- Limited auto reporting. (must set `ABUSEIPDB` in config = AbuseIPDB API key)
+- Auto reporting with extendable "detection rules."
+
+# Auto-reporting + Detection rules
+The auto-reporting will report to AbuseIPDB any request that matches the defined "detection rules."
+
+To enable auto-reporting, copy your AbuseIPDB API key into the ABUSEIPDB value in `config.py`, or create an environment variable `export FLASK_ABUSEIPDB=<your-api-key>`. The application will check for the existence of either the environment variable or the ABUSEIPDB line in config.py, and if it finds either, then reports will be submitted automatically. If no key is configured, it will still check each request against the detection rules, but will skip the submit_report function.
+
+To understand how the rules are structured, see `auto_report.py`. Each detection rule is little more than a function that returns a boolean True/False if certain strings are found in the various properties of the request object. There's probably a more efficient way to do this, but this works well enough for my use case; if I go much further here then I'd just be re-inventing the wheel that Fail2Ban and other tools already do far better.
 
 # Deploying with Gunicorn+Nginx+Systemd, see deployment.md 
 
@@ -68,7 +76,7 @@ To-do: Deployment guide. Include Nginx proxy conf & systemd service unit.
 - Querying for records by POST request body fails in some cases due to encoding discrepancies.
 
 # To-do:
-- More rules/filters for auto-reporting - still deciding how I want to handle rules.
+- More specific detection rules/filters.
 - Deployment guide - deployment.md - Include Nginx vhost conf file, systemd service unit example
 - Filter stats by more data points. (condense into a dynamic Flask route for this like /stats/method/post)
 - Automatically check IPs via ipinfo API? This would use up a free plan quickly- check each IP only once every so often. 

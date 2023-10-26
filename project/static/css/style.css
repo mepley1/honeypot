@@ -3,6 +3,10 @@
 @import url('https://fonts.googleapis.com/css2?family=Abel&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Oxygen+Mono&display=swap');
 
+/* Note: I use a 4k monitor as my daily driver so this may not all work well on lower resolutions.
+It's too much data to display at once, I'm not going to bother making it responsive.
+I'll just make a simpler stats page with less data that will be better for mobile devices. */
+
 :root {
 	--main-bg-color: #111828;
 	--main-accent-color: #2563ea;
@@ -31,7 +35,6 @@
 	--midgray: #6B818C;
 	--errorColor: #BB2020;
 	--success-color: #22AA44;
-
 }
 
 /*
@@ -69,7 +72,7 @@ div.content{
 	background-color: var(--content-bg-color);
 	margin: auto;
 	text-align: center;
-	border-radius: 6px;
+	border-radius: 8px;
 	/* overflow: ; NEED TO SET OVERFLOW TO WRAP */
 }
 
@@ -84,12 +87,12 @@ div.contentSmall{
 	background-color: var(--form-bg-color);
 	margin: auto;
 	text-align: center;
-	border-radius: 6px;
+	border-radius: 8px;
 }
 
 .submit-button{
 	border: 2px solid var(--main-accent-color);
-	border-radius: 6px;
+	border-radius: 8px;
 	font-size: 18px;
 	background-color: var(--main-accent-color);
 	color: #FFFFFF;
@@ -108,7 +111,7 @@ div.contentSmall{
 .form-box{
 	width: 90%;
 	border: none;
-	border-radius: 6px;
+	border-radius: 8px;
 	font-family: var(--text-font), sans-serif;
 	font-size: 20px;
 	background-color: var(--main-bg-color);
@@ -152,6 +155,7 @@ h2{
 
 p{
 	font-family: var(--text-font), sans-serif;
+	font-size: 14px;
 }
 
 
@@ -190,13 +194,13 @@ a:hover{
 }
 
 .errorn{
-	color: #bb2020;
+	color: var(--errorColor);
 	font-size: 1.2em;
 	font-weight: bold;
 }
 
 .outLink{
-	color: #22aa44;
+	color: var(--success-color);
 }
 
 /* END FLASH CATEGORIES */ 
@@ -361,7 +365,8 @@ table{
 	margin: auto;
 	overflow-wrap: break-word;
 	border-collapse: collapse;
-	font-size: 0.9em;
+	/*font-size: 0.8em;*/
+	font-size: 14px;
 }
 
 tr:nth-child(even) {
@@ -376,13 +381,16 @@ td{
 	padding-left: 8px;
 	padding-right: 8px;
 	resize: both;
+	max-width: 500px;
 	/* width: 9%; */
 }
 
 /* Limit max width of Headers and Post Data columns, otherwise they get huge */
+/*
 td.dataHeaders, td.dataPostData, td.dataURL {
 	max-width: 600px;
 }
+*/
 
 td.dataMethod{
 	/* width: 5%; */
@@ -402,6 +410,7 @@ table thead tr th {
 	color: var(--midgray);
 	padding-bottom: 1em;
 	font-weight: 300;
+	letter-spacing: 1px;
 }
 
 /* remote IP on the stats page */

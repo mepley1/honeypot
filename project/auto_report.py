@@ -23,7 +23,7 @@ def submit_report(report_comment, report_categories):
             'ip': get_real_ip(),
             'categories': report_categories,
             'comment': report_comment,
-            'timestamp': datetime.datetime.now().astimezone().replace(microsecond=0).isoformat(), #https://stackoverflow.com/questions/2150739/iso-time-iso-8601-in-python
+            'timestamp': datetime.datetime.now().astimezone().replace(microsecond=0).isoformat(),
     }
     headers = {
             'Accept': 'application/json',
@@ -117,6 +117,7 @@ def is_misc_software_probe(request):
         '/redlion', '/portal', #seen as /portal/redlion/
         '/hudson', #Hudson CI
         '/stalker_portal', #IPTV middleware
+        '/manager/text/list', #Tomcat
     ]
     return any(target.lower() in path.lower() for target in MISC_SOFTWARE_PROBE_PATHS)
 
@@ -139,8 +140,8 @@ def is_mirai_dvr(request):
     trigger a device restart. """
     path = request.path
     MIRAI_DVR_PATH = '/dvr/cmd'
-    if request.method == 'POST' and path.lower() == MIRAI_DVR_PATH and request.content_type == 'application/x-www-form-urlencoded':
-        form_data = request.form.get('data')
+    if request.method == 'POST' and path.lower() == MIRAI_DVR_PATH:
+        posted_data = request.data
         MIRAI_DVR_PAYLOADS = [
             '<DVR Platform="Hi3520">',
             '<SetConfiguration File="service.xml">',
@@ -148,18 +149,25 @@ def is_mirai_dvr(request):
             '|sh',
             'NTP Enable=',
             'http://',
-            ]
+        ]
         # If path==/dvr/cmd and any of the payload strings are there, it's definitely an attempt,
         # though not necessarily always Mirai- would have to check the file it downloads, but each one
         # that I've seen has been a Mirai loader.
-        return any(target in form_data for target in MIRAI_DVR_PAYLOADS)
+        return any(target in posted_data for target in MIRAI_DVR_PAYLOADS)
     return False
  
 def is_mirai_netgear(request):
     """ Mirai attempting to exploit old Netgear DGN interface command injection vuln. """
     path = request.path
     MIRAI_NETGEAR_PATH = '/setup.cgi'
-    MIRAI_NETGEAR_SIGNATURES = ['next_file=netgear.cfg&todo=syscmd&cmd=', ';wget', '/tmp/netgear', 'curpath=/&currentsetting.htm=1']
+    MIRAI_NETGEAR_SIGNATURES = [
+        'next_file=netgear.cfg',
+         'todo=syscmd',
+         'cmd=',
+         ';wget',
+         '/tmp/netgear',
+         'curpath=/&currentsetting.htm=1',
+    ]
     # Exit early if path doesn't match, for performance.
     if path.lower() != MIRAI_NETGEAR_PATH:
         return False
@@ -173,9 +181,16 @@ def is_androx(request):
     """ AndroxGh0st malware, searching for leaked app secrets in exposed Laravel .env.
     Method usually POST as form data. Path varies. """
     if request.method == 'POST' and request.content_type == 'application/x-www-form-urlencoded':
-        form_data = request.form.get('data', '')
+        form_data = ''.join(request.form.values())
         return 'androxgh0st' in form_data #True if both conditions met, else False
     return False
+
+def is_wsus_attack(request):
+    """ Requests attempting to proxy a request for a Windows Update .cab file,
+    with Windows-Update-Agent UA. Some kind of WSUS attack I think. """
+    user_agent = request.headers.get('User-Agent')
+    WSUS_ATTACK_UA = 'Windows-Update-Agent'
+    return True if WSUS_ATTACK_UA in user_agent else False
 
 # more generic rules
 
@@ -200,7 +215,8 @@ def is_misc_get_probe(request):
 # Don't be that dumbass admin who reports NTP servers etc.
 
 def is_research(request):
-    """ We can reduce score if it's known research orgs/scanners, don't really need to report. """
+    """ We can reduce score if it's known research orgs/scanners, don't really need to report.
+    Can be easily spoofed though, so don't just zero it. """
     user_agent = request.headers.get('User-Agent')
     RESEARCH_USER_AGENTS = [
         'CensysInspect',
@@ -243,17 +259,18 @@ def check_all_rules():
     # (rule function, log message, category code)
     rules = [
         (is_env_probe, 'Environment/config probe', ['21']),
-        (is_misc_get_probe, 'Misc GET probe', ['21']),
         (is_phpmyadmin_probe, 'PhpMyAdmin probe', ['21']),
         (is_cgi_probe, 'CGI probe/attack', ['21']),
         (is_injection_attack, 'Command injection generic', ['21']),
         (is_misc_software_probe, 'Misc software probe', ['21']),
         (is_wordpress_attack, 'Wordpress attack', ['21']),
-        (is_mirai_dvr, 'HiSense DVR exploit', ['23','21']),
-        (is_mirai_netgear, 'Netgear command injection exploit', ['23','21']),
+        (is_mirai_dvr, 'HiSense DVR exploit, likely Mirai', ['23','21']),
+        (is_mirai_netgear, 'Netgear command injection exploit, likely Mirai', ['23','21']),
         (is_androx, 'Detected AndroxGh0st', ['21']),
+        (is_wsus_attack, 'Windows WSUS attack', ['21']),
         (is_post_request, 'Suspicious POST request', ['21']),
         (no_host_header, 'No Host header', ['21']),
+        (is_misc_get_probe, 'Misc GET query', ['21']),
     ]
 
     for detection_rule, log_message, category_code in rules:

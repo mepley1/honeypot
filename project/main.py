@@ -59,9 +59,10 @@ def inject_title():
     return {"SUBDOMAIN": 'lab.mepley', "TLD": '.com'}
 
 # Define routes
+HTTP_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'TRACE', 'PATCH']
 
-@main.route('/', defaults = {'u_path': ''})
-@main.route('/<path:u_path>')
+@main.route('/', methods = HTTP_METHODS, defaults = {'u_path': ''})
+@main.route('/<path:u_path>', methods = HTTP_METHODS)
 def index(u_path):
     """ Catch-all route. Get and save all the request data into the database. """
     logging.info(request)

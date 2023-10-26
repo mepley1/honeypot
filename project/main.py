@@ -60,8 +60,8 @@ def inject_title():
 
 # Define routes
 
-@main.route('/', methods = ['POST', 'GET'], defaults = {'u_path': ''})
-@main.route('/<path:u_path>', methods = ['POST', 'GET'])
+@main.route('/', defaults = {'u_path': ''})
+@main.route('/<path:u_path>')
 def index(u_path):
     """ Catch-all route. Get and save all the request data into the database. """
     logging.info(request)
@@ -109,9 +109,9 @@ def index(u_path):
         else:
             posted_data = '' #If not a POST request, use blank
     except Exception as e:
-        logging.error(str(e))
+        logging.error(f'Error while trying to parse POSTed data:\n{str(e)}')
 
-    # Adding try/except temporarily while I test things
+    # Adding try/except temporarily while I test some things
     try:
         reported = check_all_rules() #see auto_report.py
     except Exception as e:

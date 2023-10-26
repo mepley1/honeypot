@@ -87,27 +87,35 @@ def index(u_path):
         clientHeaders['Cookie'] = '[REDACTED]' # Don't expose session cookies!
     reqUrl = request.url
 
+    # Adding the try/except block temporarily while I rewrite this section.
+    try:
     # Get the POSTed data
-    if reqMethod == 'POST':
-        try:
-            posted_json = request.json
-            posted_data = json.dumps(posted_json)
-        except:
-            # If not valid JSON, fall back to request.data
+        if reqMethod == 'POST':
             try:
-                saved_data = request.get_data() #If calling get_data() AFTER request.data, it'll return empty bytes obj, so save it first
-                bad_data = request.data.decode('utf-8')
-                posted_data = bad_data
-                if not posted_data:
-                    #If request.data can't parse it and returns an empty object
-                    posted_data = saved_data
-                    logging.debug('Couldnt parse data, falling back to request.get_data')
-            except Exception as e:
-                posted_data = str(e) # So I can see if anything is still failing
-    else:
-        posted_data = '' #If not a POST request, use blank
+                posted_json = request.json
+                posted_data = json.dumps(posted_json)
+            except:
+                # If not valid JSON, fall back to request.data
+                try:
+                    saved_data = request.get_data() #If calling get_data() AFTER request.data, it'll return empty bytes obj, so save it first
+                    bad_data = request.data.decode('utf-8')
+                    posted_data = bad_data
+                    if not posted_data:
+                        #If request.data can't parse it and returns an empty object
+                        posted_data = saved_data
+                        logging.debug('Couldnt parse data, falling back to request.get_data')
+                except Exception as e:
+                    posted_data = str(e) # So I can see if anything is still failing
+        else:
+            posted_data = '' #If not a POST request, use blank
+    except Exception as e:
+        logging.error(str(e))
 
-    reported = check_all_rules() #see auto_report.py
+    # Adding try/except temporarily while I test things
+    try:
+        reported = check_all_rules() #see auto_report.py
+    except Exception as e:
+        logging.error(f'Error while executing detection rules or submitting report:\n{str(e)}')
 
     sqlQuery = """INSERT INTO bots
         (id,remoteaddr,hostname,useragent,requestmethod,querystring,time,postjson,headers,url,reported)
@@ -449,3 +457,7 @@ def securityTxt():
 def robotsTxt():
     """ It's a honeypot, of course I want to allow bots. """
     return send_from_directory('static', path='txt/robots.txt')
+# Serve the favicon (and stop logging requests for it)
+@main.route('/favicon.ico', methods = ['GET'])
+def serve_favicon():
+    return send_from_directory('static', path='favicon.ico')

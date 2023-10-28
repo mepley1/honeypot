@@ -23,7 +23,7 @@ def submit_report(report_comment, report_categories):
             'ip': get_real_ip(),
             'categories': report_categories,
             'comment': report_comment,
-            'timestamp': datetime.datetime.now().astimezone().replace(microsecond=0).isoformat(), #https://stackoverflow.com/questions/2150739/iso-time-iso-8601-in-python
+            'timestamp': datetime.datetime.now().astimezone().replace(microsecond=0).isoformat(),
     }
     headers = {
             'Accept': 'application/json',
@@ -52,6 +52,7 @@ def is_env_probe(request):
     ENV_PROBE_METHODS = ['GET', 'HEAD']
     ENV_PROBE_PATHS = [
         '.env', #The big winner
+        '.htaccess', '.htpasswd',
         'config', '/conf', '.conf',
         '/admin',
         '.git',
@@ -79,7 +80,7 @@ def is_env_probe(request):
 def is_phpmyadmin_probe(request):
     """ Probing for PHPMyAdmin instances. """
     path = request.path
-    PMA_PROBE_PATHS = ['phpmyadmin', '/mysql/', '/sqladmin/', '/mysqlmanager/', '/myadmin/']
+    PMA_PROBE_PATHS = ['phpmyadmin', '/pma', '/mysql/', '/sqladmin/', '/mysqlmanager/', '/myadmin/']
     return any(target in path.lower() for target in PMA_PROBE_PATHS)
 
 def is_cgi_probe(request):
@@ -106,7 +107,7 @@ def is_misc_software_probe(request):
     path = request.path
     MISC_SOFTWARE_PROBE_PATHS = [
         '/adminer',
-        '/ReportServer',
+        '/ReportServer', #Microsoft SQL report service
         '/boaform', '/formLogin', #/boaform/admin/formLogin = Some OEM Fiber gear. Usually seen POSTing `username=admin&psd=Feefifofum`
         '/actuator', #/actuator/health - Sping Boot health check
         '/geoserver',
@@ -117,6 +118,9 @@ def is_misc_software_probe(request):
         '/redlion', '/portal', #seen as /portal/redlion/
         '/hudson', #Hudson CI
         '/stalker_portal', #IPTV middleware
+        '/manager/text/list', #Tomcat
+        '/manager/html', #Tomcat (Nmap fingerprint)
+        '/Temporary_Listen_Addresses', #Windows Communication Framework
     ]
     return any(target.lower() in path.lower() for target in MISC_SOFTWARE_PROBE_PATHS)
 
@@ -125,12 +129,41 @@ def is_wordpress_attack(request):
     WORDPRESS_PATHS = [
         '/wp-content',
         '/wp-admin',
-        '/wp-login',
+        '/wp-login', #/wp-login.php
         '/wp-upload',
-    ]
-    return any(target.lower() in path.lower() for target in WORDPRESS_PATHS)
+        '/wp-includes',
 
-# More specific bots
+    ]
+    return any(target in path.lower() for target in WORDPRESS_PATHS)
+
+def is_nmap_http_scan(request):
+    """ Nmap HTTP scans. """
+    if request.method == 'GET':
+        path = request.path
+        NMAP_HTTP_PATHS = [
+            '/nmaplowercheck', #HTTP scan
+            '/NmapUpperCheck', #HTTP scan
+            '/Nmap/folder/check', #HTTP scan
+            '/evox/about', #Trane Tracer SC - Industrial control panels
+            '/HNAP1', #Some network gear
+        ]
+        return any(target.lower() in path.lower() for target in NMAP_HTTP_PATHS)
+    return False
+
+def is_nmap_vuln_probe(request):
+    """ Some Nmap vulnerability probes. """
+    if request.method == 'GET':
+        path = request.path
+        NMAP_VULN_PATHS = [
+            '/../../../../../../../../../../etc/passwd',
+            '/../../../../../../../../../../boot.ini',
+            '/sdk/../../../../../../../etc/vmware/hostd/vmInventory.xml',
+            '/sdk/%2E%2E/%2E%2E/%2E%2E/%2E%2E/%2E%2E/%2E%2E/%2E%2E/etc/vmware/hostd/vmInventory.xml', #Path traversal in VMWare (CVE-2009-3733)
+        ]
+        return any(target in path for target in NMAP_VULN_PATHS)
+    return False
+
+# More specific bots/malware
 
 def is_mirai_dvr(request):
     """ Mirai botnet looking for Hi3520 dvr interfaces to exploit.
@@ -139,8 +172,8 @@ def is_mirai_dvr(request):
     trigger a device restart. """
     path = request.path
     MIRAI_DVR_PATH = '/dvr/cmd'
-    if request.method == 'POST' and path.lower() == MIRAI_DVR_PATH and request.content_type == 'application/x-www-form-urlencoded':
-        form_data = request.form.get('data')
+    if request.method == 'POST' and path.lower() == MIRAI_DVR_PATH:
+        posted_data = request.data
         MIRAI_DVR_PAYLOADS = [
             '<DVR Platform="Hi3520">',
             '<SetConfiguration File="service.xml">',
@@ -148,18 +181,25 @@ def is_mirai_dvr(request):
             '|sh',
             'NTP Enable=',
             'http://',
-            ]
+        ]
         # If path==/dvr/cmd and any of the payload strings are there, it's definitely an attempt,
         # though not necessarily always Mirai- would have to check the file it downloads, but each one
         # that I've seen has been a Mirai loader.
-        return any(target in form_data for target in MIRAI_DVR_PAYLOADS)
+        return any(target in posted_data for target in MIRAI_DVR_PAYLOADS)
     return False
  
 def is_mirai_netgear(request):
     """ Mirai attempting to exploit old Netgear DGN interface command injection vuln. """
     path = request.path
     MIRAI_NETGEAR_PATH = '/setup.cgi'
-    MIRAI_NETGEAR_SIGNATURES = ['next_file=netgear.cfg&todo=syscmd&cmd=', ';wget', '/tmp/netgear', 'curpath=/&currentsetting.htm=1']
+    MIRAI_NETGEAR_SIGNATURES = [
+        'next_file=netgear.cfg',
+         'todo=syscmd',
+         'cmd=',
+         ';wget',
+         '/tmp/netgear',
+         'curpath=/&currentsetting.htm=1',
+    ]
     # Exit early if path doesn't match, for performance.
     if path.lower() != MIRAI_NETGEAR_PATH:
         return False
@@ -173,9 +213,29 @@ def is_androx(request):
     """ AndroxGh0st malware, searching for leaked app secrets in exposed Laravel .env.
     Method usually POST as form data. Path varies. """
     if request.method == 'POST' and request.content_type == 'application/x-www-form-urlencoded':
-        form_data = request.form.get('data', '')
+        form_data = ''.join(request.form.values())
         return 'androxgh0st' in form_data #True if both conditions met, else False
     return False
+
+def is_cobalt_strike_scan(request):
+    """ Cobalt Strike scan, either from the software itself or researchers. """
+    if request.method == 'GET':
+        path = request.path
+        COBALT_STRIKE_BEACONS = [
+            'aaa9', # 32-bit beacon
+            'aab8', # 32-bit beacon
+            'aab9', # 64-bit
+            'aac8', # 64-bit
+        ]
+        return any(target in path.lower() for target in COBALT_STRIKE_BEACONS)
+    return False
+
+def is_wsus_attack(request):
+    """ Requests attempting to proxy a request for a Windows Update .cab file,
+    with Windows-Update-Agent UA. Some kind of WSUS attack I think. """
+    user_agent = request.headers.get('User-Agent')
+    WSUS_ATTACK_UA = 'Windows-Update-Agent'
+    return True if WSUS_ATTACK_UA in user_agent else False
 
 # more generic rules
 
@@ -200,11 +260,14 @@ def is_misc_get_probe(request):
 # Don't be that dumbass admin who reports NTP servers etc.
 
 def is_research(request):
-    """ We can reduce score if it's known research orgs/scanners, don't really need to report. """
+    """ We can reduce score if it's known research orgs/scanners, don't really need to report.
+    Can be easily spoofed though, so don't just zero it. Most just request /, but some hit
+    other rules, like krebsonsecurity checking for the recent Cisco vuln etc. """
     user_agent = request.headers.get('User-Agent')
     RESEARCH_USER_AGENTS = [
-        'CensysInspect',
+        'CensysInspect', #Mozilla/5.0 (compatible; CensysInspect/1.1; +https://about.censys.io/)
         'Expanse, a Palo Alto Networks company',
+        'https://developers.cloudflare.com/security-center/', #CF Security Center
     ]
     if user_agent is None:
         return False
@@ -243,17 +306,21 @@ def check_all_rules():
     # (rule function, log message, category code)
     rules = [
         (is_env_probe, 'Environment/config probe', ['21']),
-        (is_misc_get_probe, 'Misc GET probe', ['21']),
         (is_phpmyadmin_probe, 'PhpMyAdmin probe', ['21']),
         (is_cgi_probe, 'CGI probe/attack', ['21']),
         (is_injection_attack, 'Command injection generic', ['21']),
         (is_misc_software_probe, 'Misc software probe', ['21']),
         (is_wordpress_attack, 'Wordpress attack', ['21']),
-        (is_mirai_dvr, 'HiSense DVR exploit', ['23','21']),
-        (is_mirai_netgear, 'Netgear command injection exploit', ['23','21']),
+        (is_nmap_http_scan, 'Nmap HTTP scan', ['21']),
+        (is_nmap_vuln_probe, 'Nmap probe', ['21']),
+        (is_mirai_dvr, 'HiSense DVR exploit, likely Mirai', ['23','21']),
+        (is_mirai_netgear, 'Netgear command injection exploit, likely Mirai', ['23','21']),
         (is_androx, 'Detected AndroxGh0st', ['21']),
+        (is_cobalt_strike_scan, 'Cobalt Strike', ['21']),
+        (is_wsus_attack, 'Windows WSUS attack', ['21']),
         (is_post_request, 'Suspicious POST request', ['21']),
         (no_host_header, 'No Host header', ['21']),
+        (is_misc_get_probe, 'Misc GET query', ['21']),
     ]
 
     for detection_rule, log_message, category_code in rules:

@@ -59,9 +59,10 @@ def inject_title():
     return {"SUBDOMAIN": 'lab.mepley', "TLD": '.com'}
 
 # Define routes
+HTTP_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'TRACE', 'PATCH']
 
-@main.route('/', methods = ['POST', 'GET'], defaults = {'u_path': ''})
-@main.route('/<path:u_path>', methods = ['POST', 'GET'])
+@main.route('/', methods = HTTP_METHODS, defaults = {'u_path': ''})
+@main.route('/<path:u_path>', methods = HTTP_METHODS)
 def index(u_path):
     """ Catch-all route. Get and save all the request data into the database. """
     logging.info(request)
@@ -88,6 +89,7 @@ def index(u_path):
     reqUrl = request.url
 
     # Adding the try/except block temporarily while I rewrite this section.
+    # Need to rewrite it with an if block for each content-type to make it cleaner
     try:
     # Get the POSTed data
         if reqMethod == 'POST':
@@ -109,9 +111,9 @@ def index(u_path):
         else:
             posted_data = '' #If not a POST request, use blank
     except Exception as e:
-        logging.error(str(e))
+        logging.error(f'Error while trying to parse POSTed data:\n{str(e)}')
 
-    # Adding try/except temporarily while I test things
+    # Adding try/except temporarily while I test some things
     try:
         reported = check_all_rules() #see auto_report.py
     except Exception as e:
@@ -238,8 +240,8 @@ def ipStats(ipAddr):
     with sqlite3.connect('bots.db') as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
-
-        sqlQuery = "SELECT * FROM bots WHERE remoteaddr = ? ORDER BY id DESC;"
+        # Changing query to GLOB instead of = to allow checking for a subnet more easily, i.e. 123.45.67.*
+        sqlQuery = "SELECT * FROM bots WHERE (remoteaddr GLOB ?) ORDER BY id DESC;"
         dataTuple = (ipAddr,)
         c.execute(sqlQuery, dataTuple)
         ipStats = c.fetchall()

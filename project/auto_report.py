@@ -52,6 +52,7 @@ def is_env_probe(request):
     ENV_PROBE_METHODS = ['GET', 'HEAD']
     ENV_PROBE_PATHS = [
         '.env', #The big winner
+        '.htaccess', '.htpasswd',
         'config', '/conf', '.conf',
         '/admin',
         '.git',
@@ -79,7 +80,7 @@ def is_env_probe(request):
 def is_phpmyadmin_probe(request):
     """ Probing for PHPMyAdmin instances. """
     path = request.path
-    PMA_PROBE_PATHS = ['phpmyadmin', '/mysql/', '/sqladmin/', '/mysqlmanager/', '/myadmin/']
+    PMA_PROBE_PATHS = ['phpmyadmin', '/pma', '/mysql/', '/sqladmin/', '/mysqlmanager/', '/myadmin/']
     return any(target in path.lower() for target in PMA_PROBE_PATHS)
 
 def is_cgi_probe(request):
@@ -106,7 +107,7 @@ def is_misc_software_probe(request):
     path = request.path
     MISC_SOFTWARE_PROBE_PATHS = [
         '/adminer',
-        '/ReportServer',
+        '/ReportServer', #Microsoft SQL report service
         '/boaform', '/formLogin', #/boaform/admin/formLogin = Some OEM Fiber gear. Usually seen POSTing `username=admin&psd=Feefifofum`
         '/actuator', #/actuator/health - Sping Boot health check
         '/geoserver',
@@ -118,6 +119,8 @@ def is_misc_software_probe(request):
         '/hudson', #Hudson CI
         '/stalker_portal', #IPTV middleware
         '/manager/text/list', #Tomcat
+        '/manager/html', #Tomcat (Nmap fingerprint)
+        '/Temporary_Listen_Addresses', #Windows Communication Framework
     ]
     return any(target.lower() in path.lower() for target in MISC_SOFTWARE_PROBE_PATHS)
 
@@ -126,12 +129,41 @@ def is_wordpress_attack(request):
     WORDPRESS_PATHS = [
         '/wp-content',
         '/wp-admin',
-        '/wp-login',
+        '/wp-login', #/wp-login.php
         '/wp-upload',
-    ]
-    return any(target.lower() in path.lower() for target in WORDPRESS_PATHS)
+        '/wp-includes',
 
-# More specific bots
+    ]
+    return any(target in path.lower() for target in WORDPRESS_PATHS)
+
+def is_nmap_http_scan(request):
+    """ Nmap HTTP scans. """
+    if request.method == 'GET':
+        path = request.path
+        NMAP_HTTP_PATHS = [
+            '/nmaplowercheck', #HTTP scan
+            '/NmapUpperCheck', #HTTP scan
+            '/Nmap/folder/check', #HTTP scan
+            '/evox/about', #Trane Tracer SC - Industrial control panels
+            '/HNAP1', #Some network gear
+        ]
+        return any(target.lower() in path.lower() for target in NMAP_HTTP_PATHS)
+    return False
+
+def is_nmap_vuln_probe(request):
+    """ Some Nmap vulnerability probes. """
+    if request.method == 'GET':
+        path = request.path
+        NMAP_VULN_PATHS = [
+            '/../../../../../../../../../../etc/passwd',
+            '/../../../../../../../../../../boot.ini',
+            '/sdk/../../../../../../../etc/vmware/hostd/vmInventory.xml',
+            '/sdk/%2E%2E/%2E%2E/%2E%2E/%2E%2E/%2E%2E/%2E%2E/%2E%2E/etc/vmware/hostd/vmInventory.xml', #Path traversal in VMWare (CVE-2009-3733)
+        ]
+        return any(target in path for target in NMAP_VULN_PATHS)
+    return False
+
+# More specific bots/malware
 
 def is_mirai_dvr(request):
     """ Mirai botnet looking for Hi3520 dvr interfaces to exploit.
@@ -185,6 +217,19 @@ def is_androx(request):
         return 'androxgh0st' in form_data #True if both conditions met, else False
     return False
 
+def is_cobalt_strike_scan(request):
+    """ Cobalt Strike scan, either from the software itself or researchers. """
+    if request.method == 'GET':
+        path = request.path
+        COBALT_STRIKE_BEACONS = [
+            'aaa9', # 32-bit beacon
+            'aab8', # 32-bit beacon
+            'aab9', # 64-bit
+            'aac8', # 64-bit
+        ]
+        return any(target in path.lower() for target in COBALT_STRIKE_BEACONS)
+    return False
+
 def is_wsus_attack(request):
     """ Requests attempting to proxy a request for a Windows Update .cab file,
     with Windows-Update-Agent UA. Some kind of WSUS attack I think. """
@@ -216,11 +261,13 @@ def is_misc_get_probe(request):
 
 def is_research(request):
     """ We can reduce score if it's known research orgs/scanners, don't really need to report.
-    Can be easily spoofed though, so don't just zero it. """
+    Can be easily spoofed though, so don't just zero it. Most just request /, but some hit
+    other rules, like krebsonsecurity checking for the recent Cisco vuln etc. """
     user_agent = request.headers.get('User-Agent')
     RESEARCH_USER_AGENTS = [
-        'CensysInspect',
+        'CensysInspect', #Mozilla/5.0 (compatible; CensysInspect/1.1; +https://about.censys.io/)
         'Expanse, a Palo Alto Networks company',
+        'https://developers.cloudflare.com/security-center/', #CF Security Center
     ]
     if user_agent is None:
         return False
@@ -264,9 +311,12 @@ def check_all_rules():
         (is_injection_attack, 'Command injection generic', ['21']),
         (is_misc_software_probe, 'Misc software probe', ['21']),
         (is_wordpress_attack, 'Wordpress attack', ['21']),
+        (is_nmap_http_scan, 'Nmap HTTP scan', ['21']),
+        (is_nmap_vuln_probe, 'Nmap probe', ['21']),
         (is_mirai_dvr, 'HiSense DVR exploit, likely Mirai', ['23','21']),
         (is_mirai_netgear, 'Netgear command injection exploit, likely Mirai', ['23','21']),
         (is_androx, 'Detected AndroxGh0st', ['21']),
+        (is_cobalt_strike_scan, 'Cobalt Strike', ['21']),
         (is_wsus_attack, 'Windows WSUS attack', ['21']),
         (is_post_request, 'Suspicious POST request', ['21']),
         (no_host_header, 'No Host header', ['21']),

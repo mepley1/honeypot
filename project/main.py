@@ -89,6 +89,7 @@ def index(u_path):
     reqUrl = request.url
 
     # Adding the try/except block temporarily while I rewrite this section.
+    # Need to rewrite it with an if block for each content-type to make it cleaner
     try:
     # Get the POSTed data
         if reqMethod == 'POST':
@@ -239,8 +240,8 @@ def ipStats(ipAddr):
     with sqlite3.connect('bots.db') as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
-
-        sqlQuery = "SELECT * FROM bots WHERE remoteaddr = ? ORDER BY id DESC;"
+        # Changing query to GLOB instead of = to allow checking for a subnet more easily, i.e. 123.45.67.*
+        sqlQuery = "SELECT * FROM bots WHERE (remoteaddr GLOB ?) ORDER BY id DESC;"
         dataTuple = (ipAddr,)
         c.execute(sqlQuery, dataTuple)
         ipStats = c.fetchall()

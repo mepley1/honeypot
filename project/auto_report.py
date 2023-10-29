@@ -18,7 +18,7 @@ def get_real_ip():
 
 def submit_report(report_comment, report_categories):
     """ Submit the report. Usage: reported = submit_report(report_comment, report_categories) """
-    api_url = 'https://api.abuseipdb.com/api/v2/report'
+    API_URL = 'https://api.abuseipdb.com/api/v2/report'
     params = {
             'ip': get_real_ip(),
             'categories': report_categories,
@@ -29,7 +29,7 @@ def submit_report(report_comment, report_categories):
             'Accept': 'application/json',
             'Key': current_app.config["ABUSEIPDB"],
     }
-    response = requests.post(url = api_url, headers = headers, params = params)
+    response = requests.post(url = API_URL, headers = headers, params = params)
     decoded_response = json.loads(response.text)
 
     # API response will contain an 'errors' key if any issues - rate limit, sent bad data, etc.
@@ -55,13 +55,13 @@ def is_env_probe(request):
         '.htaccess', '.htpasswd',
         'config', '/conf', '.conf',
         '/admin',
-        '.git',
+        '.git', '.svn', #version control
         'backend',
         'phpinfo',
         '/eval',
         'echo.php',
         '/api',
-        '/system', '/deviceinfo', #seen as /system/deviceinfo
+        '/system/deviceinfo', #seen as /system/deviceinfo
         '/public',
         '/src',
         '/app',
@@ -71,8 +71,10 @@ def is_env_probe(request):
         '/storage', '/protected', # seen as /storage/protected - Redlion RAS
         '/library',
         '/auth',
-        'database',
-        ]
+        '/login',
+        '/database',
+        '/scripts',
+    ]
     if method in ENV_PROBE_METHODS:
         return any(target in path.lower() for target in ENV_PROBE_PATHS)
     return False
@@ -84,11 +86,13 @@ def is_phpmyadmin_probe(request):
     return any(target in path.lower() for target in PMA_PROBE_PATHS)
 
 def is_cgi_probe(request):
+    """ Anything targeting CGI scripts. """
     path = request.path
     CGI_PROBE_PATHS = ['.cgi', '.cc', '/cgi-bin']
     return any(target in path.lower() for target in CGI_PROBE_PATHS)
 
 def is_injection_attack(request):
+    """ Command injection attempts. """
     path_full = request.full_path
     INJECTION_SIGNATURES = [
         ';sh',
@@ -108,9 +112,10 @@ def is_misc_software_probe(request):
     MISC_SOFTWARE_PROBE_PATHS = [
         '/adminer',
         '/ReportServer', #Microsoft SQL report service
-        '/boaform', '/formLogin', #/boaform/admin/formLogin = Some OEM Fiber gear. Usually seen POSTing `username=admin&psd=Feefifofum`
+        '/boaform', 'admin/formLogin', #/boaform/admin/formLogin = Some OEM Fiber gear. Usually seen POSTing `username=admin&psd=Feefifofum`
         '/actuator', #/actuator/health - Sping Boot health check
         '/geoserver',
+        '/druid', #Apache Druid
         '/systembc', #systembc malware, can move this to its own rule
         '/phpunit', '/eval-stdin.php', #phpunit framework
         '/webui', #Cisco ios xe - recent vuln being exploited - usually seen as /webui/logoutconfirm.html?logon_hash=1
@@ -121,18 +126,27 @@ def is_misc_software_probe(request):
         '/manager/text/list', #Tomcat
         '/manager/html', #Tomcat (Nmap fingerprint)
         '/Temporary_Listen_Addresses', #Windows Communication Framework
+        '/webfig',
+        '/solr',
+        '/ckeditor',
+        '/Telerik',
+        '/showLogin.cc', #ManageEngine
+        '/api/session/properties', #MetaBase
+        '/sugar_version.json', #SugarCRM
+        '/sitecore/', #Sitecore, seen as /sitecore/shell/sitecore.version.xml
     ]
     return any(target.lower() in path.lower() for target in MISC_SOFTWARE_PROBE_PATHS)
 
 def is_wordpress_attack(request):
     path = request.path
     WORDPRESS_PATHS = [
+        '/wordpress',
         '/wp-content',
         '/wp-admin',
         '/wp-login', #/wp-login.php
         '/wp-upload',
         '/wp-includes',
-
+        'xmlrpc.php',
     ]
     return any(target in path.lower() for target in WORDPRESS_PATHS)
 
@@ -194,11 +208,11 @@ def is_mirai_netgear(request):
     MIRAI_NETGEAR_PATH = '/setup.cgi'
     MIRAI_NETGEAR_SIGNATURES = [
         'next_file=netgear.cfg',
-         'todo=syscmd',
-         'cmd=',
-         ';wget',
-         '/tmp/netgear',
-         'curpath=/&currentsetting.htm=1',
+        'todo=syscmd',
+        'cmd=',
+        ';wget',
+        '/tmp/netgear',
+        'curpath=/&currentsetting.htm=1',
     ]
     # Exit early if path doesn't match, for performance.
     if path.lower() != MIRAI_NETGEAR_PATH:
@@ -244,17 +258,28 @@ def is_post_request(request):
     return request.method == 'POST'
 
 def no_host_header(request):
-    """ True if request contains no HOST header. """
+    """ True if request contains no 'Host' header. """
     host_header = request.headers.get('Host')
     return host_header is None
 
 def is_misc_get_probe(request):
-    """ Any GET request that includes a query. """
+    """ Any GET request that includes 1 or more query args. """
     MISC_PROBE_METHODS = ['GET', 'HEAD']
-    probe_args = request.args
-    if request.method in MISC_PROBE_METHODS and len(probe_args) > 0:
+    if request.method in MISC_PROBE_METHODS and request.args:
         return True
     return False
+
+def is_programmatic_ua(request):
+    """ Default user agents of programming language modules i.e. Python requests, etc. """
+    user_agent = request.headers.get('User-Agent', '')
+    PROGRAMMATIC_USER_AGENTS = [
+        'aiohttp',
+        'fasthttp',
+        'Go-http-client',
+        'python-requests',
+        'zgrab',
+    ]
+    return any(target in user_agent for target in PROGRAMMATIC_USER_AGENTS)
 
 # Some misc rules to help prevent false positives.
 # Don't be that dumbass admin who reports NTP servers etc.
@@ -293,10 +318,10 @@ def check_all_rules():
     detection rules, and submit report to AbuseIPDB.
     Usage: reported = check_all_rules() #returns reported = 0/1. """
 
-    # Initialize these empty, then append_to_report() will fill them in if any rules match.
+    # Initialize categories+comment empty, then append_to_report() will fill in if any rules match.
     report_categories = set()
-    #Check length of query string; if longer than 2, include it.
-    if len(request.query_string.decode()) > 2:
+    # Check whether request contains query params; if so, include it.
+    if request.args:
         report_comment = f'Honeypot detected attack: {request.method} {request.full_path} \nDetections triggered: '
     else:
         report_comment = f'Honeypot detected attack: {request.method} {request.path} \nDetections triggered: '
@@ -321,6 +346,7 @@ def check_all_rules():
         (is_post_request, 'Suspicious POST request', ['21']),
         (no_host_header, 'No Host header', ['21']),
         (is_misc_get_probe, 'Misc GET query', ['21']),
+        (is_programmatic_ua, 'Automated user-agent', ['21']),
     ]
 
     for detection_rule, log_message, category_code in rules:
@@ -334,12 +360,12 @@ def check_all_rules():
             logging.debug(f'Rule matched: {log_message}')
             rules_matched += 1
 
-    # Lower the score for known researchers
+    # Lower the score for known benign researchers/scanners
     if is_research(request):
         if rules_matched > 0:
             rules_matched -= 1
 
-    # If any rules matched, report it.
+    # If any rules matched, report to AbuseIPDB.
     if rules_matched > 0:
         if current_app.config.get('ABUSEIPDB'):
             try:

@@ -36,7 +36,7 @@ def createDatabase(): # note: change column names to just match http headers, th
         """)
         #logging.debug('Bots table initialized.')
 
-        # Create Logins table
+        # Create Logins table, to record login attempts.
         c.execute("""
                 CREATE TABLE IF NOT EXISTS logins(
                 id INTEGER PRIMARY KEY,
@@ -118,6 +118,7 @@ def index(u_path):
         reported = check_all_rules() #see auto_report.py
     except Exception as e:
         logging.error(f'Error while executing detection rules or submitting report:\n{str(e)}')
+        reported = 0
 
     sqlQuery = """INSERT INTO bots
         (id,remoteaddr,hostname,useragent,requestmethod,querystring,time,postjson,headers,url,reported)

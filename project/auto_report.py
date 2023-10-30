@@ -56,6 +56,7 @@ def is_env_probe(request):
         'config', '/conf', '.conf',
         '/admin',
         '.git', '.svn', #version control
+        '/.aws',
         'backend',
         'phpinfo',
         '/eval',
@@ -247,7 +248,7 @@ def is_cobalt_strike_scan(request):
 def is_wsus_attack(request):
     """ Requests attempting to proxy a request for a Windows Update .cab file,
     with Windows-Update-Agent UA. Some kind of WSUS attack I think. """
-    user_agent = request.headers.get('User-Agent')
+    user_agent = request.headers.get('User-Agent', '')
     WSUS_ATTACK_UA = 'Windows-Update-Agent'
     return True if WSUS_ATTACK_UA in user_agent else False
 
@@ -274,6 +275,7 @@ def is_programmatic_ua(request):
     user_agent = request.headers.get('User-Agent', '')
     PROGRAMMATIC_USER_AGENTS = [
         'aiohttp',
+        'curl/',
         'fasthttp',
         'Go-http-client',
         'python-requests',
@@ -320,8 +322,8 @@ def check_all_rules():
 
     # Initialize categories+comment empty, then append_to_report() will fill in if any rules match.
     report_categories = set()
-    # Check whether request contains query params; if so, include it.
-    if request.args:
+    # Check whether request contains query args; if so, include it.
+    if request.query_string is not None and len(request.query_string.decode()) > 2:
         report_comment = f'Honeypot detected attack: {request.method} {request.full_path} \nDetections triggered: '
     else:
         report_comment = f'Honeypot detected attack: {request.method} {request.path} \nDetections triggered: '
@@ -345,7 +347,7 @@ def check_all_rules():
         (is_wsus_attack, 'Windows WSUS attack', ['21']),
         (is_post_request, 'Suspicious POST request', ['21']),
         (no_host_header, 'No Host header', ['21']),
-        (is_misc_get_probe, 'Misc GET query', ['21']),
+        (is_misc_get_probe, 'GET with unexpected args', ['21']),
         (is_programmatic_ua, 'Automated user-agent', ['21']),
     ]
 

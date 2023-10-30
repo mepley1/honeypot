@@ -117,8 +117,7 @@ def is_misc_software_probe(request):
         '/actuator', #/actuator/health - Sping Boot health check
         '/geoserver',
         '/druid', #Apache Druid
-        '/systembc', #systembc malware, can move this to its own rule
-        '/phpunit', '/eval-stdin.php', #phpunit framework
+        '/phpunit', '/eval-stdin.php', #phpunit CVE-2017-9841 = POST to /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
         '/webui', #Cisco ios xe - recent vuln being exploited - usually seen as /webui/logoutconfirm.html?logon_hash=1
         '/mailchimp', # mailchimp probes
         '/redlion', '/portal', #seen as /portal/redlion/
@@ -135,6 +134,7 @@ def is_misc_software_probe(request):
         '/api/session/properties', #MetaBase
         '/sugar_version.json', #SugarCRM
         '/sitecore/', #Sitecore, seen as /sitecore/shell/sitecore.version.xml
+        '/level/15/exec/-/sh/run/CR', #Cisco routers without authentication on the HTTP interface.
     ]
     return any(target.lower() in path.lower() for target in MISC_SOFTWARE_PROBE_PATHS)
 
@@ -245,12 +245,31 @@ def is_cobalt_strike_scan(request):
         return any(target in path.lower() for target in COBALT_STRIKE_BEACONS)
     return False
 
+def is_systembc_path(request):
+    """ systembc malware paths I see requested. """
+    path = request.path
+    SYSTEMBC_PATHS = [
+        '/systembc',
+        '/systembc/geoip',
+        '/systembc/geoip/geoip2.phar',
+        '/systembc/geoip/GeoLite2-City.mmdb',
+        '/systembc/index.html',
+        '/systembc/password.php', #Almost all are this one.
+    ]
+    return any(target.lower() in path.lower() for target in SYSTEMBC_PATHS)
+
 def is_wsus_attack(request):
     """ Requests attempting to proxy a request for a Windows Update .cab file,
     with Windows-Update-Agent UA. Some kind of WSUS attack I think. """
     user_agent = request.headers.get('User-Agent', '')
     WSUS_ATTACK_UA = 'Windows-Update-Agent'
     return True if WSUS_ATTACK_UA in user_agent else False
+
+def is_rocketmq_probe(request):
+    """ Probing for CVE-2023-33246 RocketMQ Remote Code Execution Exploit """
+    path = request.path
+    ROCKETMQ_PROBE_PATH = '/cluster/list.query'
+    return ROCKETMQ_PROBE_PATH in path.lower()
 
 # more generic rules
 
@@ -278,7 +297,9 @@ def is_programmatic_ua(request):
         'curl/',
         'fasthttp',
         'Go-http-client',
+        'libwww-perl',
         'python-requests',
+        'Wget/'
         'zgrab',
     ]
     return any(target in user_agent for target in PROGRAMMATIC_USER_AGENTS)
@@ -344,7 +365,9 @@ def check_all_rules():
         (is_mirai_netgear, 'Netgear command injection exploit, likely Mirai', ['23','21']),
         (is_androx, 'Detected AndroxGh0st', ['21']),
         (is_cobalt_strike_scan, 'Cobalt Strike', ['21']),
+        (is_systembc_path, 'SystemBC malware path', ['21']),
         (is_wsus_attack, 'Windows WSUS attack', ['21']),
+        (is_rocketmq_probe, 'RocketMQ probe CVE-2023-33246', ['21']),
         (is_post_request, 'Suspicious POST request', ['21']),
         (no_host_header, 'No Host header', ['21']),
         (is_misc_get_probe, 'GET with unexpected args', ['21']),

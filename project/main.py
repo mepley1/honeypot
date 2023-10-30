@@ -234,7 +234,7 @@ def loginStats():
         stats = loginAttempts,
         totalLogins = totalLogins)
 
-@main.route('/ip/<ipAddr>', methods = ['GET'])
+@main.route('/stats/ip/<ipAddr>', methods = ['GET'])
 @login_required
 def ipStats(ipAddr):
     """ Get records of an individual IP. The IP column on stats page will link to this route. """
@@ -250,6 +250,7 @@ def ipStats(ipAddr):
         c.close()
     conn.close()
 
+    flash('Use * in URL for wildcard, i.e. /stats/ip/1.2.3.*', 'info')
     return render_template('stats.html',
         stats = ipStats,
         totalHits = len(ipStats),
@@ -260,8 +261,8 @@ def ipStats(ipAddr):
 def methodStats(method):
     """ Get records by request method """
     # Flash an error message if querying for a method not in db
-    if method not in ('GET', 'POST', 'HEAD'):
-        flash('Bad request. Try /method/GET or /method/POST', 'error')
+    if method not in HTTP_METHODS:
+        flash('Bad request. Must query for a valid HTTP method, try /method/GET or /method/POST', 'error')
         return render_template('index.html')
 
     with sqlite3.connect('bots.db') as conn:
@@ -318,7 +319,7 @@ def urlStats():
         c = conn.cursor()
         # Query for matching user agent
         sqlQuery = """
-            SELECT * FROM bots WHERE url = ? ORDER BY id DESC;
+            SELECT * FROM bots WHERE (url GLOB ?) ORDER BY id DESC;
             """
         dataTuple = (url,)
         c.execute(sqlQuery, dataTuple)
@@ -326,6 +327,7 @@ def urlStats():
         c.close()
     conn.close()
 
+    flash('Use * in URL for wildcard, i.e. /stats/url?url=*.example.com/*', 'info')
     return render_template('stats.html',
         stats = urlStats,
         totalHits = len(urlStats),

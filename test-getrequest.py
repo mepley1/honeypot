@@ -9,5 +9,7 @@ params = {
 headers = {
     "User-Agent":"!@#$%^&*()-_=+/?<>",
 }
-x = requests.get(url = url, params = params, headers = headers)
-print(x.status_code)
+
+if __name__ == '__main__':
+    x = requests.get(url = url, params = params, headers = headers)
+    print(x.status_code)

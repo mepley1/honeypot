@@ -5,7 +5,7 @@ import requests
 import random
 import string
 
-url = 'http://localhost:5000/testing/post'
+url = 'http://localhost:5000/testing/post?test'
 
 def get_random_string(length):
     #letters = string.ascii_letters + string.punctuation + string.digits + string.punctuation + string.whitespace
@@ -15,12 +15,10 @@ def get_random_string(length):
 
 bad_data = get_random_string(16)
 
-#bad_data = {"bad data": bad_data}
-
 headers = {'Content-Type': 'application/json'}
 
-x = requests.post(url, data = bad_data, headers = headers)
-#x = requests.post(url, data = bad_data)
+#x = requests.post(url, data = bad_data, headers = headers)
+x = requests.post(url = url, data = bad_data)
 
 # Print response
 print(x.status_code)

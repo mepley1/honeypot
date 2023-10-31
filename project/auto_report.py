@@ -292,13 +292,15 @@ def is_misc_get_probe(request):
 def is_programmatic_ua(request):
     """ Default user agents of programming language modules i.e. Python requests, etc. """
     user_agent = request.headers.get('User-Agent', '')
+    # Most of the UA's include a version #, i.e. Wget/1.21.3
     PROGRAMMATIC_USER_AGENTS = [
         'aiohttp',
         'curl/',
         'fasthttp',
         'Go-http-client',
         'libwww-perl',
-        'python-requests',
+        'python-httpx/',
+        'python-requests/',
         'Wget/'
         'zgrab',
     ]
@@ -328,7 +330,7 @@ def is_research(request):
 # END RULES
 
 def append_to_report(comment, category_codes, report_categories, report_comment):
-    """ Append a note and category to the report params. """
+    """ Append the rule name and category to the report params. """
     for category in category_codes:
         # Avoid duplicate categories
         if category not in report_categories:
@@ -356,7 +358,7 @@ def check_all_rules():
         (is_env_probe, 'Environment/config probe', ['21']),
         (is_phpmyadmin_probe, 'PhpMyAdmin probe', ['21']),
         (is_cgi_probe, 'CGI probe/attack', ['21']),
-        (is_injection_attack, 'Command injection generic', ['21']),
+        (is_injection_attack, 'Command injection', ['21']),
         (is_misc_software_probe, 'Misc software probe', ['21']),
         (is_wordpress_attack, 'Wordpress attack', ['21']),
         (is_nmap_http_scan, 'Nmap HTTP scan', ['21']),

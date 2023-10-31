@@ -71,12 +71,14 @@ def index(u_path):
     # Need to get real IP from behind Nginx proxy
     if 'X-Real-Ip' in request.headers:
         clientIP = request.headers.get('X-Real-Ip')
+    elif 'X-Forwarded-For' in request.headers:
+        clientIP = request.headers.get('X-Forwarded-For')
     else:
         clientIP = request.remote_addr
 
     try: # Get hostname by performing a DNS lookup
         clientHostname = gethostbyaddr(clientIP)[0]
-    except:
+    except socket.herror:
         clientHostname = 'Unavailable'
 
     clientUserAgent = request.headers.get('User-Agent')

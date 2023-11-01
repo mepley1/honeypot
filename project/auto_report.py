@@ -293,7 +293,7 @@ def is_misc_get_probe(request):
 def is_programmatic_ua(request):
     """ Default user agents of programming language modules i.e. Python requests, etc. """
     user_agent = request.headers.get('User-Agent', '')
-    # Most of the UA's include a version #, i.e. Wget/1.21.3
+    # Most of the UA's include a version #, i.e. Wget/1.21.3, we'll just search for the name
     PROGRAMMATIC_USER_AGENTS = [
         'aiohttp',
         'curl/',
@@ -306,6 +306,11 @@ def is_programmatic_ua(request):
         'zgrab',
     ]
     return any(target in user_agent for target in PROGRAMMATIC_USER_AGENTS)
+
+def is_proxy_attempt(request):
+    """ True if request contains a Proxy-Connection header. """
+    proxy_connection_header = request.headers.get('Proxy-Connection')
+    return proxy_connection_header is not None
 
 # Some misc rules to help prevent false positives.
 # Don't be that oblivious admin who reports NTP servers etc.
@@ -360,7 +365,7 @@ def check_all_rules():
         (is_env_probe, 'Environment/config probe', ['21']),
         (is_phpmyadmin_probe, 'PhpMyAdmin probe', ['21']),
         (is_cgi_probe, 'CGI probe/attack', ['21']),
-        (is_injection_attack, 'Command injection', ['21']),
+        (is_injection_attack, 'Command injection in Path or Query Args', ['21']),
         (is_misc_software_probe, 'Misc software probe', ['21']),
         (is_wordpress_attack, 'Wordpress attack', ['21']),
         (is_nmap_http_scan, 'Nmap HTTP scan', ['21']),
@@ -376,6 +381,7 @@ def check_all_rules():
         (no_host_header, 'No Host header', ['21']),
         (is_misc_get_probe, 'GET with unexpected args', ['21']),
         (is_programmatic_ua, 'Automated user-agent', ['21']),
+        (is_proxy_attempt, 'Proxy attempt (sent Proxy-connection header)', ['21']),
     ]
 
     for detection_rule, log_message, category_code in rules:

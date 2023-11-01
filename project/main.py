@@ -6,7 +6,7 @@ import json
 import datetime
 import logging
 from .auto_report import check_all_rules #The new report module. Will check rules + report
-from socket import gethostbyaddr
+from socket import gethostbyaddr, herror
 from flask import request, render_template, jsonify, Response, send_from_directory, g, after_this_request, flash, Blueprint, current_app
 from flask_login import login_required, current_user
 from urllib.parse import unquote # for uaStats()
@@ -78,8 +78,9 @@ def index(u_path):
 
     try: # Get hostname by performing a DNS lookup
         clientHostname = gethostbyaddr(clientIP)[0]
-    except socket.herror:
+    except herror as e:
         clientHostname = 'Unavailable'
+        logging.debug(f'Exception while attempting to get hostname: \n{str(e)}')
 
     clientUserAgent = request.headers.get('User-Agent')
     reqMethod = request.method
@@ -113,7 +114,7 @@ def index(u_path):
         else:
             posted_data = '' #If not a POST request, use blank
     except Exception as e:
-        logging.error(f'Error while trying to parse POSTed data:\n{str(e)}')
+        logging.error(f'Exception while trying to parse POSTed data:\n{str(e)}')
 
     # Adding try/except temporarily while I test some things
     try:

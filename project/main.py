@@ -447,12 +447,38 @@ def reported_stats():
         #top_ip = top_reported
         )
 
+# query for Proxy-Connection header
+@main.route('/stats/headers/proxy-connection', methods = ['GET'])
+@login_required
+def proxy_connection_header_stats():
+    """ Get records containing a Proxy-Connection header. (i.e. attempts to proxy the request to another host) """
+    header_string = request.args.get('header_string', "%'proxy-connection':%")
+
+    with sqlite3.connect('bots.db') as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        # Query for matching user agent
+        sql_query = """
+            SELECT * FROM bots WHERE (headers LIKE ?) ORDER BY id DESC;
+            """
+        data_tuple = (header_string,)
+        c.execute(sql_query, data_tuple)
+        proxy_connection_stats = c.fetchall()
+        c.close()
+    conn.close()
+
+    return render_template('stats.html',
+        stats = proxy_connection_stats,
+        totalHits = len(proxy_connection_stats),
+        statName = 'Proxy attempts (sent Proxy-Connection header)',
+        )
+
 # Misc routes
 
 @main.route('/profile')
 @login_required
 def profile():
-    """Profile route just for testing login, can delete it later."""
+    """Profile route for testing login, can delete it later."""
     return render_template('profile.html', name=current_user.username)
 
 @main.route('/about')

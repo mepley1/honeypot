@@ -103,6 +103,7 @@ def is_injection_attack(request):
         ';wget',
         ';chmod',
         'cd+',
+        '<?php', 'shell_exec', 'base64_decode', #php injection
     ]
     # Check for signatures in the path+query
     return any(target in path_full.lower() for target in INJECTION_SIGNATURES)
@@ -307,17 +308,18 @@ def is_programmatic_ua(request):
     return any(target in user_agent for target in PROGRAMMATIC_USER_AGENTS)
 
 # Some misc rules to help prevent false positives.
-# Don't be that dumbass admin who reports NTP servers etc.
+# Don't be that oblivious admin who reports NTP servers etc.
 
 def is_research(request):
-    """ We can reduce score if it's known research orgs/scanners, don't really need to report.
-    Can be easily spoofed though, so don't just zero it. Most just request /, but some hit
-    other rules, like krebsonsecurity checking for the recent Cisco vuln etc. """
+    """ Reduce score if it's known benign research orgs/scanners, don't need to report them.
+    Can be easily spoofed though, so don't just zero it. Most just request /, but some trigger
+    other rules while checking for vulnerabilities. """
     user_agent = request.headers.get('User-Agent')
     RESEARCH_USER_AGENTS = [
         'CensysInspect', #Mozilla/5.0 (compatible; CensysInspect/1.1; +https://about.censys.io/)
         'Expanse, a Palo Alto Networks company',
         'https://developers.cloudflare.com/security-center/', #CF Security Center
+        'http://tchelebi.io', #Black Kite / http://tchelebi.io
     ]
     if user_agent is None:
         return False
@@ -347,9 +349,9 @@ def check_all_rules():
     report_categories = set()
     # Check whether request contains query args; if so, include it.
     if request.query_string is not None and len(request.query_string.decode()) > 2:
-        report_comment = f'Honeypot detected attack: {request.method} {request.full_path} \nDetections triggered: '
+        report_comment = f'Detected malicious request: {request.method} {request.full_path} \nDetections triggered: '
     else:
-        report_comment = f'Honeypot detected attack: {request.method} {request.path} \nDetections triggered: '
+        report_comment = f'Detected malicious request: {request.method} {request.path} \nDetections triggered: '
     rules_matched = 0 #This will be our "score"; if score > 0, then report it.
 
     # Define rules as a list of tuples, where each tuple contains:

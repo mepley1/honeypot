@@ -115,7 +115,7 @@ div.contentSmall{
 	font-family: var(--text-font), sans-serif;
 	font-size: 20px;
 	background-color: var(--main-bg-color);
-	color: #eee;
+	color: var(--lightergray);
 	text-align: center;
 	margin-bottom: 26px;
 	transition: all 0.4s;
@@ -123,12 +123,13 @@ div.contentSmall{
 }
 
 .form-box:Focus{
-	/* outline: 2px solid var(--main-accent-color); */
-	outline: none;
+	outline: 2px solid var(--midgray);
+	/* outline: none; */
 	transition: all 0.4s;
 }
 
 input:focus:invalid{
+	/* color: var(--errorColor); */
 }
 
 .h-captcha{
@@ -152,12 +153,10 @@ h2{
 	font-size: 30px;
 }
 
-
 p{
 	font-family: var(--text-font), sans-serif;
 	font-size: 14px;
 }
-
 
 a{
 	color: var(--orange1);
@@ -172,7 +171,7 @@ a:hover{
 	text-align: center;
 }
 
-/* FLASH CATEGORIES */
+/* FLASH MESSAGE CATEGORIES */
 
 .successn{
 	color: var(--success-color);

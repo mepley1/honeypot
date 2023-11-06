@@ -118,14 +118,14 @@ div.contentSmall{
 	color: var(--lightergray);
 	text-align: center;
 	margin-bottom: 26px;
-	transition: all 0.4s;
+	/* transition: all 0.4s; */
 	height: 2em;
 }
 
 .form-box:Focus{
 	outline: 2px solid var(--midgray);
 	/* outline: none; */
-	transition: all 0.4s;
+	/* transition: all 0.4s; */
 }
 
 input:focus:invalid{

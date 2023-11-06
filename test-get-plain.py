@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-""" Makes a plain GET request to /. """
+""" Makes a plain GET request to / with no query. """
 
 import requests
 

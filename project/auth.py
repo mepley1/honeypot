@@ -13,34 +13,34 @@ auth = Blueprint('auth', __name__)
 def get_ip():
     """ Get client's IP from behind Nginx. Move this to a separate module later, so I can use it in the other blueprints. """
     if 'X-Real-Ip' in request.headers:
-        clientIP = request.headers.get('X-Real-Ip') #get real ip from behind Nginx
+        client_ip = request.headers.get('X-Real-Ip') #get real ip from behind Nginx
     else:
-        clientIP = request.remote_addr
-    return clientIP
+        client_ip = request.remote_addr
+    return client_ip
 
 def insert_login_record(username, password):
     """ sql insert helper function, for logging auth attempts. """
 
     if 'X-Real-Ip' in request.headers:
-        clientIP = request.headers.get('X-Real-Ip') #get real ip from behind Nginx
+        client_ip = request.headers.get('X-Real-Ip') #get real ip from behind Nginx
     else:
-        clientIP = request.remote_addr
-    loginTime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        client_ip = request.remote_addr
+    login_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
     #make the sqlite insert
     try:
         conn = sqlite3.connect('bots.db')
         c = conn.cursor()
-        sqlQuery = """
+        sql_query = """
             INSERT INTO logins
             (id,remoteaddr,username,password,time)
             VALUES (NULL, ?, ?, ?, ?);
             """
-        dataTuple = (clientIP, username, password, loginTime)
-        c.execute(sqlQuery, dataTuple)
+        data_tuple = (client_ip, username, password, login_time)
+        c.execute(sql_query, data_tuple)
         conn.commit()
     except sqlite3.Error as e:
-        print(f'Error inserting login record: {e}')
+        print(f'Error inserting login record: {str(e)}')
     finally:
         conn.close()
 
@@ -55,10 +55,10 @@ def inject_title():
 def login():
     """Route for /login GET requests, just display the login page"""
     if 'X-Real-Ip' in request.headers:
-        clientIP = request.headers.get('X-Real-Ip')#Get real IP from behind Nginx proxy
+        client_ip = request.headers.get('X-Real-Ip')#Get real IP from behind Nginx proxy
     else:
-        clientIP = request.remote_addr
-    flash('Connecting from: ' + clientIP)
+        client_ip = request.remote_addr
+    flash(f'Connecting from: {client_ip}', 'info')
     return render_template('login.html')
 
 @auth.route('/login', methods=['POST'])

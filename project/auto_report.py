@@ -75,9 +75,26 @@ def is_env_probe(request):
         '/login',
         '/database',
         '/scripts',
+        '/99vt', '/99vu', '/gate.php', '/aaaaaaaaaaaaaaaaaaaaaaaaaqr', #some misc malware
+        '/form.html', 'upl.php', 'info.php', '/bundle.js', '/files/', #Usually probed together
     ]
     if method in ENV_PROBE_METHODS:
         return any(target in path.lower() for target in ENV_PROBE_PATHS)
+    return False
+
+def is_php_easter_egg(request):
+    """ True if query string contains any of the PHP easter egg queries.
+    I see these usually alongside nmap HTTP scans.
+    PHP has several known “easter eggs” which are packaged with PHP versions prior to 5.5. """
+    PHP_EASTER_EGGS = [
+        '?=PHPB8B5F2A0-3C92-11d3-A3A9-4C7B08C10000', #PHP Credits
+        '?=PHPE9568F36-D428-11d2-A769-00AA001ACF42', #PHP Version Logo
+        '?=PHPE9568F35-D428-11d2-A769-00AA001ACF42', #Zend Logo
+        '?=PHPE9568F34-D428-11d2-A769-00AA001ACF42', #PHP Logo
+    ]
+    if request.query_string is not None:
+        query_string_decoded = request.query_string.decode()
+        return any(target.lower() in query_string_decoded.lower() for target in PHP_EASTER_EGGS)
     return False
 
 def is_phpmyadmin_probe(request):
@@ -89,15 +106,21 @@ def is_phpmyadmin_probe(request):
 def is_cgi_probe(request):
     """ Anything targeting CGI scripts. """
     path = request.path
-    CGI_PROBE_PATHS = ['.cgi', '.cc', '/cgi-bin']
+    CGI_PROBE_PATHS = [
+        '.cgi',
+        '.cc',
+        '/cgi-bin',
+        ]
     return any(target in path.lower() for target in CGI_PROBE_PATHS)
 
+'''
 def is_injection_attack(request):
     """ Command injection attempts. """
     path_full = request.full_path
     INJECTION_SIGNATURES = [
         ';sh',
         '|sh',
+        '.sh;',
         '/tmp',
         'file=',
         ';wget',
@@ -107,6 +130,26 @@ def is_injection_attack(request):
     ]
     # Check for signatures in the path+query
     return any(target in path_full.lower() for target in INJECTION_SIGNATURES)
+'''
+
+# new injection version, check both path/query AND post data
+def is_injection_attack(request):
+    """ Command injection attempts, in either the path+query or POSTed data. """
+    path_full = request.full_path
+    posted_data_decoded = request.data.decode()
+    INJECTION_SIGNATURES = [
+        ';sh',
+        '|sh',
+        '.sh;',
+        '/tmp',
+        'file=',
+        ';wget',
+        ';chmod',
+        'cd+',
+        '<?php', 'shell_exec', 'base64_decode', #php injection
+    ]
+    # Check for signatures in the path+query
+    return any(target in path_full.lower() for target in INJECTION_SIGNATURES) or any(target in posted_data_decoded.lower() for target in INJECTION_SIGNATURES)
 
 def is_misc_software_probe(request):
     """ Misc software probes I see often. """
@@ -116,10 +159,9 @@ def is_misc_software_probe(request):
         '/ReportServer', #Microsoft SQL report service
         '/boaform', 'admin/formLogin', #/boaform/admin/formLogin = Some OEM Fiber gear. Usually seen POSTing `username=admin&psd=Feefifofum`
         '/actuator', #/actuator/health - Sping Boot health check
-        '/geoserver',
         '/druid', #Apache Druid
         '/phpunit', '/eval-stdin.php', #phpunit CVE-2017-9841 = POST to /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
-        '/webui', #Cisco ios xe - recent vuln being exploited - usually seen as /webui/logoutconfirm.html?logon_hash=1
+        '/geoserver/web', '/webui', #Cisco ios xe - recent vuln being exploited - usually seen as /webui/logoutconfirm.html?logon_hash=1
         '/mailchimp', # mailchimp probes
         '/redlion', '/portal', #seen as /portal/redlion/
         '/hudson', #Hudson CI
@@ -136,6 +178,13 @@ def is_misc_software_probe(request):
         '/sugar_version.json', #SugarCRM
         '/sitecore/', #Sitecore, seen as /sitecore/shell/sitecore.version.xml
         '/level/15/exec/-/sh/run/CR', #Cisco routers without authentication on the HTTP interface.
+        '/Portal0000.htm', '__Additional', #Siemens S7–3**, PCS7 - scada servers - nmap scan
+        '/docs/cplugError.html/', '/Portal/Portal.mwsl', #Siemens Simatic S7 scada devices - nmap scan
+        '/CSS/Miniweb.css', #more scada servers
+        '/localstart.asp', #old IIS vuln, nmap scan
+        '/scripts/WPnBr.dll', #Citric XenApp and XenDesktop - Stack-Based Buffer Overflow in Citrix XML Service
+        '/exactarget', #salesforce stuff
+        '/cgi/networkDiag.cgi', # Sunhillo SureLine https://nvd.nist.gov/vuln/detail/CVE-2021-36380
     ]
     return any(target.lower() in path.lower() for target in MISC_SOFTWARE_PROBE_PATHS)
 
@@ -225,6 +274,33 @@ def is_mirai_netgear(request):
         return any(target in query_string_decoded for target in MIRAI_NETGEAR_SIGNATURES)
     return False
 
+def is_mirai_jaws(request):
+    """ JAWS Webserver unauthenticated shell command execution.
+    https://www.exploit-db.com/exploits/41471/ """
+    path = request.path
+    MIRAI_JAWS_PATH = '/shell'
+    MIRAI_JAWS_SIGNATURES = [
+        '/tmp;rm',
+        ';wget',
+        '/jaws;sh',
+        '/tmp/jaws',
+    ]
+    if path.lower() != MIRAI_JAWS_PATH:
+        return False
+    if request.query_string is not None:
+        query_string_decoded = request.query_string.decode()
+        return any(target in query_string_decoded for target in MIRAI_JAWS_SIGNATURES)
+    return False
+
+def is_mirai_ua(request):
+    """ Hello, world = UA commonly used in requests sent by Mirai botnet nodes. 
+    Not a guarantee that it's Mirai, but I haven't seen it anywhere else. """
+    user_agent = request.headers.get('User-Agent', '')
+    MIRAI_USER_AGENT = [
+        'Hello, world',
+    ]
+    return user_agent == MIRAI_USER_AGENT
+
 def is_androx(request):
     """ AndroxGh0st malware, searching for leaked app secrets in exposed Laravel .env.
     Method usually POST as form data. Path varies. """
@@ -272,6 +348,19 @@ def is_rocketmq_probe(request):
     ROCKETMQ_PROBE_PATH = '/cluster/list.query'
     return ROCKETMQ_PROBE_PATH in path.lower()
 
+def is_datadog_trace(request):
+    """ Spamming Datadog trace headers. """
+    DATADOG_HEADERS = [
+        'X-Datadog-Trace-Id',
+        'X-Datadog-Parent-Id',
+        'X-Datadog-Sampling-Priority',
+    ]
+    for datadog_header in DATADOG_HEADERS:
+        if request.headers.get(datadog_header):
+            return True
+    return False
+
+
 # more generic rules
 
 def is_post_request(request):
@@ -299,18 +388,28 @@ def is_programmatic_ua(request):
         'curl/',
         'fasthttp',
         'Go-http-client',
+        'Hello World', # Not to be confused with Mirai botnet's 'Hello, world' ua with comma
         'libwww-perl',
+        'masscan/', #https://github.com/robertdavidgraham/masscan
         'python-httpx/',
         'python-requests/',
-        'Wget/'
+        'Wget/',
         'zgrab',
     ]
     return any(target in user_agent for target in PROGRAMMATIC_USER_AGENTS)
 
 def is_proxy_attempt(request):
-    """ True if request contains a Proxy-Connection header. """
-    proxy_connection_header = request.headers.get('Proxy-Connection')
-    return proxy_connection_header is not None
+    """ True if request contains a Proxy-Connection or Proxy-Authorization header. """
+
+    PROXY_HEADERS = [
+        'Proxy-Connection',
+        'Proxy-Authorization',
+    ]
+    for proxy_header in PROXY_HEADERS:
+        if proxy_header in request.headers:
+            return True
+    return False
+
 
 # Some misc rules to help prevent false positives.
 # Don't be that oblivious admin who reports NTP servers etc.
@@ -361,22 +460,26 @@ def check_all_rules():
 
     # Define rules as a list of tuples, where each tuple contains:
     # (rule function, log message, category code)
+    # AbuseIPDB categories: https://www.abuseipdb.com/categories
     rules = [
         (is_env_probe, 'Environment/config probe', ['21']),
         (is_phpmyadmin_probe, 'PhpMyAdmin probe', ['21']),
         (is_cgi_probe, 'CGI probe/attack', ['21']),
-        (is_injection_attack, 'Command injection in Path or Query Args', ['21']),
+        (is_injection_attack, 'Command injection', ['21']),
         (is_misc_software_probe, 'Misc software probe', ['21']),
         (is_wordpress_attack, 'Wordpress attack', ['21']),
         (is_nmap_http_scan, 'Nmap HTTP scan', ['21']),
         (is_nmap_vuln_probe, 'Nmap probe', ['21']),
         (is_mirai_dvr, 'HiSense DVR exploit, likely Mirai', ['23','21']),
         (is_mirai_netgear, 'Netgear command injection exploit, likely Mirai', ['23','21']),
+        (is_mirai_jaws, 'Jaws webserver command injection, likely Mirai', ['23', '21']),
+        (is_mirai_ua, 'User-agent associated with Mirai', ['23','19']),
         (is_androx, 'Detected AndroxGh0st', ['21']),
         (is_cobalt_strike_scan, 'Cobalt Strike', ['21']),
         (is_systembc_path, 'SystemBC malware path', ['21']),
         (is_wsus_attack, 'Windows WSUS attack', ['21']),
         (is_rocketmq_probe, 'RocketMQ probe CVE-2023-33246', ['21']),
+        (is_datadog_trace, 'Spamming Datadog headers', ['21']),
         (is_post_request, 'Suspicious POST request', ['21']),
         (no_host_header, 'No Host header', ['21']),
         (is_misc_get_probe, 'GET with unexpected args', ['21']),

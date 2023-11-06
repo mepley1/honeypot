@@ -114,24 +114,6 @@ def is_cgi_probe(request):
     return any(target in path.lower() for target in CGI_PROBE_PATHS)
 
 '''
-def is_injection_attack(request):
-    """ Command injection attempts. """
-    path_full = request.full_path
-    INJECTION_SIGNATURES = [
-        ';sh',
-        '|sh',
-        '.sh;',
-        '/tmp',
-        'file=',
-        ';wget',
-        ';chmod',
-        'cd+',
-        '<?php', 'shell_exec', 'base64_decode', #php injection
-    ]
-    # Check for signatures in the path+query
-    return any(target in path_full.lower() for target in INJECTION_SIGNATURES)
-'''
-
 # new injection version, check both path/query AND post data
 def is_injection_attack(request):
     """ Command injection attempts, in either the path+query or POSTed data. """
@@ -146,10 +128,44 @@ def is_injection_attack(request):
         ';wget',
         ';chmod',
         'cd+',
+        ';rm -rf',
         '<?php', 'shell_exec', 'base64_decode', #php injection
     ]
     # Check for signatures in the path+query
     return any(target in path_full.lower() for target in INJECTION_SIGNATURES) or any(target in posted_data_decoded.lower() for target in INJECTION_SIGNATURES)
+'''
+
+def is_injection_attack(request):
+    """ Command injection attempts in the path+query, POSTed data, or header values. """
+    path_full = request.full_path
+    posted_data_decoded = request.data.decode()
+    header_values_joined = ''.join(request.headers.values())
+    INJECTION_SIGNATURES = [
+        ';sh',
+        '|sh',
+        '.sh;',
+        'sh+',
+        '/tmp;',
+        '+/tmp',
+        'file=', # might need to adjust this one, could be a real query
+        ';wget',
+        'wget+',
+        ';chmod',
+        'cd+',
+        ';rm -rf', #formatted with spaces in headers injection
+        'rm+-rf',
+        ' && ',
+        '<?php', 'shell_exec', 'base64_decode', #php injection
+    ]
+    # Check for signatures in the path+query, POSTed data, and headers
+    if (
+        any(target in path_full.lower() for target in INJECTION_SIGNATURES)
+        or any(target in posted_data_decoded.lower() for target in INJECTION_SIGNATURES)
+        or any(target in header_values_joined for target in INJECTION_SIGNATURES)
+    ):
+        return True
+    else:
+        return False
 
 def is_misc_software_probe(request):
     """ Misc software probes I see often. """
@@ -373,7 +389,8 @@ def no_host_header(request):
     return host_header is None
 
 def is_misc_get_probe(request):
-    """ Any GET request that includes 1 or more query args. """
+    """ Any GET request that includes 1 or more query args. 
+    Don't include POST requests; they'll already be reported by is_post_request(). """
     MISC_PROBE_METHODS = ['GET', 'HEAD']
     if request.method in MISC_PROBE_METHODS and request.args:
         return True
@@ -391,10 +408,11 @@ def is_programmatic_ua(request):
         'Hello World', # Not to be confused with Mirai botnet's 'Hello, world' ua with comma
         'libwww-perl',
         'masscan/', #https://github.com/robertdavidgraham/masscan
+        'Odin; https://docs.getodin.com/', #Odin
         'python-httpx/',
         'python-requests/',
         'Wget/',
-        'zgrab',
+        'zgrab/',
     ]
     return any(target in user_agent for target in PROGRAMMATIC_USER_AGENTS)
 
@@ -410,7 +428,6 @@ def is_proxy_attempt(request):
             return True
     return False
 
-
 # Some misc rules to help prevent false positives.
 # Don't be that oblivious admin who reports NTP servers etc.
 
@@ -424,6 +441,8 @@ def is_research(request):
         'Expanse, a Palo Alto Networks company',
         'https://developers.cloudflare.com/security-center/', #CF Security Center
         'http://tchelebi.io', #Black Kite / http://tchelebi.io
+        '+https://internet-measurement.com/',
+        'https://gdnplus.com:Gather Analyze Provide.',
     ]
     if user_agent is None:
         return False

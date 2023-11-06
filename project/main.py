@@ -435,11 +435,11 @@ def reported_stats():
 
     # Flash a message based on reported or unreported
     if reported_status == '1':
-        message_a = f'Most reported IP: {top_reported_ip_addr}, reported {top_reported_ip_count} times.'
+        top_reported_ip_message = f'Most reported IP: {top_reported_ip_addr}, reported {top_reported_ip_count} times.'
     elif reported_status == '0':
-        message_a = f'Most unreported IP: {top_reported_ip_addr}, slipped by {top_reported_ip_count} times.'
+        top_reported_ip_message = f'Most unreported IP: {top_reported_ip_addr}, slipped by {top_reported_ip_count} times.'
 
-    flash(message_a, 'info')
+    flash(top_reported_ip_message, 'info')
     return render_template('stats.html',
         stats = reported_stats,
         totalHits = len(reported_stats),
@@ -451,7 +451,8 @@ def reported_stats():
 @main.route('/stats/headers/proxy-connection', methods = ['GET'])
 @login_required
 def proxy_connection_header_stats():
-    """ Get records containing a Proxy-Connection header. (i.e. attempts to proxy the request to another host) """
+    """ Get records containing a Proxy-Connection header. (i.e. attempts to proxy the request to another host).
+    Can also query for ?header_string=%25proxy%25 to check for anything with the word 'proxy'. """
     header_string = request.args.get('header_string', "%'proxy-connection':%")
 
     with sqlite3.connect('bots.db') as conn:

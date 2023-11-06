@@ -18,7 +18,7 @@ def get_real_ip():
 
 def submit_report(report_comment, report_categories):
     """ Submit the report. Usage: reported = submit_report(report_comment, report_categories) """
-    api_url = 'https://api.abuseipdb.com/api/v2/report'
+    API_URL = 'https://api.abuseipdb.com/api/v2/report'
     params = {
             'ip': get_real_ip(),
             'categories': report_categories,
@@ -29,7 +29,7 @@ def submit_report(report_comment, report_categories):
             'Accept': 'application/json',
             'Key': current_app.config["ABUSEIPDB"],
     }
-    response = requests.post(url = api_url, headers = headers, params = params)
+    response = requests.post(url = API_URL, headers = headers, params = params)
     decoded_response = json.loads(response.text)
 
     # API response will contain an 'errors' key if any issues - rate limit, sent bad data, etc.
@@ -55,13 +55,14 @@ def is_env_probe(request):
         '.htaccess', '.htpasswd',
         'config', '/conf', '.conf',
         '/admin',
-        '.git',
+        '.git', '.svn', #version control
+        '/.aws',
         'backend',
         'phpinfo',
         '/eval',
         'echo.php',
         '/api',
-        '/system', '/deviceinfo', #seen as /system/deviceinfo
+        '/system/deviceinfo', #seen as /system/deviceinfo
         '/public',
         '/src',
         '/app',
@@ -71,8 +72,10 @@ def is_env_probe(request):
         '/storage', '/protected', # seen as /storage/protected - Redlion RAS
         '/library',
         '/auth',
-        'database',
-        ]
+        '/login',
+        '/database',
+        '/scripts',
+    ]
     if method in ENV_PROBE_METHODS:
         return any(target in path.lower() for target in ENV_PROBE_PATHS)
     return False
@@ -84,11 +87,13 @@ def is_phpmyadmin_probe(request):
     return any(target in path.lower() for target in PMA_PROBE_PATHS)
 
 def is_cgi_probe(request):
+    """ Anything targeting CGI scripts. """
     path = request.path
     CGI_PROBE_PATHS = ['.cgi', '.cc', '/cgi-bin']
     return any(target in path.lower() for target in CGI_PROBE_PATHS)
 
 def is_injection_attack(request):
+    """ Command injection attempts. """
     path_full = request.full_path
     INJECTION_SIGNATURES = [
         ';sh',
@@ -98,6 +103,7 @@ def is_injection_attack(request):
         ';wget',
         ';chmod',
         'cd+',
+        '<?php', 'shell_exec', 'base64_decode', #php injection
     ]
     # Check for signatures in the path+query
     return any(target in path_full.lower() for target in INJECTION_SIGNATURES)
@@ -108,11 +114,11 @@ def is_misc_software_probe(request):
     MISC_SOFTWARE_PROBE_PATHS = [
         '/adminer',
         '/ReportServer', #Microsoft SQL report service
-        '/boaform', '/formLogin', #/boaform/admin/formLogin = Some OEM Fiber gear. Usually seen POSTing `username=admin&psd=Feefifofum`
+        '/boaform', 'admin/formLogin', #/boaform/admin/formLogin = Some OEM Fiber gear. Usually seen POSTing `username=admin&psd=Feefifofum`
         '/actuator', #/actuator/health - Sping Boot health check
         '/geoserver',
-        '/systembc', #systembc malware, can move this to its own rule
-        '/phpunit', '/eval-stdin.php', #phpunit framework
+        '/druid', #Apache Druid
+        '/phpunit', '/eval-stdin.php', #phpunit CVE-2017-9841 = POST to /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
         '/webui', #Cisco ios xe - recent vuln being exploited - usually seen as /webui/logoutconfirm.html?logon_hash=1
         '/mailchimp', # mailchimp probes
         '/redlion', '/portal', #seen as /portal/redlion/
@@ -121,18 +127,28 @@ def is_misc_software_probe(request):
         '/manager/text/list', #Tomcat
         '/manager/html', #Tomcat (Nmap fingerprint)
         '/Temporary_Listen_Addresses', #Windows Communication Framework
+        '/webfig',
+        '/solr',
+        '/ckeditor',
+        '/Telerik',
+        '/showLogin.cc', #ManageEngine
+        '/api/session/properties', #MetaBase
+        '/sugar_version.json', #SugarCRM
+        '/sitecore/', #Sitecore, seen as /sitecore/shell/sitecore.version.xml
+        '/level/15/exec/-/sh/run/CR', #Cisco routers without authentication on the HTTP interface.
     ]
     return any(target.lower() in path.lower() for target in MISC_SOFTWARE_PROBE_PATHS)
 
 def is_wordpress_attack(request):
     path = request.path
     WORDPRESS_PATHS = [
+        '/wordpress',
         '/wp-content',
         '/wp-admin',
         '/wp-login', #/wp-login.php
         '/wp-upload',
         '/wp-includes',
-
+        'xmlrpc.php',
     ]
     return any(target in path.lower() for target in WORDPRESS_PATHS)
 
@@ -194,11 +210,11 @@ def is_mirai_netgear(request):
     MIRAI_NETGEAR_PATH = '/setup.cgi'
     MIRAI_NETGEAR_SIGNATURES = [
         'next_file=netgear.cfg',
-         'todo=syscmd',
-         'cmd=',
-         ';wget',
-         '/tmp/netgear',
-         'curpath=/&currentsetting.htm=1',
+        'todo=syscmd',
+        'cmd=',
+        ';wget',
+        '/tmp/netgear',
+        'curpath=/&currentsetting.htm=1',
     ]
     # Exit early if path doesn't match, for performance.
     if path.lower() != MIRAI_NETGEAR_PATH:
@@ -230,12 +246,31 @@ def is_cobalt_strike_scan(request):
         return any(target in path.lower() for target in COBALT_STRIKE_BEACONS)
     return False
 
+def is_systembc_path(request):
+    """ systembc malware paths I see requested. """
+    path = request.path
+    SYSTEMBC_PATHS = [
+        '/systembc',
+        '/systembc/geoip',
+        '/systembc/geoip/geoip2.phar',
+        '/systembc/geoip/GeoLite2-City.mmdb',
+        '/systembc/index.html',
+        '/systembc/password.php', #Almost all are this one.
+    ]
+    return any(target.lower() in path.lower() for target in SYSTEMBC_PATHS)
+
 def is_wsus_attack(request):
     """ Requests attempting to proxy a request for a Windows Update .cab file,
     with Windows-Update-Agent UA. Some kind of WSUS attack I think. """
-    user_agent = request.headers.get('User-Agent')
+    user_agent = request.headers.get('User-Agent', '')
     WSUS_ATTACK_UA = 'Windows-Update-Agent'
     return True if WSUS_ATTACK_UA in user_agent else False
+
+def is_rocketmq_probe(request):
+    """ Probing for CVE-2023-33246 RocketMQ Remote Code Execution Exploit """
+    path = request.path
+    ROCKETMQ_PROBE_PATH = '/cluster/list.query'
+    return ROCKETMQ_PROBE_PATH in path.lower()
 
 # more generic rules
 
@@ -244,30 +279,52 @@ def is_post_request(request):
     return request.method == 'POST'
 
 def no_host_header(request):
-    """ True if request contains no HOST header. """
+    """ True if request contains no 'Host' header. """
     host_header = request.headers.get('Host')
     return host_header is None
 
 def is_misc_get_probe(request):
-    """ Any GET request that includes a query. """
+    """ Any GET request that includes 1 or more query args. """
     MISC_PROBE_METHODS = ['GET', 'HEAD']
-    probe_args = request.args
-    if request.method in MISC_PROBE_METHODS and len(probe_args) > 0:
+    if request.method in MISC_PROBE_METHODS and request.args:
         return True
     return False
 
+def is_programmatic_ua(request):
+    """ Default user agents of programming language modules i.e. Python requests, etc. """
+    user_agent = request.headers.get('User-Agent', '')
+    # Most of the UA's include a version #, i.e. Wget/1.21.3, we'll just search for the name
+    PROGRAMMATIC_USER_AGENTS = [
+        'aiohttp',
+        'curl/',
+        'fasthttp',
+        'Go-http-client',
+        'libwww-perl',
+        'python-httpx/',
+        'python-requests/',
+        'Wget/'
+        'zgrab',
+    ]
+    return any(target in user_agent for target in PROGRAMMATIC_USER_AGENTS)
+
+def is_proxy_attempt(request):
+    """ True if request contains a Proxy-Connection header. """
+    proxy_connection_header = request.headers.get('Proxy-Connection')
+    return proxy_connection_header is not None
+
 # Some misc rules to help prevent false positives.
-# Don't be that dumbass admin who reports NTP servers etc.
+# Don't be that oblivious admin who reports NTP servers etc.
 
 def is_research(request):
-    """ We can reduce score if it's known research orgs/scanners, don't really need to report.
-    Can be easily spoofed though, so don't just zero it. Most just request /, but some hit
-    other rules, like krebsonsecurity checking for the recent Cisco vuln etc. """
+    """ Reduce score if it's known benign research orgs/scanners, don't need to report them.
+    Can be easily spoofed though, so don't just zero it. Most just request /, but some trigger
+    other rules while checking for vulnerabilities. """
     user_agent = request.headers.get('User-Agent')
     RESEARCH_USER_AGENTS = [
         'CensysInspect', #Mozilla/5.0 (compatible; CensysInspect/1.1; +https://about.censys.io/)
         'Expanse, a Palo Alto Networks company',
         'https://developers.cloudflare.com/security-center/', #CF Security Center
+        'http://tchelebi.io', #Black Kite / http://tchelebi.io
     ]
     if user_agent is None:
         return False
@@ -280,7 +337,7 @@ def is_research(request):
 # END RULES
 
 def append_to_report(comment, category_codes, report_categories, report_comment):
-    """ Append a note and category to the report params. """
+    """ Append the rule name and category to the report params. """
     for category in category_codes:
         # Avoid duplicate categories
         if category not in report_categories:
@@ -293,13 +350,13 @@ def check_all_rules():
     detection rules, and submit report to AbuseIPDB.
     Usage: reported = check_all_rules() #returns reported = 0/1. """
 
-    # Initialize these empty, then append_to_report() will fill them in if any rules match.
+    # Initialize categories+comment empty, then append_to_report() will fill in if any rules match.
     report_categories = set()
-    #Check length of query string; if longer than 2, include it.
-    if len(request.query_string.decode()) > 2:
-        report_comment = f'Honeypot detected attack: {request.method} {request.full_path} \nDetections triggered: '
+    # Check whether request contains query args; if so, include it.
+    if request.query_string is not None and len(request.query_string.decode()) > 2:
+        report_comment = f'Detected malicious request: {request.method} {request.full_path} \nDetections triggered: '
     else:
-        report_comment = f'Honeypot detected attack: {request.method} {request.path} \nDetections triggered: '
+        report_comment = f'Detected malicious request: {request.method} {request.path} \nDetections triggered: '
     rules_matched = 0 #This will be our "score"; if score > 0, then report it.
 
     # Define rules as a list of tuples, where each tuple contains:
@@ -308,7 +365,7 @@ def check_all_rules():
         (is_env_probe, 'Environment/config probe', ['21']),
         (is_phpmyadmin_probe, 'PhpMyAdmin probe', ['21']),
         (is_cgi_probe, 'CGI probe/attack', ['21']),
-        (is_injection_attack, 'Command injection generic', ['21']),
+        (is_injection_attack, 'Command injection in Path or Query Args', ['21']),
         (is_misc_software_probe, 'Misc software probe', ['21']),
         (is_wordpress_attack, 'Wordpress attack', ['21']),
         (is_nmap_http_scan, 'Nmap HTTP scan', ['21']),
@@ -317,10 +374,14 @@ def check_all_rules():
         (is_mirai_netgear, 'Netgear command injection exploit, likely Mirai', ['23','21']),
         (is_androx, 'Detected AndroxGh0st', ['21']),
         (is_cobalt_strike_scan, 'Cobalt Strike', ['21']),
+        (is_systembc_path, 'SystemBC malware path', ['21']),
         (is_wsus_attack, 'Windows WSUS attack', ['21']),
+        (is_rocketmq_probe, 'RocketMQ probe CVE-2023-33246', ['21']),
         (is_post_request, 'Suspicious POST request', ['21']),
         (no_host_header, 'No Host header', ['21']),
-        (is_misc_get_probe, 'Misc GET query', ['21']),
+        (is_misc_get_probe, 'GET with unexpected args', ['21']),
+        (is_programmatic_ua, 'Automated user-agent', ['21']),
+        (is_proxy_attempt, 'Proxy attempt (sent Proxy-connection header)', ['21']),
     ]
 
     for detection_rule, log_message, category_code in rules:
@@ -334,12 +395,12 @@ def check_all_rules():
             logging.debug(f'Rule matched: {log_message}')
             rules_matched += 1
 
-    # Lower the score for known researchers
+    # Lower the score for known benign researchers/scanners
     if is_research(request):
         if rules_matched > 0:
             rules_matched -= 1
 
-    # If any rules matched, report it.
+    # If any rules matched, report to AbuseIPDB.
     if rules_matched > 0:
         if current_app.config.get('ABUSEIPDB'):
             try:

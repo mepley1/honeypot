@@ -30,6 +30,9 @@
                 <label>
                     <input type="checkbox" name="dataCheckbox" value="dataTime" checked>Time
                 </label>
+                <label>
+                    <input type="checkbox" name="dataCheckbox" value="dataLinks" checked>Info Links
+                </label>
             </div>
             <br />
 
@@ -39,15 +42,17 @@
                     <th class="dataIP selectt">IP</th>
                     <th class="dataUsername selectt">Username</th>
                     <th class="dataPassword selectt">Password</th>
-                    <th class="dataTime selectt">Time</th>                 
+                    <th class="dataTime selectt">Time</th>
+                    <th class="dataLinks selectt">Links</th>
                 </tr>
                 </thead>
                 {% for row in stats: %}
                 <tr>
-                    <td class="dataIP selectt ipToLink"><a href="https://www.abuseipdb.com/check/{{row[1]}}">{{row['remoteaddr']}}</a></td>
+                    <td class="dataIP selectt ipToLink"><a href="{{url_for('main.ipStats', ipAddr=row['remoteaddr'])}}">{{row['remoteaddr']}}</a></td>
                     <td class="dataUsername selectt">{{row['username']}}</td>
                     <td class="dataPassword selectt">{{row['password']}}</td>
                     <td class="dataTime selectt">{{row['time']}}</td>
+                    <td class="dataLinks ipToLink selectt"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> <span class="dim">|</span> <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a></td>
                 </tr>
                 {% endfor %}
             </table>

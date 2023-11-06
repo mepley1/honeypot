@@ -1,8 +1,8 @@
 datetime
 flask
-requests
 flask-login
 flask-sqlalchemy
+requests
 Werkzeug==2.3.0
 wheel
 gunicorn

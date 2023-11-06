@@ -6,7 +6,7 @@ import json
 import datetime
 import logging
 from .auto_report import check_all_rules #The new report module. Will check rules + report
-from socket import gethostbyaddr
+from socket import gethostbyaddr, herror
 from flask import request, render_template, jsonify, Response, send_from_directory, g, after_this_request, flash, Blueprint, current_app
 from flask_login import login_required, current_user
 from urllib.parse import unquote # for uaStats()
@@ -14,7 +14,7 @@ from urllib.parse import unquote # for uaStats()
 main = Blueprint('main', __name__)
 
 # Initialize bots database
-# Should move this to models.py as a sqlAlchemy model, since I switched to blueprints.
+# Should move this to models.py as a sqlAlchemy model.
 def createDatabase(): # note: change column names to just match http headers, this schema is stupid and confusing.
     """ Create the bots.db database that will contain all the requests data. """
     with sqlite3.connect("bots.db") as conn:
@@ -36,7 +36,7 @@ def createDatabase(): # note: change column names to just match http headers, th
         """)
         #logging.debug('Bots table initialized.')
 
-        # Create Logins table
+        # Create Logins table, to record login attempts.
         c.execute("""
                 CREATE TABLE IF NOT EXISTS logins(
                 id INTEGER PRIMARY KEY,
@@ -53,12 +53,15 @@ def createDatabase(): # note: change column names to just match http headers, th
 
 createDatabase()
 
+# note: Use a Flask config variable for this, right now it's duplicated across blueprints
 @main.context_processor
 def inject_title():
     '''Return the title to display on the navbar'''
     return {"SUBDOMAIN": 'lab.mepley', "TLD": '.com'}
 
 # Define routes
+
+# Will use this in a couple places so I don't have to list them all out
 HTTP_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'TRACE', 'PATCH']
 
 @main.route('/', methods = HTTP_METHODS, defaults = {'u_path': ''})
@@ -70,29 +73,32 @@ def index(u_path):
     ## note: I *really* need to change these variable names to match the database/headers better
     # Need to get real IP from behind Nginx proxy
     if 'X-Real-Ip' in request.headers:
-        clientIP = request.headers.get('X-Real-Ip')
+        req_ip = request.headers.get('X-Real-Ip')
+    elif 'X-Forwarded-For' in request.headers:
+        req_ip = request.headers.get('X-Forwarded-For')
     else:
-        clientIP = request.remote_addr
+        req_ip = request.remote_addr
 
     try: # Get hostname by performing a DNS lookup
-        clientHostname = gethostbyaddr(clientIP)[0]
-    except:
-        clientHostname = 'Unavailable'
+        req_hostname = gethostbyaddr(req_ip)[0]
+    except herror as e:
+        req_hostname = 'Unavailable'
+        logging.debug(f'Exception while attempting to get hostname; usually no hostname available, or no connection:\n{str(e)}')
 
-    clientUserAgent = request.headers.get('User-Agent')
-    reqMethod = request.method
-    clientQuery = request.query_string.decode()
-    clientTime = datetime.datetime.now().astimezone().replace(microsecond=0).isoformat() #Compatible with ApuseIPDB API
-    clientHeaders = dict(request.headers) # go ahead and save the full headers
-    if 'Cookie' in clientHeaders:
-        clientHeaders['Cookie'] = '[REDACTED]' # Don't expose session cookies!
-    reqUrl = request.url
+    req_user_agent = request.headers.get('User-Agent')
+    req_method = request.method
+    req_query = request.query_string.decode()
+    req_time = datetime.datetime.now().astimezone().replace(microsecond=0).isoformat() #Compatible with ApuseIPDB API
+    req_headers = dict(request.headers) # go ahead and save the full headers
+    if 'Cookie' in req_headers:
+        req_headers['Cookie'] = '[REDACTED]' # Don't expose session cookies! Will be displayed later.
+    req_url = request.url
 
     # Adding the try/except block temporarily while I rewrite this section.
     # Need to rewrite it with an if block for each content-type to make it cleaner
     try:
     # Get the POSTed data
-        if reqMethod == 'POST':
+        if req_method == 'POST':
             try:
                 posted_json = request.json
                 posted_data = json.dumps(posted_json)
@@ -104,33 +110,37 @@ def index(u_path):
                     posted_data = bad_data
                     if not posted_data:
                         #If request.data can't parse it and returns an empty object
-                        posted_data = saved_data
                         logging.debug('Couldnt parse data, falling back to request.get_data')
+                        posted_data = saved_data
                 except Exception as e:
                     posted_data = str(e) # So I can see if anything is still failing
+                    logging.error(f'Couldnt parse data: {str(e)}.')
         else:
             posted_data = '' #If not a POST request, use blank
     except Exception as e:
-        logging.error(f'Error while trying to parse POSTed data:\n{str(e)}')
+        logging.error(f'Exception while trying to parse POSTed data:\n{str(e)}')
 
+    # Check request against detection rules, and submit report
     # Adding try/except temporarily while I test some things
     try:
         reported = check_all_rules() #see auto_report.py
     except Exception as e:
         logging.error(f'Error while executing detection rules or submitting report:\n{str(e)}')
+        reported = 0
 
-    sqlQuery = """INSERT INTO bots
+    # Request data to insert into the database
+    sql_query = """INSERT INTO bots
         (id,remoteaddr,hostname,useragent,requestmethod,querystring,time,postjson,headers,url,reported)
         VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"""
-    dataTuple = (clientIP,
-                clientHostname,
-                clientUserAgent,
-                reqMethod,
-                clientQuery,
-                clientTime,
+    data_tuple = (req_ip,
+                req_hostname,
+                req_user_agent,
+                req_method,
+                req_query,
+                req_time,
                 posted_data,
-                str(clientHeaders),
-                reqUrl,
+                str(req_headers),
+                req_url,
                 reported)
 
     @after_this_request
@@ -138,14 +148,14 @@ def index(u_path):
         """ Add response code to the tuple, commit and close db connection. """
         with sqlite3.connect('bots.db') as conn:
             c = conn.cursor()
-            c.execute(sqlQuery, dataTuple)
+            c.execute(sql_query, data_tuple)
             conn.commit()
         conn.close()
 
         #logging.debug(response.status) #For testing
         return response
 
-    flash(f'IP: {clientIP}', 'info')
+    flash(f'IP: {req_ip}', 'info')
     return render_template('index.html')
 
 @main.route('/stats')
@@ -165,26 +175,26 @@ def stats():
         c = conn.cursor()
 
         # Grab most recent hits.
-        sqlQuery = "SELECT * FROM bots ORDER BY id DESC LIMIT ?;"
+        sql_query = "SELECT * FROM bots ORDER BY id DESC LIMIT ?;"
         data_tuple = (records_limit,)
-        c.execute(sqlQuery, data_tuple)
+        c.execute(sql_query, data_tuple)
         stats = c.fetchall()
 
         # get total number of rows (= number of hits)
-        sqlQuery = "SELECT COUNT(*) FROM bots"
-        c.execute(sqlQuery)
+        sql_query = "SELECT COUNT(*) FROM bots"
+        c.execute(sql_query)
         result = c.fetchone()
         totalHits = result[0]
 
         # Get most common IP. Break ties in favor of most recent.
-        sqlQuery = """
+        sql_query = """
             SELECT remoteaddr, COUNT(*) AS count
             FROM bots
             GROUP BY remoteaddr
             ORDER BY count DESC, MAX(id) DESC
             LIMIT 1;
             """
-        c.execute(sqlQuery)
+        c.execute(sql_query)
         top_ip = c.fetchone()
         if top_ip:
             top_ip_addr = top_ip['remoteaddr']
@@ -216,13 +226,13 @@ def loginStats():
         c = conn.cursor()
 
         # query most recent login attempts
-        sqlQuery = "SELECT * FROM logins ORDER BY id DESC LIMIT 100;"
-        c.execute(sqlQuery)
+        sql_query = "SELECT * FROM logins ORDER BY id DESC LIMIT 100;"
+        c.execute(sql_query)
         loginAttempts = c.fetchall()
 
         # query for total # of rows
-        sqlQuery = "SELECT COUNT(*) FROM logins"
-        c.execute(sqlQuery)
+        sql_query = "SELECT COUNT(*) FROM logins"
+        c.execute(sql_query)
         totalLogins = c.fetchone()[0]
 
         c.close()
@@ -233,7 +243,7 @@ def loginStats():
         stats = loginAttempts,
         totalLogins = totalLogins)
 
-@main.route('/ip/<ipAddr>', methods = ['GET'])
+@main.route('/stats/ip/<ipAddr>', methods = ['GET'])
 @login_required
 def ipStats(ipAddr):
     """ Get records of an individual IP. The IP column on stats page will link to this route. """
@@ -241,14 +251,15 @@ def ipStats(ipAddr):
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         # Changing query to GLOB instead of = to allow checking for a subnet more easily, i.e. 123.45.67.*
-        sqlQuery = "SELECT * FROM bots WHERE (remoteaddr GLOB ?) ORDER BY id DESC;"
-        dataTuple = (ipAddr,)
-        c.execute(sqlQuery, dataTuple)
+        sql_query = "SELECT * FROM bots WHERE (remoteaddr GLOB ?) ORDER BY id DESC;"
+        data_tuple = (ipAddr,)
+        c.execute(sql_query, data_tuple)
         ipStats = c.fetchall()
 
         c.close()
     conn.close()
 
+    flash('Use * in URL for wildcard, i.e. /stats/ip/1.2.3.*', 'info')
     return render_template('stats.html',
         stats = ipStats,
         totalHits = len(ipStats),
@@ -259,18 +270,18 @@ def ipStats(ipAddr):
 def methodStats(method):
     """ Get records by request method """
     # Flash an error message if querying for a method not in db
-    if method not in ('GET', 'POST', 'HEAD'):
-        flash('Bad request. Try /method/GET or /method/POST', 'error')
+    if method not in HTTP_METHODS:
+        flash('Bad request. Must query for a valid HTTP method, try /method/GET or /method/POST', 'error')
         return render_template('index.html')
 
     with sqlite3.connect('bots.db') as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
-        sqlQuery = """
+        sql_query = """
             SELECT * FROM bots WHERE requestmethod = ? ORDER BY id DESC;
             """
-        dataTuple = (method,)
-        c.execute(sqlQuery, dataTuple)
+        data_tuple = (method,)
+        c.execute(sql_query, data_tuple)
         methodStats = c.fetchall()
         c.close()
     conn.close()
@@ -291,11 +302,11 @@ def uaStats():
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         # Query for matching user agent
-        sqlQuery = """
+        sql_query = """
             SELECT * FROM bots WHERE useragent = ? ORDER BY id DESC;
             """
-        dataTuple = (ua,)
-        c.execute(sqlQuery, dataTuple)
+        data_tuple = (ua,)
+        c.execute(sql_query, data_tuple)
         uaStats = c.fetchall()
         c.close()
     conn.close()
@@ -316,15 +327,16 @@ def urlStats():
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         # Query for matching user agent
-        sqlQuery = """
-            SELECT * FROM bots WHERE url = ? ORDER BY id DESC;
+        sql_query = """
+            SELECT * FROM bots WHERE (url GLOB ?) ORDER BY id DESC;
             """
-        dataTuple = (url,)
-        c.execute(sqlQuery, dataTuple)
+        data_tuple = (url,)
+        c.execute(sql_query, data_tuple)
         urlStats = c.fetchall()
         c.close()
     conn.close()
 
+    flash('Use * in URL for wildcard, i.e. /stats/url?url=*.example.com/*', 'info')
     return render_template('stats.html',
         stats = urlStats,
         totalHits = len(urlStats),
@@ -341,11 +353,11 @@ def queriesStats():
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         # Query for matching user agent
-        sqlQuery = """
+        sql_query = """
             SELECT * FROM bots WHERE querystring = ? ORDER BY id DESC;
             """
-        dataTuple = (query_params,)
-        c.execute(sqlQuery, dataTuple)
+        data_tuple = (query_params,)
+        c.execute(sql_query, data_tuple)
         queriesStats = c.fetchall()
         c.close()
     conn.close()
@@ -366,11 +378,11 @@ def bodyStats():
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         # Query for matching request body
-        sqlQuery = """
+        sql_query = """
             SELECT * FROM bots WHERE (postjson LIKE ?) ORDER BY id DESC;
             """
-        dataTuple = (body,)
-        c.execute(sqlQuery, dataTuple)
+        data_tuple = (body,)
+        c.execute(sql_query, data_tuple)
         bodyStats = c.fetchall()
         c.close()
     conn.close()
@@ -435,12 +447,38 @@ def reported_stats():
         #top_ip = top_reported
         )
 
+# query for Proxy-Connection header
+@main.route('/stats/headers/proxy-connection', methods = ['GET'])
+@login_required
+def proxy_connection_header_stats():
+    """ Get records containing a Proxy-Connection header. (i.e. attempts to proxy the request to another host) """
+    header_string = request.args.get('header_string', "%'proxy-connection':%")
+
+    with sqlite3.connect('bots.db') as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        # Query for matching user agent
+        sql_query = """
+            SELECT * FROM bots WHERE (headers LIKE ?) ORDER BY id DESC;
+            """
+        data_tuple = (header_string,)
+        c.execute(sql_query, data_tuple)
+        proxy_connection_stats = c.fetchall()
+        c.close()
+    conn.close()
+
+    return render_template('stats.html',
+        stats = proxy_connection_stats,
+        totalHits = len(proxy_connection_stats),
+        statName = 'Proxy attempts (sent Proxy-Connection header)',
+        )
+
 # Misc routes
 
 @main.route('/profile')
 @login_required
 def profile():
-    """Profile route just for testing login, can delete it later."""
+    """Profile route for testing login, can delete it later."""
     return render_template('profile.html', name=current_user.username)
 
 @main.route('/about')

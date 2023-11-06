@@ -60,15 +60,15 @@ An example systemd service unit file is included, see `/etc/systemd/system/honey
 To-do: Deployment guide. Include Nginx proxy conf & systemd service unit. 
 
 # Extra scripts for testing
-`test-send-request.py` | Sends a POST request to localhost:5000 for testing. Accepts up to 2 parameters, which are used as the post data. For ex., to send `{'key1', 'value1'}` you would run `python test-send-request.py key1 value1`. If no parameters input then some default data is used. Can also do something like `./test-send-request.py $(head -c 32 /dev/urandom)` in a Bash shell.
+`test-post-request.py` | Sends a POST request to localhost:5000 for testing. Accepts up to 2 parameters, which are used as the post data. For ex., to send `{'key1', 'value1'}` you would run `python test-send-request.py key1 value1`. If no parameters input then some default data is used. Can also do something like `./test-send-request.py $(head -c 32 /dev/urandom)` in a Bash shell.
 
-`test-highvolume.py` | Send a bunch of GET + POST requests to localhost:5000, for testing with slightly higher volume. Change IP in script if not running on localhost. 
+`test-highvolume.py` | Send a bunch of GET + POST requests to localhost:5000, for testing/generating some records.
 
 `test-post-bad-data.py` | POST some random data, not JSON-formatted.
 
 `create-venv.sh` | Just creates a venv named `venv` in the current directory.
 
-`deploy.sh` | This is NOT for production deployment, it only copies the main app files to another machine for development purposes - I use it to copy over new versions of the Flask blueprints to my "production" server where the app is already deployed. 
+`deploy.sh` | This is NOT for production deployment, it only copies the main app files to another machine for development purposes - I use it to copy over new versions of the Flask blueprints to my "production" server where the app is already deployed, as an "update" script of sorts.
 
 # Notes/issues:
 - Will have to force Werkzeug=2.3.0 for a bit until flask-login release a version compatible with Werkzeug 3
@@ -76,9 +76,9 @@ To-do: Deployment guide. Include Nginx proxy conf & systemd service unit.
 - Querying for records by POST request body fails in some cases due to encoding discrepancies.
 
 # To-do:
+- Rewrite SQL queries, using SQLAlchemy instead of raw SQL.
 - More specific detection rules/filters.
 - Deployment guide - deployment.md - Include Nginx vhost conf file, systemd service unit example
 - Filter stats by more data points. (condense into a dynamic Flask route for this like /stats/method/post)
-- Automatically check IPs via ipinfo API? This would use up a free plan quickly- check each IP only once every so often. 
-- Scripts to test high request volume, + fuzz
-- Filter out private IP ranges on stats pages? / Include config variable to not record requests from specific CIDR subnets.
+- Filter out private IP ranges on stats pages? / Include config variable to not record requests from specific subnets.
+- Configure a CIDR subnet from which to allow login.

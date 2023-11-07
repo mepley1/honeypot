@@ -5,19 +5,20 @@ import requests #for reporting
 import json
 import datetime
 import logging
-from .auto_report import check_all_rules #The new report module. Will check rules + report
+from .auto_report import check_all_rules, get_real_ip #The new report module. Will check rules + report
 from socket import gethostbyaddr, herror
 from flask import request, render_template, jsonify, Response, send_from_directory, g, after_this_request, flash, Blueprint, current_app
 from flask_login import login_required, current_user
 from urllib.parse import unquote # for uaStats()
 
 main = Blueprint('main', __name__)
+requests_db = 'bots.db'
 
 # Initialize bots database
 # Should move this to models.py as a sqlAlchemy model.
 def createDatabase(): # note: change column names to just match http headers, this schema is stupid and confusing.
     """ Create the bots.db database that will contain all the requests data. """
-    with sqlite3.connect("bots.db") as conn:
+    with sqlite3.connect(requests_db) as conn:
         c = conn.cursor()
         c.execute("""
                 CREATE TABLE IF NOT EXISTS bots(
@@ -68,27 +69,23 @@ HTTP_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'T
 @main.route('/<path:u_path>', methods = HTTP_METHODS)
 def index(u_path):
     """ Catch-all route. Get and save all the request data into the database. """
-    logging.info(request)
+    logging.debug(f'{request}')
 
     ## note: I *really* need to change these variable names to match the database/headers better
-    # Need to get real IP from behind Nginx proxy
-    if 'X-Real-Ip' in request.headers:
-        req_ip = request.headers.get('X-Real-Ip')
-    elif 'X-Forwarded-For' in request.headers:
-        req_ip = request.headers.get('X-Forwarded-For')
-    else:
-        req_ip = request.remote_addr
+    # Need to get real IP from behind Nginx reverse proxy
+    req_ip = get_real_ip()
 
     try: # Get hostname by performing a DNS lookup
         req_hostname = gethostbyaddr(req_ip)[0]
     except herror as e:
         req_hostname = 'Unavailable'
-        logging.debug(f'Exception while attempting to get hostname; usually no hostname available, or no connection:\n{str(e)}')
+        logging.debug(f'No hostname available, or no connection:\n{str(e)}')
 
     req_user_agent = request.headers.get('User-Agent')
     req_method = request.method
     req_query = request.query_string.decode()
-    req_time = datetime.datetime.now().astimezone().replace(microsecond=0).isoformat() #Compatible with ApuseIPDB API
+    #Timestamp compatible with ApuseIPDB API
+    req_time = datetime.datetime.now().astimezone().replace(microsecond=0).isoformat()
     req_headers = dict(request.headers) # go ahead and save the full headers
     if 'Cookie' in req_headers:
         req_headers['Cookie'] = '[REDACTED]' # Don't expose session cookies! Will be displayed later.
@@ -125,7 +122,7 @@ def index(u_path):
     try:
         reported = check_all_rules() #see auto_report.py
     except Exception as e:
-        logging.error(f'Error while executing detection rules or submitting report:\n{str(e)}')
+        logging.error(f'Error while executing detection rules:\n{str(e)}')
         reported = 0
 
     # Request data to insert into the database
@@ -146,7 +143,7 @@ def index(u_path):
     @after_this_request
     def closeConnection(response):
         """ Add response code to the tuple, commit and close db connection. """
-        with sqlite3.connect('bots.db') as conn:
+        with sqlite3.connect(requests_db) as conn:
             c = conn.cursor()
             c.execute(sql_query, data_tuple)
             conn.commit()
@@ -170,7 +167,7 @@ def stats():
         flash('Bad request: `limit` must be a positive integer.', 'error')
         return render_template('index.html')
 
-    with sqlite3.connect("bots.db") as conn:
+    with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
 
@@ -193,7 +190,7 @@ def stats():
             GROUP BY remoteaddr
             ORDER BY count DESC, MAX(id) DESC
             LIMIT 1;
-            """
+        """
         c.execute(sql_query)
         top_ip = c.fetchone()
         if top_ip:
@@ -208,7 +205,7 @@ def stats():
         totalHits = totalHits,
         statName = f'Most Recent {records_limit} HTTP Requests',
         top_ip = top_ip
-        )
+    )
 
 # To do: Change the stats routes to use a single /stats/<statname> sort of scheme,
 # with <statname> returning a certain view from database.
@@ -221,36 +218,36 @@ def stats():
 @login_required
 def loginStats():
     """ Query db for login attempts. """
-    with sqlite3.connect('bots.db') as conn:
+    with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
 
         # query most recent login attempts
         sql_query = "SELECT * FROM logins ORDER BY id DESC LIMIT 100;"
         c.execute(sql_query)
-        loginAttempts = c.fetchall()
+        login_attempts = c.fetchall()
 
         # query for total # of rows
         sql_query = "SELECT COUNT(*) FROM logins"
         c.execute(sql_query)
-        totalLogins = c.fetchone()[0]
+        total_logins = c.fetchone()[0]
 
         c.close()
     conn.close()
 
     #note: can just use flashed messages here, after I make a new stats template
     return render_template('loginstats.html',
-        stats = loginAttempts,
-        totalLogins = totalLogins)
+        stats = login_attempts,
+        totalLogins = total_logins)
 
 @main.route('/stats/ip/<ipAddr>', methods = ['GET'])
 @login_required
 def ipStats(ipAddr):
     """ Get records of an individual IP. The IP column on stats page will link to this route. """
-    with sqlite3.connect('bots.db') as conn:
+    with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
-        # Changing query to GLOB instead of = to allow checking for a subnet more easily, i.e. 123.45.67.*
+        # Using GLOB instead of = to allow checking for a subnet more easily, i.e. 123.45.67.*
         sql_query = "SELECT * FROM bots WHERE (remoteaddr GLOB ?) ORDER BY id DESC;"
         data_tuple = (ipAddr,)
         c.execute(sql_query, data_tuple)
@@ -259,7 +256,7 @@ def ipStats(ipAddr):
         c.close()
     conn.close()
 
-    flash('Use * in URL for wildcard, i.e. /stats/ip/1.2.3.*', 'info')
+    flash('Note: Use * in URL for wildcard, i.e. /stats/ip/1.2.3.*', 'info')
     return render_template('stats.html',
         stats = ipStats,
         totalHits = len(ipStats),
@@ -274,7 +271,7 @@ def methodStats(method):
         flash('Bad request. Must query for a valid HTTP method, try /method/GET or /method/POST', 'error')
         return render_template('index.html')
 
-    with sqlite3.connect('bots.db') as conn:
+    with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         sql_query = """
@@ -298,7 +295,7 @@ def uaStats():
     """ Get stats matching the user agent string. """
     ua = unquote(request.args.get('ua', '')) #The link on stats page encodes it
 
-    with sqlite3.connect('bots.db') as conn:
+    with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         # Query for matching user agent
@@ -323,7 +320,7 @@ def urlStats():
     """ Get stats matching the URL. """
     url = request.args.get('url', '')
 
-    with sqlite3.connect('bots.db') as conn:
+    with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         # Query for matching user agent
@@ -349,7 +346,7 @@ def queriesStats():
     """ Get records matching the Query String. """
     query_params = request.args.get('query', '')
 
-    with sqlite3.connect('bots.db') as conn:
+    with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         # Query for matching user agent
@@ -374,7 +371,7 @@ def bodyStats():
     """ Get records matching the POST request body. """
     body = request.args.get('body')
 
-    with sqlite3.connect('bots.db') as conn:
+    with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         # Query for matching request body
@@ -403,7 +400,7 @@ def reported_stats():
         flash('Bad request. Try reported=0 or reported=1', 'error')
         return render_template('index.html')
 
-    with sqlite3.connect('bots.db') as conn:
+    with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         # Query for reported 0/1
@@ -455,7 +452,7 @@ def proxy_connection_header_stats():
     Can also query for ?header_string=%25proxy%25 to check for anything with the word 'proxy'. """
     header_string = request.args.get('header_string', "%'proxy-connection':%")
 
-    with sqlite3.connect('bots.db') as conn:
+    with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         # Query for matching user agent

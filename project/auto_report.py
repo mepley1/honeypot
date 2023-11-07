@@ -170,6 +170,7 @@ def is_injection_attack(request):
 def is_misc_software_probe(request):
     """ Misc software probes I see often. """
     path = request.path
+    #Note: alphabetize these, it's getting too long. Could also import them from a txt file
     MISC_SOFTWARE_PROBE_PATHS = [
         '/adminer',
         '/ReportServer', #Microsoft SQL report service
@@ -201,6 +202,7 @@ def is_misc_software_probe(request):
         '/scripts/WPnBr.dll', #Citric XenApp and XenDesktop - Stack-Based Buffer Overflow in Citrix XML Service
         '/exactarget', #salesforce stuff
         '/cgi/networkDiag.cgi', # Sunhillo SureLine https://nvd.nist.gov/vuln/detail/CVE-2021-36380
+        '/nation.php', #Seen posting form-encoded data to it
     ]
     return any(target.lower() in path.lower() for target in MISC_SOFTWARE_PROBE_PATHS)
 
@@ -412,13 +414,13 @@ def is_programmatic_ua(request):
         'python-httpx/',
         'python-requests/',
         'Wget/',
+        'WinHttp.WinHttpRequest',
         'zgrab/',
     ]
     return any(target in user_agent for target in PROGRAMMATIC_USER_AGENTS)
 
 def is_proxy_attempt(request):
     """ True if request contains a Proxy-Connection or Proxy-Authorization header. """
-
     PROXY_HEADERS = [
         'Proxy-Connection',
         'Proxy-Authorization',
@@ -453,6 +455,7 @@ def is_research(request):
     return False
 
 # END RULES
+# BEGIN RULE CHECKING FUNCTIONS
 
 def append_to_report(comment, category_codes, report_categories, report_comment):
     """ Append the rule name and category to the report params. """
@@ -478,7 +481,7 @@ def check_all_rules():
     rules_matched = 0 #This will be our "score"; if score > 0, then report it.
 
     # Define rules as a list of tuples, where each tuple contains:
-    # (rule function, log message, category code)
+    # (rule function, rule name/comment, category code)
     # AbuseIPDB categories: https://www.abuseipdb.com/categories
     rules = [
         (is_env_probe, 'Environment/config probe', ['21']),
@@ -506,6 +509,7 @@ def check_all_rules():
         (is_proxy_attempt, 'Proxy attempt (sent Proxy-connection header)', ['21']),
     ]
 
+    # Now check against each detection rule, and if positive(True), then append to the report.
     for detection_rule, log_message, category_code in rules:
         if detection_rule(request):
             report_comment = append_to_report(
@@ -524,6 +528,7 @@ def check_all_rules():
 
     # If any rules matched, report to AbuseIPDB.
     if rules_matched > 0:
+        # Check whether an API key is configured first.
         if current_app.config.get('ABUSEIPDB'):
             try:
                 reported = submit_report(report_comment, report_categories)
@@ -531,6 +536,7 @@ def check_all_rules():
             except requests.exceptions.ConnectionError as e:
                 reported = 0
                 logging.error(f'Connection error while submitting report: {str(e)}')
+        # If no API key configured, skip reporting and just return 0
         else:
             reported = 0
             logging.info(f'Matched {rules_matched} rules. No AbuseIPDB key found, not reported.')

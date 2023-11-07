@@ -150,6 +150,7 @@ def is_injection_attack(request):
         'file=', # might need to adjust this one, could be a real query
         ';wget',
         'wget+',
+        '&wget',
         ';chmod',
         'cd+',
         ';rm -rf', #formatted with spaces in headers injection

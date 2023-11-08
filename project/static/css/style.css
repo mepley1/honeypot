@@ -441,7 +441,9 @@ td.dataToLink a:hover {
 }
 
 .dim {
-	filter:opacity(65%);
+	/* Filter is causing issues with dropdown menus in front of it, try something else. */
+	/* filter:opacity(65%); */
+	color: var(--midgray);
 }
 
 /* for jQuery hiding columns */

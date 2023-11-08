@@ -79,7 +79,7 @@ def index(u_path):
         req_hostname = gethostbyaddr(req_ip)[0]
     except herror as e:
         req_hostname = 'Unavailable'
-        logging.debug(f'No hostname available, or no connection:\n{str(e)}')
+        logging.debug(f'No hostname available, or no connection: {str(e)}')
 
     req_user_agent = request.headers.get('User-Agent')
     req_method = request.method

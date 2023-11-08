@@ -446,6 +446,7 @@ def is_research(request):
         'http://tchelebi.io', #Black Kite / http://tchelebi.io
         '+https://internet-measurement.com/',
         'https://gdnplus.com:Gather Analyze Provide.',
+        '+http://www.bing.com/bingbot.htm', #Saw bingbot crawling it, might as well add it.
     ]
     if user_agent is None:
         return False

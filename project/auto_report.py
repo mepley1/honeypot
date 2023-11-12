@@ -77,6 +77,7 @@ def is_env_probe(request):
         '/scripts',
         '/99vt', '/99vu', '/gate.php', '/aaaaaaaaaaaaaaaaaaaaaaaaaqr', #some misc malware
         '/form.html', 'upl.php', 'info.php', '/bundle.js', '/files/', #Usually probed together
+        '/whyareugay', # Some malware maybe? Been seeing it from the same couple subnets
     ]
     if method in ENV_PROBE_METHODS:
         return any(target in path.lower() for target in ENV_PROBE_PATHS)
@@ -112,28 +113,6 @@ def is_cgi_probe(request):
         '/cgi-bin',
         ]
     return any(target in path.lower() for target in CGI_PROBE_PATHS)
-
-'''
-# new injection version, check both path/query AND post data
-def is_injection_attack(request):
-    """ Command injection attempts, in either the path+query or POSTed data. """
-    path_full = request.full_path
-    posted_data_decoded = request.data.decode()
-    INJECTION_SIGNATURES = [
-        ';sh',
-        '|sh',
-        '.sh;',
-        '/tmp',
-        'file=',
-        ';wget',
-        ';chmod',
-        'cd+',
-        ';rm -rf',
-        '<?php', 'shell_exec', 'base64_decode', #php injection
-    ]
-    # Check for signatures in the path+query
-    return any(target in path_full.lower() for target in INJECTION_SIGNATURES) or any(target in posted_data_decoded.lower() for target in INJECTION_SIGNATURES)
-'''
 
 def is_injection_attack(request):
     """ Command injection attempts in the path+query, POSTed data, or header values. """

@@ -482,6 +482,7 @@ def profile():
 @main.route('/about')
 @login_required
 def about():
+    logging.debug(request)
     return render_template('about.html')
 
 # Routes for security.txt + robots.txt
@@ -490,12 +491,15 @@ def about():
 @main.route('/security.txt')
 def securityTxt():
     """ Serve a security.txt in case Nginx isn't there to do it. """
+    logging.debug(request)
     return send_from_directory('static', path='txt/security.txt')
 @main.route('/robots.txt')
 def robotsTxt():
     """ It's a honeypot, of course I want to allow bots. """
+    logging.debug(request)
     return send_from_directory('static', path='txt/robots.txt')
 # Serve the favicon (and stop logging requests for it)
 @main.route('/favicon.ico', methods = ['GET'])
 def serve_favicon():
+    logging.debug(request)
     return send_from_directory('static', path='favicon.ico')

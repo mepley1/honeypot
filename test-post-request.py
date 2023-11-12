@@ -8,8 +8,13 @@ elif len(sys.argv) > 2:
     myobj = {sys.argv[1]:sys.argv[2]}
 else:
     myobj = {'key 1': 'value 1', 'key 2': 'value 2'}
+
 url = 'http://localhost:5000/'
-x = requests.post(url, json = myobj)
+headers = {
+    'User-Agent': 'test',
+}
+
+x = requests.post(url, json = myobj, headers = headers)
 
 #print(x.text)
 print(x.status_code)

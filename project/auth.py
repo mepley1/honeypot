@@ -1,6 +1,7 @@
 """ Authentication routes & functions"""
 
 import datetime #for logging
+import logging
 import sqlite3 #for logging bad logins
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -13,34 +14,34 @@ auth = Blueprint('auth', __name__)
 def get_ip():
     """ Get client's IP from behind Nginx. Move this to a separate module later, so I can use it in the other blueprints. """
     if 'X-Real-Ip' in request.headers:
-        clientIP = request.headers.get('X-Real-Ip') #get real ip from behind Nginx
+        client_ip = request.headers.get('X-Real-Ip') #get real ip from behind Nginx
     else:
-        clientIP = request.remote_addr
-    return clientIP
+        client_ip = request.remote_addr
+    return client_ip
 
 def insert_login_record(username, password):
     """ sql insert helper function, for logging auth attempts. """
 
     if 'X-Real-Ip' in request.headers:
-        clientIP = request.headers.get('X-Real-Ip') #get real ip from behind Nginx
+        client_ip = request.headers.get('X-Real-Ip') #get real ip from behind Nginx
     else:
-        clientIP = request.remote_addr
-    loginTime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        client_ip = request.remote_addr
+    login_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
     #make the sqlite insert
     try:
         conn = sqlite3.connect('bots.db')
         c = conn.cursor()
-        sqlQuery = """
+        sql_query = """
             INSERT INTO logins
             (id,remoteaddr,username,password,time)
             VALUES (NULL, ?, ?, ?, ?);
             """
-        dataTuple = (clientIP, username, password, loginTime)
-        c.execute(sqlQuery, dataTuple)
+        data_tuple = (client_ip, username, password, login_time)
+        c.execute(sql_query, data_tuple)
         conn.commit()
     except sqlite3.Error as e:
-        print(f'Error inserting login record: {e}')
+        print(f'Error inserting login record: {str(e)}')
     finally:
         conn.close()
 
@@ -55,10 +56,10 @@ def inject_title():
 def login():
     """Route for /login GET requests, just display the login page"""
     if 'X-Real-Ip' in request.headers:
-        clientIP = request.headers.get('X-Real-Ip')#Get real IP from behind Nginx proxy
+        client_ip = request.headers.get('X-Real-Ip')#Get real IP from behind Nginx proxy
     else:
-        clientIP = request.remote_addr
-    flash('Connecting from: ' + clientIP)
+        client_ip = request.remote_addr
+    flash(f'Connecting from: {client_ip}', 'info')
     return render_template('login.html')
 
 @auth.route('/login', methods=['POST'])
@@ -76,7 +77,7 @@ def login_post():
 
         # Record the attempt in the database
         insert_login_record(username, password)
-        print('Failed login attempt: ', username)
+        logging.info(f'Failed login attempt: {username}')
 
         flash('Invalid credentials.', 'errorn')
         return redirect(url_for('auth.login')) # if the user doesn't exist or password is wrong, reload the page
@@ -84,7 +85,7 @@ def login_post():
     # Record the successful login, but obviously don't log the password.
     # Can query where password = placeholder later, to query for successful logins.
     insert_login_record(username, '*** SUCCESSFUL LOGIN ***')
-    print('Successful login: ', username)
+    logging.info(f'Successful login: {username}')
     # if the above check passes, then we know the user has the right credentials
     login_user(user, remember=remember)
     return redirect(url_for('main.stats'))

@@ -75,9 +75,26 @@ def is_env_probe(request):
         '/login',
         '/database',
         '/scripts',
+        '/99vt', '/99vu', '/gate.php', '/aaaaaaaaaaaaaaaaaaaaaaaaaqr', #some misc malware
+        '/form.html', 'upl.php', 'info.php', '/bundle.js', '/files/', #Usually probed together
     ]
     if method in ENV_PROBE_METHODS:
         return any(target in path.lower() for target in ENV_PROBE_PATHS)
+    return False
+
+def is_php_easter_egg(request):
+    """ True if query string contains any of the PHP easter egg queries.
+    I see these usually alongside nmap HTTP scans.
+    PHP has several known “easter eggs” which are packaged with PHP versions prior to 5.5. """
+    PHP_EASTER_EGGS = [
+        '?=PHPB8B5F2A0-3C92-11d3-A3A9-4C7B08C10000', #PHP Credits
+        '?=PHPE9568F36-D428-11d2-A769-00AA001ACF42', #PHP Version Logo
+        '?=PHPE9568F35-D428-11d2-A769-00AA001ACF42', #Zend Logo
+        '?=PHPE9568F34-D428-11d2-A769-00AA001ACF42', #PHP Logo
+    ]
+    if request.query_string is not None:
+        query_string_decoded = request.query_string.decode()
+        return any(target.lower() in query_string_decoded.lower() for target in PHP_EASTER_EGGS)
     return False
 
 def is_phpmyadmin_probe(request):
@@ -89,37 +106,80 @@ def is_phpmyadmin_probe(request):
 def is_cgi_probe(request):
     """ Anything targeting CGI scripts. """
     path = request.path
-    CGI_PROBE_PATHS = ['.cgi', '.cc', '/cgi-bin']
+    CGI_PROBE_PATHS = [
+        '.cgi',
+        '.cc',
+        '/cgi-bin',
+        ]
     return any(target in path.lower() for target in CGI_PROBE_PATHS)
 
+'''
+# new injection version, check both path/query AND post data
 def is_injection_attack(request):
-    """ Command injection attempts. """
+    """ Command injection attempts, in either the path+query or POSTed data. """
     path_full = request.full_path
+    posted_data_decoded = request.data.decode()
     INJECTION_SIGNATURES = [
         ';sh',
         '|sh',
+        '.sh;',
         '/tmp',
         'file=',
         ';wget',
         ';chmod',
         'cd+',
+        ';rm -rf',
         '<?php', 'shell_exec', 'base64_decode', #php injection
     ]
     # Check for signatures in the path+query
-    return any(target in path_full.lower() for target in INJECTION_SIGNATURES)
+    return any(target in path_full.lower() for target in INJECTION_SIGNATURES) or any(target in posted_data_decoded.lower() for target in INJECTION_SIGNATURES)
+'''
+
+def is_injection_attack(request):
+    """ Command injection attempts in the path+query, POSTed data, or header values. """
+    path_full = request.full_path
+    posted_data_decoded = request.data.decode()
+    header_values_joined = ''.join(request.headers.values())
+    INJECTION_SIGNATURES = [
+        ';sh',
+        '|sh',
+        '.sh;',
+        'sh+',
+        '/tmp;',
+        '+/tmp',
+        'file=', # might need to adjust this one, could be a real query
+        ';wget',
+        'wget+',
+        '&wget',
+        ';chmod',
+        'cd+',
+        ';rm -rf', #formatted with spaces in headers injection
+        'rm+-rf',
+        ' && ',
+        '<?php', 'shell_exec', 'base64_decode', #php injection
+    ]
+    # Check for signatures in the path+query, POSTed data, and headers
+    if (
+        any(target in path_full.lower() for target in INJECTION_SIGNATURES)
+        or any(target in posted_data_decoded.lower() for target in INJECTION_SIGNATURES)
+        or any(target in header_values_joined for target in INJECTION_SIGNATURES)
+    ):
+        return True
+    else:
+        return False
 
 def is_misc_software_probe(request):
     """ Misc software probes I see often. """
     path = request.path
+    #Note: alphabetize these, it's getting too long. Could also import them from a txt file
     MISC_SOFTWARE_PROBE_PATHS = [
         '/adminer',
         '/ReportServer', #Microsoft SQL report service
         '/boaform', 'admin/formLogin', #/boaform/admin/formLogin = Some OEM Fiber gear. Usually seen POSTing `username=admin&psd=Feefifofum`
         '/actuator', #/actuator/health - Sping Boot health check
-        '/geoserver',
         '/druid', #Apache Druid
         '/phpunit', '/eval-stdin.php', #phpunit CVE-2017-9841 = POST to /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
-        '/webui', #Cisco ios xe - recent vuln being exploited - usually seen as /webui/logoutconfirm.html?logon_hash=1
+        '/geoserver/web', '/webui', #Cisco ios xe - recent vuln being exploited - usually seen as /webui/logoutconfirm.html?logon_hash=1
         '/mailchimp', # mailchimp probes
         '/redlion', '/portal', #seen as /portal/redlion/
         '/hudson', #Hudson CI
@@ -136,6 +196,14 @@ def is_misc_software_probe(request):
         '/sugar_version.json', #SugarCRM
         '/sitecore/', #Sitecore, seen as /sitecore/shell/sitecore.version.xml
         '/level/15/exec/-/sh/run/CR', #Cisco routers without authentication on the HTTP interface.
+        '/Portal0000.htm', '__Additional', #Siemens S7–3**, PCS7 - scada servers - nmap scan
+        '/docs/cplugError.html/', '/Portal/Portal.mwsl', #Siemens Simatic S7 scada devices - nmap scan
+        '/CSS/Miniweb.css', #more scada servers
+        '/localstart.asp', #old IIS vuln, nmap scan
+        '/scripts/WPnBr.dll', #Citric XenApp and XenDesktop - Stack-Based Buffer Overflow in Citrix XML Service
+        '/exactarget', #salesforce stuff
+        '/cgi/networkDiag.cgi', # Sunhillo SureLine https://nvd.nist.gov/vuln/detail/CVE-2021-36380
+        '/nation.php', #Seen posting form-encoded data to it
     ]
     return any(target.lower() in path.lower() for target in MISC_SOFTWARE_PROBE_PATHS)
 
@@ -225,6 +293,33 @@ def is_mirai_netgear(request):
         return any(target in query_string_decoded for target in MIRAI_NETGEAR_SIGNATURES)
     return False
 
+def is_mirai_jaws(request):
+    """ JAWS Webserver unauthenticated shell command execution.
+    https://www.exploit-db.com/exploits/41471/ """
+    path = request.path
+    MIRAI_JAWS_PATH = '/shell'
+    MIRAI_JAWS_SIGNATURES = [
+        '/tmp;rm',
+        ';wget',
+        '/jaws;sh',
+        '/tmp/jaws',
+    ]
+    if path.lower() != MIRAI_JAWS_PATH:
+        return False
+    if request.query_string is not None:
+        query_string_decoded = request.query_string.decode()
+        return any(target in query_string_decoded for target in MIRAI_JAWS_SIGNATURES)
+    return False
+
+def is_mirai_ua(request):
+    """ Hello, world = UA commonly used in requests sent by Mirai botnet nodes. 
+    Not a guarantee that it's Mirai, but I haven't seen it anywhere else. """
+    user_agent = request.headers.get('User-Agent', '')
+    MIRAI_USER_AGENT = [
+        'Hello, world',
+    ]
+    return user_agent == MIRAI_USER_AGENT
+
 def is_androx(request):
     """ AndroxGh0st malware, searching for leaked app secrets in exposed Laravel .env.
     Method usually POST as form data. Path varies. """
@@ -272,6 +367,19 @@ def is_rocketmq_probe(request):
     ROCKETMQ_PROBE_PATH = '/cluster/list.query'
     return ROCKETMQ_PROBE_PATH in path.lower()
 
+def is_datadog_trace(request):
+    """ Spamming Datadog trace headers. """
+    DATADOG_HEADERS = [
+        'X-Datadog-Trace-Id',
+        'X-Datadog-Parent-Id',
+        'X-Datadog-Sampling-Priority',
+    ]
+    for datadog_header in DATADOG_HEADERS:
+        if request.headers.get(datadog_header):
+            return True
+    return False
+
+
 # more generic rules
 
 def is_post_request(request):
@@ -284,7 +392,8 @@ def no_host_header(request):
     return host_header is None
 
 def is_misc_get_probe(request):
-    """ Any GET request that includes 1 or more query args. """
+    """ Any GET request that includes 1 or more query args. 
+    Don't include POST requests; they'll already be reported by is_post_request(). """
     MISC_PROBE_METHODS = ['GET', 'HEAD']
     if request.method in MISC_PROBE_METHODS and request.args:
         return True
@@ -295,22 +404,34 @@ def is_programmatic_ua(request):
     user_agent = request.headers.get('User-Agent', '')
     # Most of the UA's include a version #, i.e. Wget/1.21.3, we'll just search for the name
     PROGRAMMATIC_USER_AGENTS = [
-        'aiohttp',
+        'aiohttp/',
         'curl/',
         'fasthttp',
         'Go-http-client',
+        'Hello World', #Not to be confused with Mirai botnet's 'Hello, world' ua with comma
         'libwww-perl',
+        'masscan/', #https://github.com/robertdavidgraham/masscan
+        'Mozila/5.0', #Note misspelling; all with this UA have been command injection of some sort
+        'Odin; https://docs.getodin.com/', #Odin
+        'Offline Explorer/', #WWW Offline Explorer
         'python-httpx/',
         'python-requests/',
-        'Wget/'
-        'zgrab',
+        'Wget/',
+        'WinHttp.WinHttpRequest',
+        'zgrab/',
     ]
     return any(target in user_agent for target in PROGRAMMATIC_USER_AGENTS)
 
 def is_proxy_attempt(request):
-    """ True if request contains a Proxy-Connection header. """
-    proxy_connection_header = request.headers.get('Proxy-Connection')
-    return proxy_connection_header is not None
+    """ True if request contains a Proxy-Connection or Proxy-Authorization header. """
+    PROXY_HEADERS = [
+        'Proxy-Connection',
+        'Proxy-Authorization',
+    ]
+    for proxy_header in PROXY_HEADERS:
+        if proxy_header in request.headers:
+            return True
+    return False
 
 # Some misc rules to help prevent false positives.
 # Don't be that oblivious admin who reports NTP servers etc.
@@ -324,7 +445,11 @@ def is_research(request):
         'CensysInspect', #Mozilla/5.0 (compatible; CensysInspect/1.1; +https://about.censys.io/)
         'Expanse, a Palo Alto Networks company',
         'https://developers.cloudflare.com/security-center/', #CF Security Center
+        'HTTP Banner Detection (https://security.ipip.net)', # *.security.ipip.net
         'http://tchelebi.io', #Black Kite / http://tchelebi.io
+        '+https://internet-measurement.com/',
+        'https://gdnplus.com:Gather Analyze Provide.',
+        '+http://www.bing.com/bingbot.htm', #Saw bingbot crawling it, might as well add it.
     ]
     if user_agent is None:
         return False
@@ -335,6 +460,7 @@ def is_research(request):
     return False
 
 # END RULES
+# BEGIN RULE CHECKING FUNCTIONS
 
 def append_to_report(comment, category_codes, report_categories, report_comment):
     """ Append the rule name and category to the report params. """
@@ -360,23 +486,27 @@ def check_all_rules():
     rules_matched = 0 #This will be our "score"; if score > 0, then report it.
 
     # Define rules as a list of tuples, where each tuple contains:
-    # (rule function, log message, category code)
+    # (rule function, rule name/comment, category code)
+    # AbuseIPDB categories: https://www.abuseipdb.com/categories
     rules = [
         (is_env_probe, 'Environment/config probe', ['21']),
         (is_phpmyadmin_probe, 'PhpMyAdmin probe', ['21']),
         (is_cgi_probe, 'CGI probe/attack', ['21']),
-        (is_injection_attack, 'Command injection in Path or Query Args', ['21']),
+        (is_injection_attack, 'Command injection', ['21']),
         (is_misc_software_probe, 'Misc software probe', ['21']),
         (is_wordpress_attack, 'Wordpress attack', ['21']),
         (is_nmap_http_scan, 'Nmap HTTP scan', ['21']),
         (is_nmap_vuln_probe, 'Nmap probe', ['21']),
         (is_mirai_dvr, 'HiSense DVR exploit, likely Mirai', ['23','21']),
         (is_mirai_netgear, 'Netgear command injection exploit, likely Mirai', ['23','21']),
+        (is_mirai_jaws, 'Jaws webserver command injection, likely Mirai', ['23', '21']),
+        (is_mirai_ua, 'User-agent associated with Mirai', ['23','19']),
         (is_androx, 'Detected AndroxGh0st', ['21']),
         (is_cobalt_strike_scan, 'Cobalt Strike', ['21']),
         (is_systembc_path, 'SystemBC malware path', ['21']),
         (is_wsus_attack, 'Windows WSUS attack', ['21']),
         (is_rocketmq_probe, 'RocketMQ probe CVE-2023-33246', ['21']),
+        (is_datadog_trace, 'Spamming Datadog headers', ['21']),
         (is_post_request, 'Suspicious POST request', ['21']),
         (no_host_header, 'No Host header', ['21']),
         (is_misc_get_probe, 'GET with unexpected args', ['21']),
@@ -384,6 +514,7 @@ def check_all_rules():
         (is_proxy_attempt, 'Proxy attempt (sent Proxy-connection header)', ['21']),
     ]
 
+    # Now check against each detection rule, and if positive(True), then append to the report.
     for detection_rule, log_message, category_code in rules:
         if detection_rule(request):
             report_comment = append_to_report(
@@ -402,6 +533,7 @@ def check_all_rules():
 
     # If any rules matched, report to AbuseIPDB.
     if rules_matched > 0:
+        # Check whether an API key is configured first.
         if current_app.config.get('ABUSEIPDB'):
             try:
                 reported = submit_report(report_comment, report_categories)
@@ -409,6 +541,7 @@ def check_all_rules():
             except requests.exceptions.ConnectionError as e:
                 reported = 0
                 logging.error(f'Connection error while submitting report: {str(e)}')
+        # If no API key configured, skip reporting and just return 0
         else:
             reported = 0
             logging.info(f'Matched {rules_matched} rules. No AbuseIPDB key found, not reported.')

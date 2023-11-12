@@ -404,14 +404,16 @@ def is_programmatic_ua(request):
     user_agent = request.headers.get('User-Agent', '')
     # Most of the UA's include a version #, i.e. Wget/1.21.3, we'll just search for the name
     PROGRAMMATIC_USER_AGENTS = [
-        'aiohttp',
+        'aiohttp/',
         'curl/',
         'fasthttp',
         'Go-http-client',
-        'Hello World', # Not to be confused with Mirai botnet's 'Hello, world' ua with comma
+        'Hello World', #Not to be confused with Mirai botnet's 'Hello, world' ua with comma
         'libwww-perl',
         'masscan/', #https://github.com/robertdavidgraham/masscan
+        'Mozila/5.0', #Note misspelling; all with this UA have been command injection of some sort
         'Odin; https://docs.getodin.com/', #Odin
+        'Offline Explorer/', #WWW Offline Explorer
         'python-httpx/',
         'python-requests/',
         'Wget/',
@@ -443,6 +445,7 @@ def is_research(request):
         'CensysInspect', #Mozilla/5.0 (compatible; CensysInspect/1.1; +https://about.censys.io/)
         'Expanse, a Palo Alto Networks company',
         'https://developers.cloudflare.com/security-center/', #CF Security Center
+        'HTTP Banner Detection (https://security.ipip.net)', # *.security.ipip.net
         'http://tchelebi.io', #Black Kite / http://tchelebi.io
         '+https://internet-measurement.com/',
         'https://gdnplus.com:Gather Analyze Provide.',

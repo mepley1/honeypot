@@ -32,6 +32,9 @@
             <div id="dataToggles">
                 Toggle data columns:
                 <label>
+                    <input type="checkbox" name="dataCheckbox" value="dataID">#
+                </label>
+                <label>
                     <input type="checkbox" name="dataCheckbox" value="dataIP" checked>IP
                 </label>
                 <label>
@@ -70,6 +73,7 @@
             <table>
                 <thead>
                 <tr>
+                    <th class="dataID hidden">#</th>
                     <th class="dataIP selectt">IP</th>
                     <th class="dataURL selectt">URL</th>
                     <th class="dataMethod selectt">Method</th>
@@ -85,6 +89,7 @@
                 </thead>
                 {% for row in stats: %}
                 <tr>
+                    <td class="dataID dataToLink dim hidden"><a href="{{url_for('main.headers_single_pretty', id=row['id'])}}">{{row['id']}}</a></td>
                     <td class="dataIP ipToLink selectt"><a href="{{url_for('main.ipStats', ipAddr=row['remoteaddr'])}}">{{row['remoteaddr']}}</a></td>
                     <td class="dataURL dataToLink selectt"><a href="{{url_for('main.urlStats', url=row['url'])}}">{{row['url']}}</a></td>
                     <td class="dataMethod dataToLink selectt"><a href="{{url_for('main.methodStats', method=row['requestmethod'])}}">{{row['requestmethod']}}</a></td>

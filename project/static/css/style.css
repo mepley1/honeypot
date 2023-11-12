@@ -409,6 +409,10 @@ td.dataMethod{
 }
 
 /* For a couple columns that I want to shrink a little */
+td.small {
+	font-size: 0.9em;
+}
+
 td.smaller {
 	font-size: 0.8em;
 }
@@ -475,3 +479,19 @@ td.dataToLink a:hover {
 }
 
 /* END TABLE DATA */
+
+
+/* SINGLE-REQUEST HEADERS PAGE */
+.header_single{
+	/*font-family: var(--mono-font);*/
+	text-align: left;
+	width: auto;
+	font-size: 1.2em;
+
+}
+
+table.header_single td{
+	padding: 8px;
+}
+
+/* END SINGLE_REQUEST PAGE */

@@ -15,6 +15,7 @@ I'll just make a simpler stats page with less data that will be better for mobil
 	/* --main-text-color: #f2f4f3; */
 	--content-bg-color: #202938;
 	--form-bg-color: #202938;
+	--input-invalid: #2a2938;
 	--site-title-color: #FFFFFF;
 	--dotnet-color: #FF7F02;
 	--dotnet-hover-color: #FFFFFF;
@@ -130,6 +131,7 @@ div.contentSmall{
 
 input:focus:invalid{
 	/* color: var(--errorColor); */
+	/* background-color: var(--input-invalid); */
 }
 
 .h-captcha{
@@ -171,7 +173,7 @@ a:hover{
 	text-align: center;
 }
 
-/* FLASH MESSAGE CATEGORIES */
+/* FLASH MESSAGE CATEGORIES - USED AS CLASSES */
 
 .successn{
 	color: var(--success-color);
@@ -200,6 +202,17 @@ a:hover{
 
 .outLink{
 	color: var(--success-color);
+}
+
+.headersDictMessage {
+	color: var(--main-text-color);
+	font-family: var(--mono-font);
+	text-align: left;
+}
+
+.headersDictTitle {
+	color: var(--main-heading-color);
+	font-size: 1.5em;
 }
 
 /* END FLASH CATEGORIES */ 
@@ -443,6 +456,10 @@ td.dataToLink a:hover {
 .dim {
 	/* Filter is causing issues with dropdown menus in front of it, try something else. */
 	/* filter:opacity(65%); */
+	color: var(--midgray);
+}
+
+.dim a{
 	color: var(--midgray);
 }
 

@@ -4,7 +4,7 @@ Stores request data in a SQLite database and includes some stats views for easy 
 
 Very much a work in progress. 
 
-[Live Demo](http://lab.mepley.com/) Note: May not be active or up to date at any given time. Demo login: user `demo` pw `0xDEADBEEF`
+[Live Demo](http://lab.mepley.com/stats) Note: May not be active or up to date at any given time. Demo login: user `demo` pw `0xDEADBEEF`
 
 ## To run locally:
 
@@ -81,4 +81,5 @@ To-do: Deployment guide. Include Nginx proxy conf & systemd service unit.
 - Deployment guide - deployment.md - Include Nginx vhost conf file, systemd service unit example
 - Filter stats by more data points. (condense into a dynamic Flask route for this like /stats/method/post)
 - Filter out private IP ranges on stats pages? / Include config variable to not record requests from specific subnets.
-- Configure a CIDR subnet from which to allow login.
+- Configure a CIDR subnet from which to allow login. - will be simple to do via ipaddress module and a config variable.
+- Create template page for headers_single view function to use; for now, using flashed messages on Index page.

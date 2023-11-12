@@ -524,6 +524,48 @@ def hostname_stats():
         statName = f'Hostname: {hostname}'
         )
 
+@main.route('/stats/headers/pretty')
+@login_required
+def headers_single_pretty():
+    """ Display a single request's headers on page in a more human-readable format. """
+    import ast
+
+    request_id = request.args.get('id', '')
+
+    with sqlite3.connect(requests_db) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        # Select the single request from the db, by it's ID
+        sql_query = "SELECT headers FROM bots WHERE id = ?;"
+        data_tuple = (request_id,)
+        c.execute(sql_query, data_tuple)
+        try:
+            saved_headers = c.fetchone()[0]
+        except TypeError as e:
+            flash('Bad request; ID doesn\'t exist.', 'error')
+            return render_template('index.html')
+
+        c.close()
+    conn.close()
+
+    #Recreate the dictionary from the saved data. Could maybe use json.dumps instead, but have to replace single quotes w/double.
+    recreated_dictionary = ast.literal_eval(saved_headers)
+
+    #for key, value in recreated_dictionary.items():
+    #    print(f'{key}: {value}\r\n')
+    
+    #flash(f'Headers sent in Request #{request_id}', 'headersDictTitle')
+
+    """
+    for key, value in recreated_dictionary.items():
+        flash(f'{key}: {value}', 'headersDictMessage')
+    """
+
+    return render_template('headers_single.html', stats = recreated_dictionary, request_id = request_id) #The real return
+    #Temporary return while I build it
+    # For now, just flashing some messages containing the headers dict items to display.
+    #return render_template('index.html')
+
 # Misc routes
 
 @main.route('/profile')

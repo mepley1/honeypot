@@ -455,7 +455,7 @@ def proxy_connection_header_stats():
     with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
-        # Query for matching user agent
+        # Query for Proxy-Connection header.
         sql_query = """
             SELECT * FROM bots WHERE (headers LIKE ?) ORDER BY id DESC;
             """
@@ -469,6 +469,59 @@ def proxy_connection_header_stats():
         stats = proxy_connection_stats,
         totalHits = len(proxy_connection_stats),
         statName = 'Proxy attempts (sent Proxy-Connection header)',
+        )
+
+@main.route('/stats/headers/contains', methods = ['GET'])
+@login_required
+def header_string_search():
+    """ Query for a certain string in headers.
+    Usage: example.com/stats/headers/contains?header_string=<search_string> """
+    header_string = request.args.get('header_string', '')
+    header_string_q = '%' + header_string + '%'
+
+    with sqlite3.connect(requests_db) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        # Query for headers containing the string
+        sql_query = """
+            SELECT * FROM bots WHERE (headers LIKE ?) ORDER BY id DESC;
+        """
+        data_tuple = (header_string_q,)
+        c.execute(sql_query, data_tuple)
+        headers_contains_stats = c.fetchall()
+        c.close()
+    conn.close()
+
+    return render_template('stats.html',
+        stats = headers_contains_stats,
+        totalHits = len(headers_contains_stats),
+        statName = f'In Headers: {header_string}',
+        )
+
+@main.route('/stats/hostname', methods = ['GET'])
+@login_required
+def hostname_stats():
+    """ Get records matching (or ending with) the hostname. """
+    hostname = request.args.get('hostname', '')
+    hostname_q = '%' + hostname
+
+    with sqlite3.connect(requests_db) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        # Using LIKE to include subdomains i.e. %.example.net
+        sql_query = "SELECT * FROM bots WHERE (hostname LIKE ?) ORDER BY id DESC;"
+        data_tuple = (hostname_q,)
+        c.execute(sql_query, data_tuple)
+        hostname_stats = c.fetchall()
+
+        c.close()
+    conn.close()
+
+    flash('Note: Includes hostnames that are subdomains of the query.', 'info')
+    return render_template('stats.html',
+        stats = hostname_stats,
+        totalHits = len(hostname_stats),
+        statName = f'Hostname: {hostname}'
         )
 
 # Misc routes

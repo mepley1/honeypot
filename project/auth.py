@@ -1,6 +1,7 @@
 """ Authentication routes & functions"""
 
 import datetime #for logging
+import logging
 import sqlite3 #for logging bad logins
 from flask import Blueprint, render_template, redirect, url_for, request, flash
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -76,7 +77,7 @@ def login_post():
 
         # Record the attempt in the database
         insert_login_record(username, password)
-        print('Failed login attempt: ', username)
+        logging.info(f'Failed login attempt: {username}')
 
         flash('Invalid credentials.', 'errorn')
         return redirect(url_for('auth.login')) # if the user doesn't exist or password is wrong, reload the page
@@ -84,7 +85,7 @@ def login_post():
     # Record the successful login, but obviously don't log the password.
     # Can query where password = placeholder later, to query for successful logins.
     insert_login_record(username, '*** SUCCESSFUL LOGIN ***')
-    print('Successful login: ', username)
+    logging.info(f'Successful login: {username}')
     # if the above check passes, then we know the user has the right credentials
     login_user(user, remember=remember)
     return redirect(url_for('main.stats'))

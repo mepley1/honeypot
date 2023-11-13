@@ -78,6 +78,7 @@ def is_env_probe(request):
         '/99vt', '/99vu', '/gate.php', '/aaaaaaaaaaaaaaaaaaaaaaaaaqr', #some misc malware
         '/form.html', 'upl.php', 'info.php', '/bundle.js', '/files/', #Usually probed together
         '/whyareugay', # Some malware maybe? Been seeing it from the same couple subnets
+        '/log',
     ]
     if method in ENV_PROBE_METHODS:
         return any(target in path.lower() for target in ENV_PROBE_PATHS)

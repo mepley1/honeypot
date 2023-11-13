@@ -1,5 +1,6 @@
 """ Main blueprint for stats pages, home, etc. Anything not related to auth can go in here. """
 
+import ast
 import sqlite3
 import requests #for reporting
 import json
@@ -528,7 +529,6 @@ def hostname_stats():
 @login_required
 def headers_single_pretty():
     """ Display a single request's headers on page in a more human-readable format. """
-    import ast
 
     request_id = request.args.get('id', '')
 

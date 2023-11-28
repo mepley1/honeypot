@@ -8,7 +8,9 @@ from flask import request, current_app
 
 def get_real_ip():
     """ Get client's IP from behind Nginx. """
-    if 'X-Real-Ip' in request.headers:
+    if 'Cf-Connecting-Ip' in request.headers:
+        real_ip = request.headers.get('Cf-Connecting-Ip')
+    elif 'X-Real-Ip' in request.headers:
         real_ip = request.headers.get('X-Real-Ip')
     elif 'X-Forwarded-For' in request.headers:
         real_ip = request.headers.get('X-Forwarded-For')
@@ -79,6 +81,8 @@ def is_env_probe(request):
         '/form.html', 'upl.php', 'info.php', '/bundle.js', '/files/', #Usually probed together
         '/whyareugay', # Some malware maybe? Been seeing it from the same couple subnets
         '/log',
+        '/jquery.js',
+        '/jquery-3.3.1.min.js', #seen this a bunch of times now
     ]
     if method in ENV_PROBE_METHODS:
         return any(target in path.lower() for target in ENV_PROBE_PATHS)
@@ -183,7 +187,11 @@ def is_misc_software_probe(request):
         '/scripts/WPnBr.dll', #Citric XenApp and XenDesktop - Stack-Based Buffer Overflow in Citrix XML Service
         '/exactarget', #salesforce stuff
         '/cgi/networkDiag.cgi', # Sunhillo SureLine https://nvd.nist.gov/vuln/detail/CVE-2021-36380
-        '/nation.php', #Seen posting form-encoded data to it
+        '/nation.php', #Seen posting form-encoded data to it: tuid=727737499&control=fconn&payload=d0xxZtY5RVygPWB%2B
+        '/V5wZ', '/EIei', '/fw6I', #seen a few sets of requests that include each of these
+        '/glass.php',
+        'e3e7e71a0b28b5e96cc492e636722f73/4sVKAOvu3D/BDyot0NxyG.php', #Need to look this up
+        '/is-bin', #Seen this a handful of times now, along with a cookie.
     ]
     return any(target.lower() in path.lower() for target in MISC_SOFTWARE_PROBE_PATHS)
 
@@ -336,7 +344,9 @@ def is_systembc_path(request):
 
 def is_wsus_attack(request):
     """ Requests attempting to proxy a request for a Windows Update .cab file,
-    with Windows-Update-Agent UA. Some kind of WSUS attack I think. """
+    with Windows-Update-Agent UA. Some kind of WSUS attack I think. 
+    The URL in each one is http://docs.microsoft.com/c/msdownload/update/software/update/2021/11/6632de33-967441-x86.cab 
+    and UA = Windows-Update-Agent/10.0.10011.16384 Client-Protocol/2.31 """
     user_agent = request.headers.get('User-Agent', '')
     WSUS_ATTACK_UA = 'Windows-Update-Agent'
     return True if WSUS_ATTACK_UA in user_agent else False
@@ -430,6 +440,7 @@ def is_research(request):
         '+https://internet-measurement.com/',
         'https://gdnplus.com:Gather Analyze Provide.',
         '+http://www.bing.com/bingbot.htm', #Saw bingbot crawling it, might as well add it.
+        'abuse.xmco.fr',
     ]
     if user_agent is None:
         return False

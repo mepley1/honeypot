@@ -4,7 +4,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Oxygen+Mono&display=swap');
 
 /* Note: I use a 4k monitor as my daily driver so this may not all work well on lower resolutions.
-It's too much data to display at once, I'm not going to bother making it responsive.
+It's too much data to display at once, I'm not going to bother making it very responsive.
 I'll just make a simpler stats page with less data that will be better for mobile devices. */
 
 :root {
@@ -111,10 +111,11 @@ label {
 
 /* end search form testing */
 
+/* Forms */
 .submit-button{
 	border: 2px solid var(--main-accent-color);
 	border-radius: 8px;
-	font-size: 18px;
+	font-size: 20px;
 	background-color: var(--main-accent-color);
 	color: #FFFFFF;
 	padding: 10px 16px;
@@ -173,6 +174,10 @@ h1{
 
 h2{
 	font-size: 30px;
+}
+
+h3{
+	font-size: 26px;
 }
 
 p{
@@ -384,7 +389,8 @@ li.dropdown{
 
 ::placeholder{
 	color: white;
-	opacity: 0.6;
+	opacity: 0.5;
+	font-size: 0.8em;
 }
 
 .bold{

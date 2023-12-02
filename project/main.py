@@ -8,7 +8,7 @@ import datetime
 import logging
 from .auto_report import check_all_rules, get_real_ip #The new report module. Will check rules + report
 from socket import gethostbyaddr, herror
-from flask import request, render_template, jsonify, Response, send_from_directory, g, after_this_request, flash, Blueprint, current_app
+from flask import request, redirect, url_for, render_template, jsonify, Response, send_from_directory, g, after_this_request, flash, Blueprint, current_app
 from flask_login import login_required, current_user
 from urllib.parse import unquote # for uaStats()
 
@@ -301,8 +301,8 @@ def uaStats():
         c = conn.cursor()
         # Query for matching user agent
         sql_query = """
-            SELECT * FROM bots WHERE useragent = ? ORDER BY id DESC;
-            """
+            SELECT * FROM bots WHERE (useragent LIKE ?) ORDER BY id DESC;
+        """
         data_tuple = (ua,)
         c.execute(sql_query, data_tuple)
         uaStats = c.fetchall()
@@ -370,7 +370,7 @@ def queriesStats():
 @login_required
 def bodyStats():
     """ Get records matching the POST request body. """
-    body = request.args.get('body')
+    body = request.args.get('body', '')
 
     with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
@@ -395,7 +395,7 @@ def bodyStats():
 @login_required
 def reported_stats():
     """ Get records of requests that were reported. """
-    reported_status = request.args.get('reported')
+    reported_status = request.args.get('reported', '1')
     # Flash an error message if querying for a method not in db
     if reported_status not in ('0', '1'):
         flash('Bad request. Try reported=0 or reported=1', 'error')
@@ -435,7 +435,7 @@ def reported_stats():
     if reported_status == '1':
         top_reported_ip_message = f'Most reported IP: {top_reported_ip_addr}, reported {top_reported_ip_count} times.'
     elif reported_status == '0':
-        top_reported_ip_message = f'Most unreported IP: {top_reported_ip_addr}, slipped by {top_reported_ip_count} times.'
+        top_reported_ip_message = f'Most un-reported IP: {top_reported_ip_addr}, slipped by {top_reported_ip_count} times.'
 
     flash(top_reported_ip_message, 'info')
     return render_template('stats.html',
@@ -504,7 +504,7 @@ def header_string_search():
 def hostname_stats():
     """ Get records matching (or ending with) the hostname. """
     hostname = request.args.get('hostname', '')
-    hostname_q = '%' + hostname
+    hostname_q = '%' + hostname + '%'
 
     with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
@@ -548,7 +548,11 @@ def headers_single_pretty():
         c.close()
     conn.close()
 
-    #Recreate the dictionary from the saved data. Could maybe use json.dumps instead, but have to replace single quotes w/double.
+    #Recreate the dictionary from the saved data.
+    '''Could maybe use json.dumps instead, but have to replace single quotes w/double;
+    This breaks when there are header values that contain doublequotes. So what I really need is
+    a better way of storing the headers in the database.'''
+
     recreated_dictionary = ast.literal_eval(saved_headers)
 
     #for key, value in recreated_dictionary.items():
@@ -561,10 +565,55 @@ def headers_single_pretty():
         flash(f'{key}: {value}', 'headersDictMessage')
     """
 
-    return render_template('headers_single.html', stats = recreated_dictionary, request_id = request_id) #The real return
+    return render_template('headers_single.html', stats = recreated_dictionary, request_id = request_id)
     #Temporary return while I build it
     # For now, just flashing some messages containing the headers dict items to display.
     #return render_template('index.html')
+
+@main.route('/stats/id/<request_id>', methods = ['GET'])
+@login_required
+def stats_by_id(request_id):
+    """ Get an individual request by ID#. """
+    with sqlite3.connect(requests_db) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        # Only need one result, but the stats page uses a dictionary so this is fine.
+        sql_query = "SELECT * FROM bots WHERE id = ?;"
+        data_tuple = (request_id,)
+        c.execute(sql_query, data_tuple)
+        id_stats = c.fetchall()
+
+        c.close()
+    conn.close()
+
+    return render_template('stats.html',
+        stats = id_stats,
+        #totalHits = len(id_stats),
+        statName = f'ID: {request_id}')
+
+@main.route('/search', methods = ['GET'])
+@login_required
+def return_search_page():
+    """ Return the search page. NOTE: Still working on a search page template, so won't quite work."""
+    return render_template('search.html')
+
+# this is ugly as fuck but it works for now i guess
+@main.route('/search/parse', methods = ['GET'])
+@login_required
+def parse_search_form():
+    """ Redirect to one of the other views, depending on which search was selected. """
+    chosen_query = request.args.get('chosen_query', '')
+
+    if not chosen_query or chosen_query is None:
+        flash('Must select a query.', 'error')
+        return render_template('search.html')
+    if chosen_query == 'url':
+        url = request.args.get('url', '')
+        url = '*' + url + '*'
+        return redirect(url_for('main.urlStats', url = url))
+    elif chosen_query == 'header_string':
+        header_string = request.args.get('header_string', '')
+        return redirect(url_for('main.header_string_search', header_string = header_string))
 
 # Misc routes
 

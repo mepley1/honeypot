@@ -83,6 +83,7 @@ def is_env_probe(request):
         '/log',
         '/jquery.js',
         '/jquery-3.3.1.min.js', #seen this a bunch of times now
+        '.json',
     ]
     if method in ENV_PROBE_METHODS:
         return any(target in path.lower() for target in ENV_PROBE_PATHS)
@@ -180,6 +181,7 @@ def is_misc_software_probe(request):
         '/sugar_version.json', #SugarCRM
         '/sitecore/', #Sitecore, seen as /sitecore/shell/sitecore.version.xml
         '/level/15/exec/-/sh/run/CR', #Cisco routers without authentication on the HTTP interface.
+        '/+CSCOE+', '/CSCOE', #Cisco firewall WebVPN service
         '/Portal0000.htm', '__Additional', #Siemens S7–3**, PCS7 - scada servers - nmap scan
         '/docs/cplugError.html/', '/Portal/Portal.mwsl', #Siemens Simatic S7 scada devices - nmap scan
         '/CSS/Miniweb.css', #more scada servers

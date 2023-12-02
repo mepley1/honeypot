@@ -73,6 +73,7 @@ def index(u_path):
     logging.debug(f'{request}')
 
     ## note: I *really* need to change these variable names to match the database/headers better
+    
     # Need to get real IP from behind Nginx reverse proxy
     req_ip = get_real_ip()
 
@@ -614,6 +615,10 @@ def parse_search_form():
     elif chosen_query == 'header_string':
         header_string = request.args.get('header_string', '')
         return redirect(url_for('main.header_string_search', header_string = header_string))
+    elif chosen_query == 'ua_string':
+        ua_string = request.args.get('ua_string', '')
+        ua_string = '%25' + ua_string + '%25'
+        return redirect(url_for('main.uaStats', ua = ua_string))
 
 # Misc routes
 

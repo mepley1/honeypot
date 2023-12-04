@@ -142,6 +142,7 @@ def is_injection_attack(request):
         'rm+-rf',
         ' && ',
         '<?php', 'shell_exec', 'base64_decode', #php injection
+        # ';', #semicolon in the path would be injection but not headers
     ]
     # Check for signatures in the path+query, POSTed data, and headers
     if (
@@ -392,7 +393,8 @@ def is_misc_get_probe(request):
     return False
 
 def is_programmatic_ua(request):
-    """ Default user agents of programming language modules i.e. Python requests, etc. """
+    """ Default user agents of programming language modules + http clients, i.e. Python requests, etc.
+    Include curl/wget etc, but don't include specific bot UAs, those will go into another rule."""
     user_agent = request.headers.get('User-Agent', '')
     # Most of the UA's include a version #, i.e. Wget/1.21.3, we'll just search for the name
     PROGRAMMATIC_USER_AGENTS = [

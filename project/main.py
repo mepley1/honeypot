@@ -353,7 +353,7 @@ def queriesStats():
         c = conn.cursor()
         # Query for matching user agent
         sql_query = """
-            SELECT * FROM bots WHERE querystring = ? ORDER BY id DESC;
+            SELECT * FROM bots WHERE (querystring LIKE ?) ORDER BY id DESC;
             """
         data_tuple = (query_params,)
         c.execute(sql_query, data_tuple)

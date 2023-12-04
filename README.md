@@ -4,7 +4,7 @@ Stores request data in a SQLite database and includes some stats views for easy 
 
 Very much a work in progress. 
 
-[Live Demo](http://lab.mepley.com/stats) Note: May not be active or up to date at any given time. Demo login: user `demo` pw `0xDEADBEEF`
+[Live Demo](http://x2.mepley.com/stats) Note: May not be active or up to date at any given time. Demo login: user `demo` pw `0xDEADBEEF`
 
 ## To run locally:
 
@@ -41,17 +41,17 @@ Then point your browser to http://localhost:5000 and log in.
 
 # Features
 - Catch-all route to catch requests for any URI
-- Stats views to filter by IP/method/user-agent/URL/query - click on any piece of data that becomes a link to query for matching records.
+- Stats views to filter by IP/method/user-agent/URL/query etc. - click on any piece of data that becomes a link to query for matching records.
 - Toggle display/hide data columns.
 - Now has proper auth + remember me (must set `SECRET_KEY` in `config.py`/ env vars.)
-- Auto reporting with extendable "detection rules."
+- Auto reporting with extendable "detection rules." (Well, extendable if you can read my spaghetti code anyways ;) )
 
 # Auto-reporting + Detection rules
 The auto-reporting will report to AbuseIPDB any request that matches the defined "detection rules."
 
 To enable auto-reporting, copy your AbuseIPDB API key into the ABUSEIPDB value in `config.py`, or create an environment variable `export FLASK_ABUSEIPDB=<your-api-key>`. The application will check for the existence of either the environment variable or the ABUSEIPDB line in config.py, and if it finds either, then reports will be submitted automatically. If no key is configured, it will still check each request against the detection rules, but will skip the submit_report function.
 
-To understand how the rules are structured, see `auto_report.py`. Each detection rule is little more than a function that returns a boolean True/False if certain strings are found in the various properties of the request object. There's probably a more efficient way to do this, but this works well enough for my use case; if I go much further here then I'd just be re-inventing the wheel that Fail2Ban and other tools already do far better.
+To understand how the rules are structured, see `auto_report.py`. Each detection rule is little more than a function that returns a boolean True/False if certain strings are found in the various properties of the request object. There's probably a more efficient way to do this, but this works well enough for my use case; if I go much further here then I'd just be re-inventing the wheel that Fail2Ban/Snort/Suricata and other tools already do far better.
 
 # Deploying with Gunicorn+Nginx+Systemd, see deployment.md 
 
@@ -82,4 +82,4 @@ To-do: Deployment guide. Include Nginx proxy conf & systemd service unit.
 - Filter stats by more data points. (condense into a dynamic Flask route for this like /stats/method/post)
 - Filter out private IP ranges on stats pages? / Include config variable to not record requests from specific subnets.
 - Configure a CIDR subnet from which to allow login. - will be simple to do via ipaddress module and a config variable.
-- Create template page for headers_single view function to use; for now, using flashed messages on Index page.
+- Move the bigger detection rule lists to a separate txt file and import them at run time.

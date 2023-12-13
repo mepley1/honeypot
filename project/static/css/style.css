@@ -504,6 +504,10 @@ td.dataToLink a:hover {
 	/* content-visibility: hidden; */ /* This is making it not display at all, even after toggling the checkbox */
 }
 
+div#dataToggles > label {
+	font-size: 16px;
+}
+
 /* END TABLE DATA */
 
 

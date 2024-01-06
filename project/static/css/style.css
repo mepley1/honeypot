@@ -494,6 +494,7 @@ td.dataToLink a:hover {
 }
 
 /* for jQuery hiding columns */
+/* NOTE: Replaced this with .hidden - leaving this here for now, I'll delete it later. */
 .selectt {
 	/* display: none; */
 }
@@ -525,3 +526,10 @@ table.header_single td{
 }
 
 /* END SINGLE_REQUEST PAGE */
+
+/* For low-resolution monitors 1080p or smaller, use smaller font-size */
+@media only screen and (max-width: 1920px) {
+	table {
+	  font-size: 12px;
+	}
+  }

@@ -22,28 +22,32 @@ def get_ip():
 def insert_login_record(username, password):
     """ sql insert helper function, for logging auth attempts. """
 
-    if 'X-Real-Ip' in request.headers:
+    if 'Cf-Connecting-Ip' in request.headers:
+        client_ip = request.headers.get('Cf-Connecting-Ip') #will be there if site is behind cloudflare
+    elif 'X-Real-Ip' in request.headers:
         client_ip = request.headers.get('X-Real-Ip') #get real ip from behind Nginx
+    elif 'X-Forwarded-For' in request.headers:
+        client_ip = request.headers.get('X-Forwarded-For')
     else:
         client_ip = request.remote_addr
     login_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
     #make the sqlite insert
     try:
-        conn = sqlite3.connect('bots.db')
-        c = conn.cursor()
-        sql_query = """
-            INSERT INTO logins
-            (id,remoteaddr,username,password,time)
-            VALUES (NULL, ?, ?, ?, ?);
-            """
-        data_tuple = (client_ip, username, password, login_time)
-        c.execute(sql_query, data_tuple)
-        conn.commit()
-    except sqlite3.Error as e:
-        print(f'Error inserting login record: {str(e)}')
-    finally:
+        with sqlite3.connect('bots.db') as conn:
+            c = conn.cursor()
+            sql_query = """
+                INSERT INTO logins
+                (id,remoteaddr,username,password,time)
+                VALUES (NULL, ?, ?, ?, ?);
+                """
+            data_tuple = (client_ip, username, password, login_time)
+            c.execute(sql_query, data_tuple)
+            conn.commit()
+            c.close()
         conn.close()
+    except sqlite3.Error as e:
+        logging.error(f'Error inserting login record: {str(e)}')
 
 @auth.context_processor
 def inject_title():
@@ -97,6 +101,7 @@ def signup():
 
 # Note: After creating an account, add @login_required decorator to signup_post so
 # you must be logged in to create more accts.
+## Note: I have the create-user.py script now, so this endpoint isn't needed anymore
 @auth.route('/signup', methods=['POST'])
 @login_required
 def signup_post():

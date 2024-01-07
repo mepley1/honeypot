@@ -53,6 +53,7 @@ html{
 body{
 	padding: 0;
 	color: var(--main-text-color);
+	margin: 0;
 }
 
 .everything{
@@ -280,6 +281,8 @@ li a, .dropbtn{
 	margin-right: 0px;
 	font-family: var(--text-font);
 	display: inline-block;
+	border-bottom: 1px solid transparent;
+	font-size: 16px;
 }
 
 li p.loggedInUsername{
@@ -348,6 +351,7 @@ li.dropdown{
 	font-family:var(--text-font);
 	font-size: 20px;
 	border-right: 1px solid var(--orange1);
+	border-bottom: none;
 	margin-right: 0;
 }
 
@@ -530,6 +534,19 @@ table.header_single td{
 /* For low-resolution monitors 1080p or smaller, use smaller font-size */
 @media only screen and (max-width: 1920px) {
 	table {
-	  font-size: 12px;
+		font-size: 12px;
+	}
+	.everything {
+		max-width: 92vw;
+	}
+	ul.navigation {
+		padding-left: 0;
+	}
+	li a, .dropbtn{
+		font-size: 14px;
+		padding: 14px;
+	}
+	.site-title{
+		font-size: 16px;
 	}
   }

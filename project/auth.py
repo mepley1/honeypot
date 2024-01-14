@@ -55,14 +55,18 @@ def is_allowed(ip_to_check):
     """ Check whether the client IP address is in the allowed login subnet. """
     if current_app.config.get('ALLOWED_LOGIN_SUBNET'):
         ALLOWED_LOGIN_SUBNET = ipaddress.IPv4Network(current_app.config["ALLOWED_LOGIN_SUBNET"])
-        ip_conv = ipaddress.IPv4Address(ip_to_check)
-        if ip_conv in ALLOWED_LOGIN_SUBNET:
-            return True
-        else:
-            return False
-    #If no subnet configured, just allow it.
-    else:
+    if current_app.config.get('ALLOWED_LOGIN_SUBNET_V6'):
+        ALLOWED_LOGIN_SUBNET_V6 = ipaddress.IPv6Network(current_app.config["ALLOWED_LOGIN_SUBNET_V6"])
+    ip_conv = ipaddress.ip_address(ip_to_check)
+    if ip_conv in ALLOWED_LOGIN_SUBNET or ip_conv in ALLOWED_LOGIN_SUBNET_V6:
         return True
+    else:
+        return False
+
+
+    #If no subnet configured, just allow it; otherwise you won't be able to log in at all.
+    #else:
+    #    return True
 
 @auth.context_processor
 def inject_title():

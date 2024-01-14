@@ -11,5 +11,6 @@ PERMANENT_SESSION_LIFETIME = 86400
 # Enter your AbuseIPDB API key below, if you want to enable auto-reporting.
 #ABUSEIPDB = '12345678'
 
-# Restrict login to a certain CIDR subnet. Default: 0.0.0.0/0
+# Restrict login to a certain CIDR subnet. Default: 0.0.0.0/0 (v4) and ::/0 (v6)
 ALLOWED_LOGIN_SUBNET = '0.0.0.0/0'
+ALLOWED_LOGIN_SUBNET_V6 = '::/0'

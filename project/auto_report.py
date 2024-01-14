@@ -7,8 +7,12 @@ import requests
 from flask import request, current_app
 
 def get_real_ip():
-    """ Get client's IP from behind Nginx. """
-    if 'Cf-Connecting-Ip' in request.headers:
+    """ Get client's IP from behind Nginx/Cloudflare. """
+    # Use the CF IPv6 header first if present. CF adds an IPv4 header if using its
+    # pseudo-IPv6 function; in that case the IPv4 will be the proxy's IP, not the client's.
+    if 'Cf-Connecting-Ipv6' in request.headers:
+        real_ip = request.headers.get('Cf-Connecting-Ipv6')
+    elif 'Cf-Connecting-Ip' in request.headers:
         real_ip = request.headers.get('Cf-Connecting-Ip')
     elif 'X-Real-Ip' in request.headers:
         real_ip = request.headers.get('X-Real-Ip')

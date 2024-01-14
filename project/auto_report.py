@@ -7,8 +7,14 @@ import requests
 from flask import request, current_app
 
 def get_real_ip():
-    """ Get client's IP from behind Nginx. """
-    if 'X-Real-Ip' in request.headers:
+    """ Get client's IP from behind Nginx/Cloudflare. """
+    # Use the CF IPv6 header first if present. CF adds an IPv4 header if using its
+    # pseudo-IPv6 function; in that case the IPv4 will be the proxy's IP, not the client's.
+    if 'Cf-Connecting-Ipv6' in request.headers:
+        real_ip = request.headers.get('Cf-Connecting-Ipv6')
+    elif 'Cf-Connecting-Ip' in request.headers:
+        real_ip = request.headers.get('Cf-Connecting-Ip')
+    elif 'X-Real-Ip' in request.headers:
         real_ip = request.headers.get('X-Real-Ip')
     elif 'X-Forwarded-For' in request.headers:
         real_ip = request.headers.get('X-Forwarded-For')
@@ -77,6 +83,11 @@ def is_env_probe(request):
         '/scripts',
         '/99vt', '/99vu', '/gate.php', '/aaaaaaaaaaaaaaaaaaaaaaaaaqr', #some misc malware
         '/form.html', 'upl.php', 'info.php', '/bundle.js', '/files/', #Usually probed together
+        '/whyareugay', # Some malware maybe? Been seeing it from the same couple subnets
+        '/log',
+        '/jquery.js',
+        '/jquery-3.3.1.min.js', #seen this a bunch of times now
+        '.json',
     ]
     if method in ENV_PROBE_METHODS:
         return any(target in path.lower() for target in ENV_PROBE_PATHS)
@@ -113,28 +124,6 @@ def is_cgi_probe(request):
         ]
     return any(target in path.lower() for target in CGI_PROBE_PATHS)
 
-'''
-# new injection version, check both path/query AND post data
-def is_injection_attack(request):
-    """ Command injection attempts, in either the path+query or POSTed data. """
-    path_full = request.full_path
-    posted_data_decoded = request.data.decode()
-    INJECTION_SIGNATURES = [
-        ';sh',
-        '|sh',
-        '.sh;',
-        '/tmp',
-        'file=',
-        ';wget',
-        ';chmod',
-        'cd+',
-        ';rm -rf',
-        '<?php', 'shell_exec', 'base64_decode', #php injection
-    ]
-    # Check for signatures in the path+query
-    return any(target in path_full.lower() for target in INJECTION_SIGNATURES) or any(target in posted_data_decoded.lower() for target in INJECTION_SIGNATURES)
-'''
-
 def is_injection_attack(request):
     """ Command injection attempts in the path+query, POSTed data, or header values. """
     path_full = request.full_path
@@ -157,6 +146,7 @@ def is_injection_attack(request):
         'rm+-rf',
         ' && ',
         '<?php', 'shell_exec', 'base64_decode', #php injection
+        # ';', #semicolon in the path would be injection but not headers
     ]
     # Check for signatures in the path+query, POSTed data, and headers
     if (
@@ -196,6 +186,7 @@ def is_misc_software_probe(request):
         '/sugar_version.json', #SugarCRM
         '/sitecore/', #Sitecore, seen as /sitecore/shell/sitecore.version.xml
         '/level/15/exec/-/sh/run/CR', #Cisco routers without authentication on the HTTP interface.
+        '/+CSCOE+', '/CSCOE', #Cisco firewall WebVPN service
         '/Portal0000.htm', '__Additional', #Siemens S7–3**, PCS7 - scada servers - nmap scan
         '/docs/cplugError.html/', '/Portal/Portal.mwsl', #Siemens Simatic S7 scada devices - nmap scan
         '/CSS/Miniweb.css', #more scada servers
@@ -203,7 +194,11 @@ def is_misc_software_probe(request):
         '/scripts/WPnBr.dll', #Citric XenApp and XenDesktop - Stack-Based Buffer Overflow in Citrix XML Service
         '/exactarget', #salesforce stuff
         '/cgi/networkDiag.cgi', # Sunhillo SureLine https://nvd.nist.gov/vuln/detail/CVE-2021-36380
-        '/nation.php', #Seen posting form-encoded data to it
+        '/nation.php', #Seen posting form-encoded data to it: tuid=727737499&control=fconn&payload=d0xxZtY5RVygPWB%2B
+        '/V5wZ', '/EIei', '/fw6I', #seen a few sets of requests that include each of these
+        '/glass.php',
+        'e3e7e71a0b28b5e96cc492e636722f73/4sVKAOvu3D/BDyot0NxyG.php', #Need to look this up
+        '/is-bin', #Seen this a handful of times now, along with a cookie.
     ]
     return any(target.lower() in path.lower() for target in MISC_SOFTWARE_PROBE_PATHS)
 
@@ -356,7 +351,9 @@ def is_systembc_path(request):
 
 def is_wsus_attack(request):
     """ Requests attempting to proxy a request for a Windows Update .cab file,
-    with Windows-Update-Agent UA. Some kind of WSUS attack I think. """
+    with Windows-Update-Agent UA. Some kind of WSUS attack I think. 
+    The URL in each one is http://docs.microsoft.com/c/msdownload/update/software/update/2021/11/6632de33-967441-x86.cab 
+    and UA = Windows-Update-Agent/10.0.10011.16384 Client-Protocol/2.31 """
     user_agent = request.headers.get('User-Agent', '')
     WSUS_ATTACK_UA = 'Windows-Update-Agent'
     return True if WSUS_ATTACK_UA in user_agent else False
@@ -400,7 +397,8 @@ def is_misc_get_probe(request):
     return False
 
 def is_programmatic_ua(request):
-    """ Default user agents of programming language modules i.e. Python requests, etc. """
+    """ Default user agents of programming language modules + http clients, i.e. Python requests, etc.
+    Include curl/wget etc, but don't include specific bot UAs, those will go into another rule."""
     user_agent = request.headers.get('User-Agent', '')
     # Most of the UA's include a version #, i.e. Wget/1.21.3, we'll just search for the name
     PROGRAMMATIC_USER_AGENTS = [
@@ -450,6 +448,7 @@ def is_research(request):
         '+https://internet-measurement.com/',
         'https://gdnplus.com:Gather Analyze Provide.',
         '+http://www.bing.com/bingbot.htm', #Saw bingbot crawling it, might as well add it.
+        'abuse.xmco.fr',
     ]
     if user_agent is None:
         return False

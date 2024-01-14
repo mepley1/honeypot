@@ -4,7 +4,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Oxygen+Mono&display=swap');
 
 /* Note: I use a 4k monitor as my daily driver so this may not all work well on lower resolutions.
-It's too much data to display at once, I'm not going to bother making it responsive.
+It's too much data to display at once, I'm not going to bother making it very responsive.
 I'll just make a simpler stats page with less data that will be better for mobile devices. */
 
 :root {
@@ -15,6 +15,7 @@ I'll just make a simpler stats page with less data that will be better for mobil
 	/* --main-text-color: #f2f4f3; */
 	--content-bg-color: #202938;
 	--form-bg-color: #202938;
+	--input-invalid: #2a2938;
 	--site-title-color: #FFFFFF;
 	--dotnet-color: #FF7F02;
 	--dotnet-hover-color: #FFFFFF;
@@ -52,6 +53,7 @@ html{
 body{
 	padding: 0;
 	color: var(--main-text-color);
+	margin: 0;
 }
 
 .everything{
@@ -90,10 +92,31 @@ div.contentSmall{
 	border-radius: 8px;
 }
 
+/* testing search form */
+.formDiv{
+	display: block;
+	padding: 32px;
+	background-color: var(--form-bg-color);
+	margin: auto;
+	text-align: center;
+	border-radius: 8px;
+}
+
+.formDiv .form-box{
+	width: 50%;
+}
+
+label {
+	font-size: 20px;
+}
+
+/* end search form testing */
+
+/* Forms */
 .submit-button{
 	border: 2px solid var(--main-accent-color);
 	border-radius: 8px;
-	font-size: 18px;
+	font-size: 20px;
 	background-color: var(--main-accent-color);
 	color: #FFFFFF;
 	padding: 10px 16px;
@@ -130,6 +153,7 @@ div.contentSmall{
 
 input:focus:invalid{
 	/* color: var(--errorColor); */
+	/* background-color: var(--input-invalid); */
 }
 
 .h-captcha{
@@ -153,6 +177,10 @@ h2{
 	font-size: 30px;
 }
 
+h3{
+	font-size: 26px;
+}
+
 p{
 	font-family: var(--text-font), sans-serif;
 	font-size: 14px;
@@ -171,7 +199,7 @@ a:hover{
 	text-align: center;
 }
 
-/* FLASH MESSAGE CATEGORIES */
+/* FLASH MESSAGE CATEGORIES - USED AS CLASSES */
 
 .successn{
 	color: var(--success-color);
@@ -200,6 +228,17 @@ a:hover{
 
 .outLink{
 	color: var(--success-color);
+}
+
+.headersDictMessage {
+	color: var(--main-text-color);
+	font-family: var(--mono-font);
+	text-align: left;
+}
+
+.headersDictTitle {
+	color: var(--main-heading-color);
+	font-size: 1.5em;
 }
 
 /* END FLASH CATEGORIES */ 
@@ -242,6 +281,8 @@ li a, .dropbtn{
 	margin-right: 0px;
 	font-family: var(--text-font);
 	display: inline-block;
+	border-bottom: 1px solid transparent;
+	font-size: 16px;
 }
 
 li p.loggedInUsername{
@@ -310,6 +351,7 @@ li.dropdown{
 	font-family:var(--text-font);
 	font-size: 20px;
 	border-right: 1px solid var(--orange1);
+	border-bottom: none;
 	margin-right: 0;
 }
 
@@ -351,7 +393,8 @@ li.dropdown{
 
 ::placeholder{
 	color: white;
-	opacity: 0.6;
+	opacity: 0.5;
+	font-size: 0.8em;
 }
 
 .bold{
@@ -396,6 +439,10 @@ td.dataMethod{
 }
 
 /* For a couple columns that I want to shrink a little */
+td.small {
+	font-size: 0.9em;
+}
+
 td.smaller {
 	font-size: 0.8em;
 }
@@ -446,7 +493,12 @@ td.dataToLink a:hover {
 	color: var(--midgray);
 }
 
+.dim a{
+	color: var(--midgray);
+}
+
 /* for jQuery hiding columns */
+/* NOTE: Replaced this with .hidden - leaving this here for now, I'll delete it later. */
 .selectt {
 	/* display: none; */
 }
@@ -457,4 +509,44 @@ td.dataToLink a:hover {
 	/* content-visibility: hidden; */ /* This is making it not display at all, even after toggling the checkbox */
 }
 
+div#dataToggles > label {
+	font-size: 16px;
+}
+
 /* END TABLE DATA */
+
+
+/* SINGLE-REQUEST HEADERS PAGE */
+.header_single{
+	/*font-family: var(--mono-font);*/
+	text-align: left;
+	width: auto;
+	font-size: 1.2em;
+
+}
+
+table.header_single td{
+	padding: 8px;
+}
+
+/* END SINGLE_REQUEST PAGE */
+
+/* For low-resolution monitors 1080p or smaller, use smaller font-size */
+@media only screen and (max-width: 1920px) {
+	table {
+		font-size: 12px;
+	}
+	.everything {
+		max-width: 92vw;
+	}
+	ul.navigation {
+		padding-left: 0;
+	}
+	li a, .dropbtn{
+		font-size: 14px;
+		padding: 14px;
+	}
+	.site-title{
+		font-size: 16px;
+	}
+  }

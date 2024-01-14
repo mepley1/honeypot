@@ -11,10 +11,18 @@ from . import db
 
 auth = Blueprint('auth', __name__)
 
+# A couple helper functions
 def get_ip():
-    """ Get client's IP from behind Nginx. Move this to a separate module later, so I can use it in the other blueprints. """
-    if 'X-Real-Ip' in request.headers:
+    """ Get client's IP from behind Nginx/Cloudflare. + stop repeating this code.
+    Move this to a separate module later, so I can use it in the other blueprints. """
+    if 'Cf-Connecting-Ipv6' in request.headers:
+        client_ip = request.headers.get('Cf-Connecting-Ipv6')
+    elif 'Cf-Connecting-Ip' in request.headers:
+        client_ip = request.headers.get('Cf-Connecting-Ip') #will be there if site is behind cloudflare
+    elif 'X-Real-Ip' in request.headers:
         client_ip = request.headers.get('X-Real-Ip') #get real ip from behind Nginx
+    elif 'X-Forwarded-For' in request.headers:
+        client_ip = request.headers.get('X-Forwarded-For')
     else:
         client_ip = request.remote_addr
     return client_ip
@@ -22,28 +30,25 @@ def get_ip():
 def insert_login_record(username, password):
     """ sql insert helper function, for logging auth attempts. """
 
-    if 'X-Real-Ip' in request.headers:
-        client_ip = request.headers.get('X-Real-Ip') #get real ip from behind Nginx
-    else:
-        client_ip = request.remote_addr
+    client_ip = get_ip()
     login_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-    #make the sqlite insert
+    # Log the attempt in the logins table of database
     try:
-        conn = sqlite3.connect('bots.db')
-        c = conn.cursor()
-        sql_query = """
-            INSERT INTO logins
-            (id,remoteaddr,username,password,time)
-            VALUES (NULL, ?, ?, ?, ?);
-            """
-        data_tuple = (client_ip, username, password, login_time)
-        c.execute(sql_query, data_tuple)
-        conn.commit()
-    except sqlite3.Error as e:
-        print(f'Error inserting login record: {str(e)}')
-    finally:
+        with sqlite3.connect('bots.db') as conn:
+            c = conn.cursor()
+            sql_query = """
+                INSERT INTO logins
+                (id,remoteaddr,username,password,time)
+                VALUES (NULL, ?, ?, ?, ?);
+                """
+            data_tuple = (client_ip, username, password, login_time)
+            c.execute(sql_query, data_tuple)
+            conn.commit()
+            c.close()
         conn.close()
+    except sqlite3.Error as e:
+        logging.error(f'Error inserting login record: {str(e)}')
 
 @auth.context_processor
 def inject_title():
@@ -55,10 +60,7 @@ def inject_title():
 @auth.route('/login')
 def login():
     """Route for /login GET requests, just display the login page"""
-    if 'X-Real-Ip' in request.headers:
-        client_ip = request.headers.get('X-Real-Ip')#Get real IP from behind Nginx proxy
-    else:
-        client_ip = request.remote_addr
+    client_ip = get_ip() #get user's ip to display
     flash(f'Connecting from: {client_ip}', 'info')
     return render_template('login.html')
 
@@ -80,13 +82,13 @@ def login_post():
         logging.info(f'Failed login attempt: {username}')
 
         flash('Invalid credentials.', 'errorn')
-        return redirect(url_for('auth.login')) # if the user doesn't exist or password is wrong, reload the page
+        return redirect(url_for('auth.login')) # if user doesn't exist or password is wrong, reload page
 
     # Record the successful login, but obviously don't log the password.
     # Can query where password = placeholder later, to query for successful logins.
     insert_login_record(username, '*** SUCCESSFUL LOGIN ***')
     logging.info(f'Successful login: {username}')
-    # if the above check passes, then we know the user has the right credentials
+    # if the above check passes, then we know the user has the right credentials, so log them in
     login_user(user, remember=remember)
     return redirect(url_for('main.stats'))
 
@@ -97,6 +99,7 @@ def signup():
 
 # Note: After creating an account, add @login_required decorator to signup_post so
 # you must be logged in to create more accts.
+## Note: I have the create-user.py script now, so this endpoint isn't needed anymore
 @auth.route('/signup', methods=['POST'])
 @login_required
 def signup_post():

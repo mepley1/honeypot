@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    {% include 'header.html' %}
+    <div class="everything">
+        <h1>Search</h1>
+        <div class="content contentSmall formDiv">
+            <h2>Search records for HTTP requests where: (Select one)</h2>
+            
+            <form action="{{ url_for('main.parse_search_form') }}" method="GET" id="searchForm">
+                <p>
+                    <input type="radio" name="chosen_query" value="url" id="url_radio">
+                    <label for="url_radio">URL contains:</label><br />
+                    <input type="search" id="url_query" name="url" placeholder="*/path/to/.env" class="form-box" title="String to search for in the request URLs." />
+                </p>
+
+                <p>
+                    <input type="radio" name="chosen_query" value="header_string" id="headers_radio">
+                    <label for="headers_radio">Headers contains:</label><br />
+                    <input type="search" id="headers_query" name="header_string" placeholder="A header name or value i.e. 'Proxy-connection' or 'domain.com'" class="form-box" title="String to search for in the request headers." />
+                </p>
+
+                <p>
+                    <input type="radio" name="chosen_query" value="ua_string" id="ua_radio">
+                    <label for="ua_radio">User-agent contains:</label><br />
+                    <input type="search" id="ua_query" name="ua_string" placeholder="String contained within UA" class="form-box" title="String to search for in the user-agent." />
+                </p>
+
+                <p>
+                    <button type="submit" class="submit-button">Submit</button>
+                </p>
+            </form>
+        <p>{{message}}</p>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, msg in messages %}
+                        <p class="{{category}}">{{msg}}</p>
+                    {% endfor %}
+                {% endif %}
+        {% endwith %}
+
+        </div>
+    </div>
+    
+</body>
+</html>

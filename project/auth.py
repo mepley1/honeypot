@@ -3,9 +3,10 @@
 import datetime #for logging
 import logging
 import sqlite3 #for logging bad logins
-from flask import Blueprint, render_template, redirect, url_for, request, flash
+from flask import Blueprint, current_app, render_template, redirect, url_for, request, flash, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, login_required, logout_user
+import ipaddress
 from .models import User
 from . import db
 
@@ -50,6 +51,19 @@ def insert_login_record(username, password):
     except sqlite3.Error as e:
         logging.error(f'Error inserting login record: {str(e)}')
 
+def is_allowed(ip_to_check):
+    """ Check whether the client IP address is in the allowed login subnet. """
+    if current_app.config.get('ALLOWED_LOGIN_SUBNET'):
+        ALLOWED_LOGIN_SUBNET = ipaddress.IPv4Network(current_app.config["ALLOWED_LOGIN_SUBNET"])
+        ip_conv = ipaddress.IPv4Address(ip_to_check)
+        if ip_conv in ALLOWED_LOGIN_SUBNET:
+            return True
+        else:
+            return False
+    #If no subnet configured, just allow it.
+    else:
+        return True
+
 @auth.context_processor
 def inject_title():
     """Return the title to display on the navbar"""
@@ -61,6 +75,10 @@ def inject_title():
 def login():
     """Route for /login GET requests, just display the login page"""
     client_ip = get_ip() #get user's ip to display
+    if is_allowed(client_ip):
+        flash('IP found in whitelist.', 'info')
+    else:
+        flash('IP address not in whitelist - login disallowed.', 'errorn')
     flash(f'Connecting from: {client_ip}', 'info')
     return render_template('login.html')
 
@@ -72,6 +90,11 @@ def login_post():
     remember = True if request.form.get('remember') else False #Remember Me checkbox
 
     user = User.query.filter_by(username=username).first()
+
+    if not is_allowed(get_ip()):
+        insert_login_record(username, password)
+        logging.info(f'Blocked login attempt, IP not whitelisted: {username}')
+        return redirect(url_for('auth.login'))
 
     # check if the user actually exists
     # take the user-supplied password, hash it, and compare it to the hashed password in the database

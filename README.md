@@ -24,6 +24,7 @@ Configuration (Set either in config.py or as environment variables prepended wit
 1. Edit the `SECRET_KEY` in `config.py` if you want cookies to work, or export it as an environment variable: `export FLASK_SECRET_KEY=0123456789` (To generate a good key, in a Python shell run `secrets.token_hex()`)
 2. `export FLASK_ABUSEIPDB=0123456789` - Set your AbuseIPDB API key, for auto-reporting. If not set, nothing will be reported to AbuseIPDB.
 3. `export FLASK_DEBUG=true` - To turn on Flask debug mode if you want/need it for development.
+4. `ALLOWED_LOGIN_SUBNET` - Restrict logins to only this subnet.
 
 Initialize database:
 
@@ -42,11 +43,12 @@ Run the app:
 Then point your browser to http://localhost:5000 and log in.
 
 # Features
-- Catch-all route to catch requests for any URI
+- Catch-all route to catch requests for any URI.
 - Stats views to filter by IP/method/user-agent/URL/query etc. - click on any piece of data that becomes a link to query for matching records.
 - Toggle display/hide data columns.
-- Now has proper auth + remember me (must set `SECRET_KEY` in `config.py`/ env vars.)
-- Auto reporting with somewhat extendable "detection rules."
+- Now has proper auth + remember me (set `SECRET_KEY` in `config.py`)
+- Restrict login to specified CIDR subnet. (`ALLOWED_LOGIN_SUBNET` in `config.py`)
+- Auto reporting to AbuseIPDB with somewhat extendable "detection rules."
 - Search for arbitrary strings in request path/user-agent/headers/etc.
 
 # Auto-reporting + Detection rules
@@ -84,5 +86,4 @@ To-do: Deployment guide. Include Nginx proxy conf & systemd service unit.
 - Deployment guide - deployment.md - Include Nginx vhost conf file, systemd service unit example
 - Filter stats by more data points. (condense into a dynamic Flask route for this like /stats/method/post)
 - Filter out private IP ranges on stats pages? / Include config variable to not record requests from specific subnets.
-- Configure a CIDR subnet from which to allow login. - will be simple to do via ipaddress module and a config variable.
 - Move the bigger detection rule lists to a separate txt file and import them at run time.

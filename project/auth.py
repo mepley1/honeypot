@@ -61,6 +61,8 @@ def is_allowed(ip_to_check):
         ALLOWED_LOGIN_SUBNET = ipaddress.IPv4Network(current_app.config["ALLOWED_LOGIN_SUBNET"])
     if current_app.config.get('ALLOWED_LOGIN_SUBNET_V6'):
         ALLOWED_LOGIN_SUBNET_V6 = ipaddress.IPv6Network(current_app.config["ALLOWED_LOGIN_SUBNET_V6"])
+    # ipaddress.ip_address() will work for both v4+v6 in this case, as opposed to IPv4Address()/IPv6Address(),
+    # so no need for an isinstance() check; ip_address() will return the proper type.
     ip_conv = ipaddress.ip_address(ip_to_check)
     # If client IP is in allowed subnet, return True
     if ip_conv in ALLOWED_LOGIN_SUBNET or ip_conv in ALLOWED_LOGIN_SUBNET_V6:

@@ -53,20 +53,20 @@ def insert_login_record(username, password):
 
 def is_allowed(ip_to_check):
     """ Check whether the client IP address is in the allowed login subnet. """
+    #First check whether allowed subnet is configured.
+    if not current_app.config.get('ALLOWED_LOGIN_SUBNET') and not current_app.config.get('ALLOWED_LOGIN_SUBNET_V6'):
+        return True #If no subnet configured, just allow it, otherwise you won't be able to log in.
+
     if current_app.config.get('ALLOWED_LOGIN_SUBNET'):
         ALLOWED_LOGIN_SUBNET = ipaddress.IPv4Network(current_app.config["ALLOWED_LOGIN_SUBNET"])
     if current_app.config.get('ALLOWED_LOGIN_SUBNET_V6'):
         ALLOWED_LOGIN_SUBNET_V6 = ipaddress.IPv6Network(current_app.config["ALLOWED_LOGIN_SUBNET_V6"])
     ip_conv = ipaddress.ip_address(ip_to_check)
+    # If client IP is in allowed subnet, return True
     if ip_conv in ALLOWED_LOGIN_SUBNET or ip_conv in ALLOWED_LOGIN_SUBNET_V6:
         return True
     else:
         return False
-
-
-    #If no subnet configured, just allow it; otherwise you won't be able to log in at all.
-    #else:
-    #    return True
 
 @auth.context_processor
 def inject_title():
@@ -82,7 +82,7 @@ def login():
     if is_allowed(client_ip):
         flash('IP found in whitelist.', 'info')
     else:
-        flash('IP address not in whitelist - login disallowed.', 'errorn')
+        flash('Login disallowed: IP address not in whitelist.', 'errorn')
     flash(f'Connecting from: {client_ip}', 'info')
     return render_template('login.html')
 
@@ -95,6 +95,7 @@ def login_post():
 
     user = User.query.filter_by(username=username).first()
 
+    # If IP isn't in allowed login subnet, record the attempt and redirect.
     if not is_allowed(get_ip()):
         insert_login_record(username, password)
         logging.info(f'Blocked login attempt, IP not whitelisted: {username}')

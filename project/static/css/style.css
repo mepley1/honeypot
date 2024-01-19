@@ -36,6 +36,7 @@ I'll just make a simpler stats page with less data that will be better for mobil
 	--midgray: #6B818C;
 	--errorColor: #BB2020;
 	--success-color: #22AA44;
+	--size-notifications: 20px;
 }
 
 /*
@@ -54,6 +55,7 @@ body{
 	padding: 0;
 	color: var(--main-text-color);
 	margin: 0;
+	font-size: 0;
 }
 
 .everything{
@@ -203,7 +205,7 @@ a:hover{
 
 .successn{
 	color: var(--success-color);
-	font-size: 1.2em;
+	font-size: var(--size-notifications);
 }
 
 .message{
@@ -216,18 +218,19 @@ a:hover{
 
 .error{
 	color: var(--errorColor);
-	font-size: 1.2em;
+	font-size: var(--size-notifications);
 	font-weight: bold;
 }
 
 .errorn{
 	color: var(--errorColor);
-	font-size: 1.2em;
+	font-size: var(--size-notifications);
 	font-weight: bold;
 }
 
 .outLink{
 	color: var(--success-color);
+	font-size: var(--size-notifications);
 }
 
 .headersDictMessage {
@@ -269,28 +272,39 @@ ul .navigation{
 }
 
 li{
-	display: inline;
+	display: inline-block;
 }
 
 li a, .dropbtn{
 	color: var(--nav-link-color);
 	text-decoration: none;
 	padding: 16px;
-	border-right: 1px solid var(--paleblue);
 	margin-left: 0px;
 	margin-right: 0px;
 	font-family: var(--text-font);
 	display: inline-block;
 	border-bottom: 1px solid transparent;
 	font-size: 16px;
+	border-right: 1px solid var(--paleblue);
 }
 
+/*
 li p.loggedInUsername{
 	padding: 0px;
 	margin-left: 24px;
 	margin-right: 0px;
 	font-family: var(--text-font);
 	display: inline-block;
+}
+*/
+/* try this, fix the margin/padding to match the rest of the navbar: */
+li p.loggedInUsername{
+	font-size: 16px;
+	padding: 16px;
+	margin: 0;
+	font-family: var(--text-font);
+	display: inline-block;
+	color: var(--main-accent-color);
 }
 
 li a:hover, .dropdown:hover .dropbtn{
@@ -509,8 +523,10 @@ td.dataToLink a:hover {
 	/* content-visibility: hidden; */ /* This is making it not display at all, even after toggling the checkbox */
 }
 
-div#dataToggles > label {
+div#dataToggles, div#dataToggles > label {
 	font-size: 16px;
+	margin-right: 8px;
+	padding-bottom: 1em;
 }
 
 /* END TABLE DATA */
@@ -521,12 +537,12 @@ div#dataToggles > label {
 	/*font-family: var(--mono-font);*/
 	text-align: left;
 	width: auto;
-	font-size: 1.2em;
+	font-size: 18px;
 
 }
 
 table.header_single td{
-	padding: 8px;
+	padding: 12px;
 }
 
 /* END SINGLE_REQUEST PAGE */
@@ -549,4 +565,4 @@ table.header_single td{
 	.site-title{
 		font-size: 16px;
 	}
-  }
+}

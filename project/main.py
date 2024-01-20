@@ -105,7 +105,7 @@ def index(u_path):
                 # If not valid JSON, fall back to request.data
                 try:
                     saved_data = request.get_data() #If calling get_data() AFTER request.data, it'll return empty bytes obj, so save it first
-                    bad_data = request.data.decode('utf-8')
+                    bad_data = request.data.decode('utf-8', errors='replace')
                     posted_data = bad_data
                     if not posted_data:
                         #If request.data can't parse it and returns an empty object

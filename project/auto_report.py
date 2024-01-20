@@ -127,7 +127,7 @@ def is_cgi_probe(request):
 def is_injection_attack(request):
     """ Command injection attempts in the path+query, POSTed data, or header values. """
     path_full = request.full_path
-    posted_data_decoded = request.data.decode()
+    posted_data_decoded = request.data.decode(errors='replace')
     header_values_joined = ''.join(request.headers.values())
     INJECTION_SIGNATURES = [
         ';sh',

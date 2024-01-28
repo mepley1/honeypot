@@ -24,7 +24,8 @@ Configuration (Set either in config.py or as environment variables prepended wit
 1. Edit the `SECRET_KEY` in `config.py` if you want cookies to work, or export it as an environment variable: `export FLASK_SECRET_KEY=0123456789` (To generate a good key, in a Python shell run `secrets.token_hex()`)
 2. `export FLASK_ABUSEIPDB=0123456789` - Set your AbuseIPDB API key, for auto-reporting. If not set, nothing will be reported to AbuseIPDB.
 3. `export FLASK_DEBUG=true` - To turn on Flask debug mode if you want/need it for development.
-4. `ALLOWED_LOGIN_SUBNET` - Restrict logins to only this subnet.
+4. `ALLOWED_LOGIN_SUBNET` - Restrict logins to only this subnet. (A single IP works as well)
+5. `ALLOWED_LOGIN_SUBNET_V6` - Same, for an IPv6 subnet.
 
 Initialize database:
 

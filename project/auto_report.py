@@ -79,12 +79,13 @@ def is_env_probe(request):
         '/library',
         '/auth',
         '/login',
+        '/logon',
         '/database',
         '/scripts',
         '/99vt', '/99vu', '/gate.php', '/aaaaaaaaaaaaaaaaaaaaaaaaaqr', #some misc malware
         '/form.html', 'upl.php', 'info.php', '/bundle.js', '/files/', #Usually probed together
         '/whyareugay', # Some malware maybe? Been seeing it from the same couple subnets
-        '/log',
+        '/log/',
         '/jquery.js',
         '/jquery-3.3.1.min.js', #seen this a bunch of times now
         '.json',
@@ -98,10 +99,10 @@ def is_php_easter_egg(request):
     I see these usually alongside nmap HTTP scans.
     PHP has several known “easter eggs” which are packaged with PHP versions prior to 5.5. """
     PHP_EASTER_EGGS = [
-        '?=PHPB8B5F2A0-3C92-11d3-A3A9-4C7B08C10000', #PHP Credits
-        '?=PHPE9568F36-D428-11d2-A769-00AA001ACF42', #PHP Version Logo
-        '?=PHPE9568F35-D428-11d2-A769-00AA001ACF42', #Zend Logo
-        '?=PHPE9568F34-D428-11d2-A769-00AA001ACF42', #PHP Logo
+        '=PHPB8B5F2A0-3C92-11d3-A3A9-4C7B08C10000', #PHP Credits
+        '=PHPE9568F36-D428-11d2-A769-00AA001ACF42', #PHP Version Logo
+        '=PHPE9568F35-D428-11d2-A769-00AA001ACF42', #Zend Logo
+        '=PHPE9568F34-D428-11d2-A769-00AA001ACF42', #PHP Logo
     ]
     if request.query_string is not None:
         query_string_decoded = request.query_string.decode()
@@ -489,6 +490,7 @@ def check_all_rules():
     # AbuseIPDB categories: https://www.abuseipdb.com/categories
     rules = [
         (is_env_probe, 'Environment/config probe', ['21']),
+        (is_php_easter_egg, 'PHP easter eggs', ['21']),
         (is_phpmyadmin_probe, 'PhpMyAdmin probe', ['21']),
         (is_cgi_probe, 'CGI probe/attack', ['21']),
         (is_injection_attack, 'Command injection', ['21']),

@@ -55,7 +55,7 @@ def is_allowed(ip_to_check):
     """ Check whether the client IP address is in the allowed login subnet. """
     #First check whether allowed subnet is configured.
     if not current_app.config.get('ALLOWED_LOGIN_SUBNET') and not current_app.config.get('ALLOWED_LOGIN_SUBNET_V6'):
-        return True #If no subnet configured, just allow it, otherwise you won't be able to log in.
+        return False #If no subnet configured, deny all.
 
     if current_app.config.get('ALLOWED_LOGIN_SUBNET'):
         ALLOWED_LOGIN_SUBNET = ipaddress.IPv4Network(current_app.config["ALLOWED_LOGIN_SUBNET"])
@@ -100,7 +100,7 @@ def login_post():
     # If IP isn't in allowed login subnet, record the attempt and redirect.
     if not is_allowed(get_ip()):
         insert_login_record(username, password)
-        logging.info(f'Blocked login attempt, IP not whitelisted: {username}')
+        logging.info(f'Blocked login attempt (IP not whitelisted) from {get_ip()}: {username}')
         return redirect(url_for('auth.login'))
 
     # check if the user actually exists
@@ -109,7 +109,7 @@ def login_post():
 
         # Record the attempt in the database
         insert_login_record(username, password)
-        logging.info(f'Failed login attempt: {username}')
+        logging.info(f'Failed login attempt from {get_ip()}: {username}')
 
         flash('Invalid credentials.', 'errorn')
         return redirect(url_for('auth.login')) # if user doesn't exist or password is wrong, reload page
@@ -117,7 +117,7 @@ def login_post():
     # Record the successful login, but obviously don't log the password.
     # Can query where password = placeholder later, to query for successful logins.
     insert_login_record(username, '*** SUCCESSFUL LOGIN ***')
-    logging.info(f'Successful login: {username}')
+    logging.info(f'Successful login from {get_ip()}: {username}')
     # if the above check passes, then we know the user has the right credentials, so log them in
     login_user(user, remember=remember)
     return redirect(url_for('main.stats'))

@@ -32,8 +32,11 @@ def create_new_user():
         # Prompt for a password to use
         user_password = input(str('Password for new account:\n'))
 
+        # Prompt for admin priveleges
+        user_is_admin = input('User is admin? (y/n):\n').lower().strip() == 'y'
+
         # create a new user with the form data. Hash the password so the plaintext version isn't saved.
-        new_user = models.User(username=user_username, password=generate_password_hash(user_password))
+        new_user = models.User(username=user_username, password=generate_password_hash(user_password), is_admin=user_is_admin)
 
         # add the new user to the database
         db.session.add(new_user)

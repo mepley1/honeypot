@@ -592,6 +592,40 @@ def stats_by_id(request_id):
         #totalHits = len(id_stats),
         statName = f'ID: {request_id}')
 
+# currently editing DELETE route. ADMIN ONLY
+@main.route('/admin/delete_single', methods = ['POST'])
+@login_required
+def delete_record_by_id():
+    """ Delete an individual request by ID#. Admin user only. """
+    # If user is not admin, return to index.
+    if not current_user.is_admin:
+        flash('Not Allowed.', 'errorn')
+        return redirect(request.referrer)
+
+    # Get the id# from the request args, and validate that it's numeric
+    request_id = request.args.get('request_id')
+    if not request_id.isnumeric():
+        flash('ID# must be numeric')
+        return redirect(request.referrer)
+
+    # Delete the row from database
+    with sqlite3.connect(requests_db) as conn:
+        c = conn.cursor()
+        # Delete the row with id = request_id
+        sql_query = "DELETE FROM bots WHERE id = ?;"
+        data_tuple = (request_id,)
+        c.execute(sql_query, data_tuple)
+        conn.commit()
+
+        c.close()
+    conn.close()
+
+    # Log the action to systemd logs
+    logging.info(f'Deleted ID# {request_id} by user {current_user.username}')
+
+    flash(f'Deleted request #{request_id}', 'successn')
+    return redirect(request.referrer)
+
 @main.route('/search', methods = ['GET'])
 @login_required
 def return_search_page():

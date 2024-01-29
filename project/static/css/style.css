@@ -115,6 +115,23 @@ label {
 /* end search form testing */
 
 /* Forms */
+.delete-button{
+	border: none;
+	border-radius: 0px;
+	font-size: 14px;
+	background-color: transparent;
+	color: var(--midgray);
+	font-family: var(--text-font);
+	cursor: pointer;
+	margin: none;
+	padding: 0px;
+}
+
+.delete-button:hover{
+	/*color: var(--main-text-color);*/
+	filter: brightness(200%);
+}
+
 .submit-button{
 	border: 2px solid var(--main-accent-color);
 	border-radius: 8px;

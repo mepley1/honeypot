@@ -29,6 +29,7 @@
                 <p>
                     <button type="submit" class="submit-button">Login</button>
                 </p>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             </form>
         <p>{{message}}</p>
         {% with messages = get_flashed_messages(with_categories=true) %}

@@ -11,6 +11,7 @@ from socket import gethostbyaddr, herror
 from flask import request, redirect, url_for, render_template, jsonify, Response, send_from_directory, g, after_this_request, flash, Blueprint, current_app
 from flask_login import login_required, current_user
 from urllib.parse import unquote # for uaStats()
+from functools import wraps
 
 main = Blueprint('main', __name__)
 requests_db = 'bots.db'
@@ -60,6 +61,20 @@ createDatabase()
 def inject_title():
     '''Return the title to display on the navbar'''
     return {"SUBDOMAIN": 'lab.mepley', "TLD": '.com'}
+
+# decorator to require admin user
+def admin_required(func):
+    @wraps(func)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_admin:
+            flash('Not authorized.', 'errorn')
+            logging.debug(f'Attempted unauthorized action by user {current_user.username}')
+            try:
+                return redirect(request.referrer)
+            except:
+                return redirect(url_for('main.index'))
+        return func(*args, **kwargs)
+    return decorated_function
 
 # Define routes
 
@@ -595,12 +610,9 @@ def stats_by_id(request_id):
 # currently editing DELETE route. ADMIN ONLY
 @main.route('/admin/delete_single', methods = ['POST'])
 @login_required
+@admin_required
 def delete_record_by_id():
-    """ Delete an individual request by ID#. Admin user only. """
-    # If user is not admin, return to index.
-    if not current_user.is_admin:
-        flash('Not Allowed.', 'errorn')
-        return redirect(request.referrer)
+    """ Delete an individual request by ID#. """
 
     # Get the id# from the request args, and validate that it's numeric
     request_id = request.args.get('request_id')
@@ -661,6 +673,14 @@ def parse_search_form():
 def profile():
     """Profile route for testing login, can delete it later."""
     return render_template('profile.html', name=current_user.username)
+
+@main.route('/admin/test')
+@login_required
+@admin_required
+def admin_test():
+    """ For testing admin_required decorator. """
+    flash('OK', 'successn')
+    return render_template('index.html')
 
 @main.route('/about')
 @login_required

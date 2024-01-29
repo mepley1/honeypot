@@ -2,6 +2,7 @@ datetime
 flask
 flask-login
 flask-sqlalchemy
+Flask-WTF
 requests
 Werkzeug==2.3.0
 wheel

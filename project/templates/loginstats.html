@@ -19,6 +19,9 @@
             <div id="dataToggles">
                 Toggle data columns:
                 <label>
+                    <input type="checkbox" name="dataCheckbox" value="dataID">ID
+                </label>
+                <label>
                     <input type="checkbox" name="dataCheckbox" value="dataIP" checked>IP
                 </label>
                 <label>
@@ -39,6 +42,7 @@
             <table>
                 <thead>
                 <tr>
+                    <th class="dataID hidden selectt">#</th>
                     <th class="dataIP selectt">IP</th>
                     <th class="dataUsername selectt">Username</th>
                     <th class="dataPassword selectt">Password</th>
@@ -48,6 +52,7 @@
                 </thead>
                 {% for row in stats: %}
                 <tr>
+                    <td class="dataID hidden dim">{{row['id']}}</td>
                     <td class="dataIP selectt ipToLink"><a href="{{url_for('main.ipStats', ipAddr=row['remoteaddr'])}}">{{row['remoteaddr']}}</a></td>
                     <td class="dataUsername selectt">{{row['username']}}</td>
                     <td class="dataPassword selectt">{{row['password']}}</td>

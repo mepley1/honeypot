@@ -12,6 +12,7 @@ from flask import request, redirect, url_for, render_template, jsonify, Response
 from flask_login import login_required, current_user
 from urllib.parse import unquote # for uaStats()
 from functools import wraps
+import ipaddress
 
 main = Blueprint('main', __name__)
 requests_db = 'bots.db'
@@ -67,14 +68,22 @@ def admin_required(func):
     @wraps(func)
     def decorated_function(*args, **kwargs):
         if not current_user.is_admin:
-            flash('Not authorized.', 'errorn')
             logging.debug(f'Attempted unauthorized action by user {current_user.username}')
+            flash('Not authorized.', 'errorn')
             try:
                 return redirect(request.referrer)
             except:
                 return redirect(url_for('main.index'))
         return func(*args, **kwargs)
     return decorated_function
+
+# Validate an IP address
+def is_valid_ip(_ip):
+    try:
+        ipaddress.ip_address(_ip)
+        return True
+    except ValueError:
+        return False
 
 # Define routes
 
@@ -233,6 +242,7 @@ def stats():
 # Login attempt stats
 @main.route('/stats/logins')
 @login_required
+@admin_required
 def loginStats():
     """ Query db for login attempts. """
     with sqlite3.connect(requests_db) as conn:
@@ -261,6 +271,11 @@ def loginStats():
 @login_required
 def ipStats(ipAddr):
     """ Get records of an individual IP. The IP column on stats page will link to this route. """
+    # Validate the given IP first:
+    if not is_valid_ip(ipAddr):
+        flash('Invalid IP address in query.', 'errorn')
+        return render_template('index.html')
+
     with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
@@ -668,13 +683,13 @@ def parse_search_form():
 
 # Misc routes
 
-@main.route('/profile')
+@main.route('/test/profile')
 @login_required
 def profile():
     """Profile route for testing login, can delete it later."""
     return render_template('profile.html', name=current_user.username)
 
-@main.route('/admin/test')
+@main.route('/test/admin')
 @login_required
 @admin_required
 def admin_test():

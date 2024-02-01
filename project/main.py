@@ -13,6 +13,7 @@ from flask_login import login_required, current_user
 from urllib.parse import unquote # for uaStats()
 from functools import wraps
 import ipaddress
+import re
 
 main = Blueprint('main', __name__)
 requests_db = 'bots.db'
@@ -68,7 +69,7 @@ def admin_required(func):
     @wraps(func)
     def decorated_function(*args, **kwargs):
         if not current_user.is_admin:
-            logging.debug(f'Attempted unauthorized action by user {current_user.username}')
+            logging.info(f'Attempted unauthorized action by user {current_user.username}')
             flash('Not authorized.', 'errorn')
             try:
                 return redirect(request.referrer)
@@ -78,11 +79,14 @@ def admin_required(func):
     return decorated_function
 
 # Validate an IP address
-def is_valid_ip(_ip):
-    try:
-        ipaddress.ip_address(_ip)
+def validate_ip_query(_ip):
+    """ Validate queried IP. """
+    # IPv4/v6 chars + GLOB chars ([]-*). Loose max length to account for glob queries, otherwise 39.
+    ip_pattern = r'^[0-9A-Fa-f.:*\[\]-]{1,60}$'
+    regex = re.compile(ip_pattern)
+    if regex.match(_ip):
         return True
-    except ValueError:
+    else:
         return False
 
 # Define routes
@@ -272,8 +276,8 @@ def loginStats():
 def ipStats(ipAddr):
     """ Get records of an individual IP. The IP column on stats page will link to this route. """
     # Validate the given IP first:
-    if not is_valid_ip(ipAddr):
-        flash('Invalid IP address in query.', 'errorn')
+    if not validate_ip_query(ipAddr):
+        flash('Bad request: Contains invalid characters.', 'errorn')
         return render_template('index.html')
 
     with sqlite3.connect(requests_db) as conn:
@@ -300,7 +304,7 @@ def methodStats(method):
     """ Get records by request method """
     # Flash an error message if querying for a method not in db
     if method not in HTTP_METHODS:
-        flash('Bad request. Must query for a valid HTTP method, try /method/GET or /method/POST', 'error')
+        flash('Bad request. Must query for a valid HTTP method, try /method/GET or /method/POST, etc.', 'error')
         return render_template('index.html')
 
     with sqlite3.connect(requests_db) as conn:

@@ -4,7 +4,7 @@
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Headers</title>
-	<link rel="stylesheet" href="{{url_for('static', filename='css/style.css')}}">
+	<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script> <!-- to show/hide columns -->
 </head>
@@ -37,6 +37,10 @@
                 </tr>
                 {% endfor %}
             </table>
+
+            <p>
+                <a href="{{ url_for('main.headers_single_pretty', id=prev_request_id) }}" class="page">Previous</a>&nbsp;-&nbsp;<a href="{{ url_for('main.headers_single_pretty', id=next_request_id) }}" class="page">Next</a>
+            </p>
 
         </div>
     </center>

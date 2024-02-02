@@ -298,6 +298,12 @@ def ipStats(ipAddr):
         totalHits = len(ipStats),
         statName = ipAddr)
 
+@main.route('/stats/ip/topten', methods = ['GET'])
+@login_required
+def get_top_ten_ips():
+    """ Return top ten most common IPs. """
+    pass
+
 @main.route('/stats/method/<method>', methods = ['GET'])
 @login_required
 def methodStats(method):
@@ -566,6 +572,8 @@ def headers_single_pretty():
     """ Display a single request's headers on page in a more human-readable format. """
 
     request_id = request.args.get('id', '')
+    next_request_id = int(request_id) + 1
+    prev_request_id = int(request_id) - 1
 
     with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
@@ -589,9 +597,6 @@ def headers_single_pretty():
     a better way of storing the headers in the database.'''
 
     recreated_dictionary = ast.literal_eval(saved_headers)
-
-    #for key, value in recreated_dictionary.items():
-    #    print(f'{key}: {value}\r\n')
     
     #flash(f'Headers sent in Request #{request_id}', 'headersDictTitle')
 
@@ -600,10 +605,11 @@ def headers_single_pretty():
         flash(f'{key}: {value}', 'headersDictMessage')
     """
 
-    return render_template('headers_single.html', stats = recreated_dictionary, request_id = request_id)
-    #Temporary return while I build it
-    # For now, just flashing some messages containing the headers dict items to display.
-    #return render_template('index.html')
+    return render_template('headers_single.html',
+        stats = recreated_dictionary,
+        request_id = request_id,
+        next_request_id = next_request_id,
+        prev_request_id = prev_request_id)
 
 @main.route('/stats/id/<request_id>', methods = ['GET'])
 @login_required

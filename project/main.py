@@ -81,8 +81,8 @@ def admin_required(func):
 # Validate an IP address
 def validate_ip_query(_ip):
     """ Validate queried IP. """
-    # IPv4/v6 chars + GLOB chars ([]-*). Loose max length to account for glob queries, otherwise 39.
-    ip_pattern = r'^[0-9A-Fa-f.:*\[\]-]{1,60}$'
+    # IPv4/v6 chars + GLOB chars. Loose max length to account for glob queries, otherwise 39.
+    ip_pattern = r'^[0-9A-Fa-f.:*\[\]\-^]{1,60}$'
     regex = re.compile(ip_pattern)
     if regex.match(_ip):
         return True
@@ -687,13 +687,13 @@ def parse_search_form():
 
 # Misc routes
 
-@main.route('/test/profile')
+@main.route('/test/profile', methods = ['GET'])
 @login_required
 def profile():
-    """Profile route for testing login, can delete it later."""
+    """ Profile route for testing login. """
     return render_template('profile.html', name=current_user.username)
 
-@main.route('/test/admin')
+@main.route('/test/admin', methods = ['GET'])
 @login_required
 @admin_required
 def admin_test():
@@ -701,7 +701,7 @@ def admin_test():
     flash('OK', 'successn')
     return render_template('index.html')
 
-@main.route('/about')
+@main.route('/about', methods = ['GET'])
 @login_required
 def about():
     logging.debug(request)
@@ -720,8 +720,8 @@ def robotsTxt():
     """ It's a honeypot, of course I want to allow bots. """
     logging.debug(request)
     return send_from_directory('static', path='txt/robots.txt')
-# Serve the favicon (and stop logging requests for it)
 @main.route('/favicon.ico', methods = ['GET'])
 def serve_favicon():
+    """ Serve the favicon (and stop saving requests for it). """
     logging.debug(request)
     return send_from_directory('static', path='favicon.ico')

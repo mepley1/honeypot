@@ -417,6 +417,7 @@ def is_programmatic_ua(request):
         'python-requests/',
         'Wget/',
         'WinHttp.WinHttpRequest',
+        'xfa1',
         'zgrab/',
     ]
     return any(target in user_agent for target in PROGRAMMATIC_USER_AGENTS)
@@ -444,12 +445,14 @@ def is_research(request):
         'CensysInspect', #Mozilla/5.0 (compatible; CensysInspect/1.1; +https://about.censys.io/)
         'Expanse, a Palo Alto Networks company',
         'https://developers.cloudflare.com/security-center/', #CF Security Center
+        'Cloudflare-SSLDetector',
         'HTTP Banner Detection (https://security.ipip.net)', # *.security.ipip.net
         'http://tchelebi.io', #Black Kite / http://tchelebi.io
         '+https://internet-measurement.com/',
         'https://gdnplus.com:Gather Analyze Provide.',
         '+http://www.bing.com/bingbot.htm', #Saw bingbot crawling it, might as well add it.
         'abuse.xmco.fr',
+        'SecurityScanner',
     ]
     if user_agent is None:
         return False
@@ -507,7 +510,7 @@ def check_all_rules():
         (is_systembc_path, 'SystemBC malware path', ['21']),
         (is_wsus_attack, 'Windows WSUS attack', ['21']),
         (is_rocketmq_probe, 'RocketMQ probe CVE-2023-33246', ['21']),
-        (is_datadog_trace, 'Spamming Datadog headers', ['21']),
+        (is_datadog_trace, 'Unauthorized probe/scan', ['21']),
         (is_post_request, 'Suspicious POST request', ['21']),
         (no_host_header, 'No Host header', ['21']),
         (is_misc_get_probe, 'GET with unexpected args', ['21']),

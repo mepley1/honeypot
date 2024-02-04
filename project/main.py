@@ -6,14 +6,14 @@ import requests #for reporting
 import json
 import datetime
 import logging
+import ipaddress
+import re
 from .auto_report import check_all_rules, get_real_ip #The new report module. Will check rules + report
 from socket import gethostbyaddr, herror
 from flask import request, redirect, url_for, render_template, jsonify, Response, send_from_directory, g, after_this_request, flash, Blueprint, current_app
 from flask_login import login_required, current_user
 from urllib.parse import unquote # for uaStats()
 from functools import wraps
-import ipaddress
-import re
 
 main = Blueprint('main', __name__)
 requests_db = 'bots.db'
@@ -615,11 +615,18 @@ def headers_single_pretty():
 @login_required
 def stats_by_id(request_id):
     """ Get an individual request by ID#. """
+    if not request_id.isnumeric():
+        flash('Bad request: ID# must be numeric', 'errorn')
+        try:
+            return redirect(request.referrer)
+        except:
+            return render_template('index.html')
+
     with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         # Only need one result, but the stats page uses a dictionary so this is fine.
-        sql_query = "SELECT * FROM bots WHERE id = ?;"
+        sql_query = "SELECT * FROM bots WHERE id = ? LIMIT 1;"
         data_tuple = (request_id,)
         c.execute(sql_query, data_tuple)
         id_stats = c.fetchall()
@@ -642,7 +649,7 @@ def delete_record_by_id():
     # Get the id# from the request args, and validate that it's numeric
     request_id = request.args.get('request_id')
     if not request_id.isnumeric():
-        flash('ID# must be numeric')
+        flash('ID# must be numeric', 'errorn')
         return redirect(request.referrer)
 
     # Delete the row from database
@@ -658,7 +665,7 @@ def delete_record_by_id():
     conn.close()
 
     # Log the action to systemd logs
-    logging.info(f'Deleted ID# {request_id} by user {current_user.username}')
+    logging.info(f'Deleted request ID# {request_id} by user {current_user.username}')
 
     flash(f'Deleted request #{request_id}', 'successn')
     return redirect(request.referrer)

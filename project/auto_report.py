@@ -1,9 +1,11 @@
 """ Functions related to auto-reporting. """
 
 import datetime
+import ipaddress
 import json
 import logging
 import requests
+import re
 from flask import request, current_app
 
 def get_real_ip():
@@ -21,6 +23,23 @@ def get_real_ip():
     else:
         real_ip = request.remote_addr
     return real_ip
+
+def exempt_from_reporting(_ip):
+    """ Check whether the IP is within any of configured exempt subnets. """
+    if not current_app.config.get('EXEMPT_SUBNETS'):
+        return False #If no subnets configured, then not exempt.
+    EXEMPT_SUBNETS = current_app.config.get('EXEMPT_SUBNETS')
+    _ip_addr = ipaddress.ip_address(_ip)
+    '''for subnet in EXEMPT_SUBNETS:
+        try:
+            if ip in ipaddress.ip_network(subnet):
+                return True
+        except ValueError:
+            # Invalid subnet format, skip to the next one
+            continue
+    return False'''
+
+    return any(_ip_addr in ipaddress.ip_network(exempt_subnet) for exempt_subnet in EXEMPT_SUBNETS)
 
 def submit_report(report_comment, report_categories):
     """ Submit the report. Usage: reported = submit_report(report_comment, report_categories) """
@@ -153,11 +172,22 @@ def is_injection_attack(request):
     if (
         any(target in path_full.lower() for target in INJECTION_SIGNATURES)
         or any(target in posted_data_decoded.lower() for target in INJECTION_SIGNATURES)
-        or any(target in header_values_joined for target in INJECTION_SIGNATURES)
+        or any(target in header_values_joined.lower() for target in INJECTION_SIGNATURES)
     ):
         return True
     else:
         return False
+
+def is_path_traversal(request):
+    """ Path traversal. """
+    PATH_TRAVERSAL_SIGS = [
+        r'\.\./',
+        r'%2e%2e%2f',
+        r'\.\.%2f',
+    ]
+    pattern = '|'.join(PATH_TRAVERSAL_SIGS)
+    regex = re.compile(pattern, re.IGNORECASE)
+    return bool(regex.search(request.full_path))
 
 def is_misc_software_probe(request):
     """ Misc software probes I see often. """
@@ -166,13 +196,13 @@ def is_misc_software_probe(request):
     MISC_SOFTWARE_PROBE_PATHS = [
         '/adminer',
         '/ReportServer', #Microsoft SQL report service
-        '/boaform', 'admin/formLogin', #/boaform/admin/formLogin = Some OEM Fiber gear. Usually seen POSTing `username=admin&psd=Feefifofum`
+        '/boaform/admin/formLogin', #/boaform/admin/formLogin = Some OEM Fiber gear. Usually seen POSTing `username=admin&psd=Feefifofum`
         '/actuator', #/actuator/health - Sping Boot health check
         '/druid', #Apache Druid
-        '/phpunit', '/eval-stdin.php', #phpunit CVE-2017-9841 = POST to /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
+        '/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php', #phpunit CVE-2017-9841 = POST to /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
         '/geoserver/web', '/webui', #Cisco ios xe - recent vuln being exploited - usually seen as /webui/logoutconfirm.html?logon_hash=1
         '/mailchimp', # mailchimp probes
-        '/redlion', '/portal', #seen as /portal/redlion/
+        '/portal', '/redlion', #seen as /portal/redlion; keep as 2 separate paths so can detect other portals
         '/hudson', #Hudson CI
         '/stalker_portal', #IPTV middleware
         '/manager/text/list', #Tomcat
@@ -453,6 +483,9 @@ def is_research(request):
         '+http://www.bing.com/bingbot.htm', #Saw bingbot crawling it, might as well add it.
         'abuse.xmco.fr',
         'SecurityScanner',
+        'infrawatch/', #infrawat.ch
+        'Uptime-Kuma/', #Uptime-Kuma/1.23.1 - Uptime Kuma's default ua
+        'Security Headers Synthetic Checker', # Security headers checker
     ]
     if user_agent is None:
         return False
@@ -497,6 +530,7 @@ def check_all_rules():
         (is_phpmyadmin_probe, 'PhpMyAdmin probe', ['21']),
         (is_cgi_probe, 'CGI probe/attack', ['21']),
         (is_injection_attack, 'Command injection', ['21']),
+        (is_path_traversal, 'Path traversal', ['21']),
         (is_misc_software_probe, 'Misc software probe', ['21']),
         (is_wordpress_attack, 'Wordpress attack', ['21']),
         (is_nmap_http_scan, 'Nmap HTTP scan', ['21']),
@@ -506,7 +540,7 @@ def check_all_rules():
         (is_mirai_jaws, 'Jaws webserver command injection, likely Mirai', ['23', '21']),
         (is_mirai_ua, 'User-agent associated with Mirai', ['23','19']),
         (is_androx, 'Detected AndroxGh0st', ['21']),
-        (is_cobalt_strike_scan, 'Cobalt Strike', ['21']),
+        (is_cobalt_strike_scan, 'Cobalt Strike path', ['21']),
         (is_systembc_path, 'SystemBC malware path', ['21']),
         (is_wsus_attack, 'Windows WSUS attack', ['21']),
         (is_rocketmq_probe, 'RocketMQ probe CVE-2023-33246', ['21']),
@@ -515,7 +549,7 @@ def check_all_rules():
         (no_host_header, 'No Host header', ['21']),
         (is_misc_get_probe, 'GET with unexpected args', ['21']),
         (is_programmatic_ua, 'Automated user-agent', ['21']),
-        (is_proxy_attempt, 'Proxy attempt (sent Proxy-connection header)', ['21']),
+        (is_proxy_attempt, 'Sent proxy headers', ['21']),
     ]
 
     # Now check against each detection rule, and if positive(True), then append to the report.
@@ -539,12 +573,18 @@ def check_all_rules():
     if rules_matched > 0:
         # Check whether an API key is configured first.
         if current_app.config.get('ABUSEIPDB'):
-            try:
-                reported = submit_report(report_comment, report_categories)
-                logging.info(f'Matched {rules_matched} rules. Reported to AbuseIPDB.')
-            except requests.exceptions.ConnectionError as e:
+            if exempt_from_reporting(get_real_ip()):
+                # If the IP is in the exempt subnets list, don't submit report.
                 reported = 0
-                logging.error(f'Connection error while submitting report: {str(e)}')
+                logging.info(f'Address exempt from reporting: {get_real_ip()}')
+                return reported
+            else:
+                try:
+                    reported = submit_report(report_comment, report_categories)
+                    logging.info(f'Matched {rules_matched} rules. Reported to AbuseIPDB.')
+                except requests.exceptions.ConnectionError as e:
+                    reported = 0
+                    logging.error(f'Connection error while submitting report: {str(e)}')
         # If no API key configured, skip reporting and just return 0
         else:
             reported = 0

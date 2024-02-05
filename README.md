@@ -26,6 +26,7 @@ Configuration (Set either in config.py or as environment variables prepended wit
 3. `export FLASK_DEBUG=true` - To turn on Flask debug mode if you want/need it for development.
 4. `ALLOWED_LOGIN_SUBNET` - Restrict logins to only this subnet. (A single IP works as well)
 5. `ALLOWED_LOGIN_SUBNET_V6` - Same, for an IPv6 subnet.
+6. `EXEMPT_SUBNETS` - IPs in these subnets won't be reported to AbuseIPDB.
 
 Initialize database:
 
@@ -49,7 +50,7 @@ Then point your browser to http://localhost:5000 and log in.
 - Toggle display/hide data columns.
 - Now has proper auth + remember me (set `SECRET_KEY` in `config.py`)
 - Restrict login to specified CIDR subnet. (`ALLOWED_LOGIN_SUBNET` in `config.py`)
-- Auto reporting to AbuseIPDB with somewhat extendable "detection rules."
+- Auto reporting to AbuseIPDB with somewhat extendable "detection rules."; configurable exempt subnets.
 - Search for arbitrary strings in request path/user-agent/headers/etc.
 
 # Auto-reporting + Detection rules

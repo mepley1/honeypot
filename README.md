@@ -1,6 +1,6 @@
 # Webpot
 A simple HTTP honeypot for capturing and viewing HTTP requests + auto reporting. 
-Stores request data in a SQLite database and includes some stats views for easy analysis of all the bot traffic hitting your web services. Includes a catch-all route to catch requests using any HTTP method for any URI.
+Stores request data in a SQLite database and includes some stats views for easy analysis of the bot traffic hitting your web services. Includes a catch-all route to catch requests using any HTTP method for (almost) any URI.
 
 Very much a work in progress. 
 
@@ -20,13 +20,12 @@ Install required Python modules in the venv:
 
 `pip install -r requirements.txt`
 
-Configuration (Set either in config.py or as environment variables prepended with _FLASK):
+Configuration, find in config.py. Can also use environment variables prepended with _FLASK.
 1. Edit the `SECRET_KEY` in `config.py` if you want cookies to work, or export it as an environment variable: `export FLASK_SECRET_KEY=0123456789` (To generate a good key, in a Python shell run `secrets.token_hex()`)
-2. `export FLASK_ABUSEIPDB=0123456789` - Set your AbuseIPDB API key, for auto-reporting. If not set, nothing will be reported to AbuseIPDB.
-3. `export FLASK_DEBUG=true` - To turn on Flask debug mode if you want/need it for development.
-4. `ALLOWED_LOGIN_SUBNET` - Restrict logins to only this subnet. (A single IP works as well)
-5. `ALLOWED_LOGIN_SUBNET_V6` - Same, for an IPv6 subnet.
-6. `EXEMPT_SUBNETS` - IPs in these subnets won't be reported to AbuseIPDB.
+2. `ABUSEIPDB=0123456789` - Set your AbuseIPDB API key, for auto-reporting. If not set, nothing will be reported to AbuseIPDB.
+3. `ALLOWED_LOGIN_SUBNET` - Restrict logins to only this subnet. (A single IP works as well)
+4. `ALLOWED_LOGIN_SUBNET_V6` - Same, for an IPv6 subnet.
+5. `EXEMPT_SUBNETS` - IPs in these subnets won't be reported to AbuseIPDB.
 
 Initialize database:
 
@@ -34,11 +33,13 @@ Initialize database:
 
 Create a login:
 
-`python create-user.py <username>`
+`python create-user.py`
 
 Run the app:
 
 `export FLASK_APP=project`
+
+`export FLASK_DEBUG=True` - (Optional) To turn on Flask debug mode if you want/need it for development. (DO NOT use debug mode in production, ever)
 
 `flask run`
 
@@ -52,6 +53,7 @@ Then point your browser to http://localhost:5000 and log in.
 - Restrict login to specified CIDR subnet. (`ALLOWED_LOGIN_SUBNET` in `config.py`)
 - Auto reporting to AbuseIPDB with somewhat extendable "detection rules."; configurable exempt subnets.
 - Search for arbitrary strings in request path/user-agent/headers/etc.
+- You can also configure your DNS server to return the honeypot server's IP for blocked requests instead of NXROUTE, to gain some visibility- though this can cause odd behavior in some apps.
 
 # Auto-reporting + Detection rules
 The auto-reporting will report to AbuseIPDB any request that matches the defined "detection rules."
@@ -83,9 +85,9 @@ To-do: Deployment guide. Include Nginx proxy conf & systemd service unit.
 - Querying for records by POST request body fails to find anything in some cases due to encoding discrepancies.
 
 # To-do:
+- Rewrite detection rules using regex instead of string searches. Move the bigger lists to a separate file to import at run time rather than defining each list inside the functions- should greatly improve performance, and will allow for easier custom lists.
 - Rewrite SQL queries, using SQLAlchemy instead of raw SQL.
-- More specific detection rules/filters.
 - Deployment guide - deployment.md - Include Nginx vhost conf file, systemd service unit example
-- Filter stats by more data points. (condense into a dynamic Flask route for this like /stats/method/post)
 - Filter out private IP ranges on stats pages? / Include config variable to not record requests from specific subnets.
-- Move the bigger detection rule lists to a separate txt file and import them at run time.
+- Some graphs/charts - do some analysis on top IPs/paths/location data/etc.
+- Per-account login IP whitelist.

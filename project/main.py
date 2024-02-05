@@ -131,10 +131,9 @@ def index(u_path):
         req_headers['Cookie'] = '[REDACTED]' # Don't expose session cookies! Will be displayed later.
     req_url = request.url
 
-    # Adding the try/except block temporarily while I rewrite this section.
-    # Need to rewrite it with an if block for each content-type to make it cleaner
-    #try:
+    # Commenting out old code while I rewrite this.
     # Get the POSTed data
+    #try:
     """
         if req_method == 'POST':
             try:
@@ -159,7 +158,8 @@ def index(u_path):
         logging.error(f'Exception while trying to parse POSTed data:\n{str(e)}')
     """
 
-    # Get the request body. Could be one of any content-type, format, encoding, etc, try to capture
+    # NEW SECTION: Get request body
+    # Get the request body. Could be any content-type, format, encoding, etc, try to capture
     # and decode as much as possible.
     req_content_type = request.headers.get('Content-Type', '')
     try:

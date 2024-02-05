@@ -12,7 +12,7 @@
     <div class="everything">
         <h1>Dashboard</h1>
         <div class="content contentSmall">
-            <p>{{message}}</p>
+            {% if message %}<p>{{message}}</p>{% endif %}
             {% with messages = get_flashed_messages(with_categories=true) %}
                     {% if messages %}
                         {% for category, msg in messages %}

@@ -6,11 +6,14 @@ import requests #for reporting
 import json
 import datetime
 import logging
+import ipaddress
+import re
 from .auto_report import check_all_rules, get_real_ip #The new report module. Will check rules + report
 from socket import gethostbyaddr, herror
 from flask import request, redirect, url_for, render_template, jsonify, Response, send_from_directory, g, after_this_request, flash, Blueprint, current_app
 from flask_login import login_required, current_user
 from urllib.parse import unquote # for uaStats()
+from functools import wraps
 
 main = Blueprint('main', __name__)
 requests_db = 'bots.db'
@@ -61,6 +64,41 @@ def inject_title():
     '''Return the title to display on the navbar'''
     return {"SUBDOMAIN": 'lab.mepley', "TLD": '.com'}
 
+# decorator to require admin user
+def admin_required(func):
+    @wraps(func)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_admin:
+            logging.info(f'Attempted unauthorized action by user {current_user.username}')
+            flash('Not authorized: User must have admin privilege.', 'errorn')
+            try:
+                return redirect(request.referrer)
+            except:
+                return redirect(url_for('main.index'))
+        return func(*args, **kwargs)
+    return decorated_function
+
+# Validate an IP address
+def validate_ip_query(_ip):
+    """ Validate queried IP. """
+    # IPv4/v6 chars + GLOB chars. Loose max length to account for glob queries, otherwise 39.
+    ip_pattern = r'^[0-9A-Fa-f.:*\[\]\-^]{1,60}$'
+    regex = re.compile(ip_pattern)
+    if regex.match(_ip):
+        return True
+    else:
+        return False
+
+def validate_id_query(_id):
+    """ Validate queried ID #. """
+    # Numbers + GLOB chars. Loose max length to account for glob queries.
+    id_pattern = r'^[0-9*\[\]\-^?]{1,24}$'
+    regex = re.compile(id_pattern)
+    if regex.match(_id):
+        return True
+    else:
+        return False
+
 # Define routes
 
 # Will use this in a couple places so I don't have to list them all out
@@ -83,7 +121,7 @@ def index(u_path):
         req_hostname = 'Unavailable'
         logging.debug(f'No hostname available, or no connection: {str(e)}')
 
-    req_user_agent = request.headers.get('User-Agent')
+    req_user_agent = request.headers.get('User-Agent', '')
     req_method = request.method
     req_query = request.query_string.decode()
     #Timestamp compatible with ApuseIPDB API
@@ -93,10 +131,10 @@ def index(u_path):
         req_headers['Cookie'] = '[REDACTED]' # Don't expose session cookies! Will be displayed later.
     req_url = request.url
 
-    # Adding the try/except block temporarily while I rewrite this section.
-    # Need to rewrite it with an if block for each content-type to make it cleaner
-    try:
+    # Commenting out old code while I rewrite this.
     # Get the POSTed data
+    #try:
+    """
         if req_method == 'POST':
             try:
                 posted_json = request.json
@@ -105,7 +143,7 @@ def index(u_path):
                 # If not valid JSON, fall back to request.data
                 try:
                     saved_data = request.get_data() #If calling get_data() AFTER request.data, it'll return empty bytes obj, so save it first
-                    bad_data = request.data.decode('utf-8')
+                    bad_data = request.data.decode('utf-8', errors='replace')
                     posted_data = bad_data
                     if not posted_data:
                         #If request.data can't parse it and returns an empty object
@@ -118,13 +156,29 @@ def index(u_path):
             posted_data = '' #If not a POST request, use blank
     except Exception as e:
         logging.error(f'Exception while trying to parse POSTed data:\n{str(e)}')
+    """
+
+    # NEW SECTION: Get request body
+    # Get the request body. Could be any content-type, format, encoding, etc, try to capture
+    # and decode as much as possible.
+    req_content_type = request.headers.get('Content-Type', '')
+    try:
+        if 'application/json' in req_content_type:
+            req_body = json.dumps(request.json)
+        else:
+            req_body = request.get_data().decode('utf-8', errors = 'replace')
+        if not req_body:
+            req_body = ''
+    except Exception as e:
+        posted_data = str(e) # So I can see if anything is still failing
+        logging.error(f'Exception while trying to parse POSTed data: {str(e)}')
 
     # Check request against detection rules, and submit report
     # Adding try/except temporarily while I test some things
     try:
         reported = check_all_rules() #see auto_report.py
     except Exception as e:
-        logging.error(f'Error while executing detection rules:\n{str(e)}')
+        logging.error(f'Error while executing detection rules: {str(e)}')
         reported = 0
 
     # Request data to insert into the database
@@ -137,7 +191,7 @@ def index(u_path):
                 req_method,
                 req_query,
                 req_time,
-                posted_data,
+                req_body,
                 str(req_headers),
                 req_url,
                 reported)
@@ -218,6 +272,7 @@ def stats():
 # Login attempt stats
 @main.route('/stats/logins')
 @login_required
+@admin_required
 def loginStats():
     """ Query db for login attempts. """
     with sqlite3.connect(requests_db) as conn:
@@ -246,6 +301,11 @@ def loginStats():
 @login_required
 def ipStats(ipAddr):
     """ Get records of an individual IP. The IP column on stats page will link to this route. """
+    # Validate the given IP first:
+    if not validate_ip_query(ipAddr):
+        flash('Bad request: Contains invalid characters.', 'errorn')
+        return render_template('index.html')
+
     with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
@@ -264,13 +324,19 @@ def ipStats(ipAddr):
         totalHits = len(ipStats),
         statName = ipAddr)
 
+@main.route('/stats/ip/topten', methods = ['GET'])
+@login_required
+def get_top_ten_ips():
+    """ Return top ten most common IPs. """
+    pass
+
 @main.route('/stats/method/<method>', methods = ['GET'])
 @login_required
 def methodStats(method):
     """ Get records by request method """
     # Flash an error message if querying for a method not in db
     if method not in HTTP_METHODS:
-        flash('Bad request. Must query for a valid HTTP method, try /method/GET or /method/POST', 'error')
+        flash('Bad request. Must query for a valid HTTP method, try /method/GET or /method/POST, etc.', 'error')
         return render_template('index.html')
 
     with sqlite3.connect(requests_db) as conn:
@@ -397,7 +463,7 @@ def bodyStats():
 def reported_stats():
     """ Get records of requests that were reported. """
     reported_status = request.args.get('reported', '1')
-    # Flash an error message if querying for a method not in db
+    # Validate
     if reported_status not in ('0', '1'):
         flash('Bad request. Try reported=0 or reported=1', 'error')
         return render_template('index.html')
@@ -532,6 +598,8 @@ def headers_single_pretty():
     """ Display a single request's headers on page in a more human-readable format. """
 
     request_id = request.args.get('id', '')
+    next_request_id = int(request_id) + 1
+    prev_request_id = int(request_id) - 1
 
     with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
@@ -555,9 +623,6 @@ def headers_single_pretty():
     a better way of storing the headers in the database.'''
 
     recreated_dictionary = ast.literal_eval(saved_headers)
-
-    #for key, value in recreated_dictionary.items():
-    #    print(f'{key}: {value}\r\n')
     
     #flash(f'Headers sent in Request #{request_id}', 'headersDictTitle')
 
@@ -566,20 +631,28 @@ def headers_single_pretty():
         flash(f'{key}: {value}', 'headersDictMessage')
     """
 
-    return render_template('headers_single.html', stats = recreated_dictionary, request_id = request_id)
-    #Temporary return while I build it
-    # For now, just flashing some messages containing the headers dict items to display.
-    #return render_template('index.html')
+    return render_template('headers_single.html',
+        stats = recreated_dictionary,
+        request_id = request_id,
+        next_request_id = next_request_id,
+        prev_request_id = prev_request_id)
 
 @main.route('/stats/id/<request_id>', methods = ['GET'])
 @login_required
 def stats_by_id(request_id):
     """ Get an individual request by ID#. """
+    if not request_id.isnumeric():
+        flash('Bad request: ID# must be numeric', 'errorn')
+        try:
+            return redirect(request.referrer)
+        except:
+            return render_template('index.html')
+
     with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         # Only need one result, but the stats page uses a dictionary so this is fine.
-        sql_query = "SELECT * FROM bots WHERE id = ?;"
+        sql_query = "SELECT * FROM bots WHERE id = ? LIMIT 1;"
         data_tuple = (request_id,)
         c.execute(sql_query, data_tuple)
         id_stats = c.fetchall()
@@ -591,6 +664,67 @@ def stats_by_id(request_id):
         stats = id_stats,
         #totalHits = len(id_stats),
         statName = f'ID: {request_id}')
+
+@main.route('/stats/id/multiple', methods = ['GET'])
+@login_required
+def stats_by_id_multiple():
+    """ Get more than one request by ID#. GLOB query.
+    Usage: For ID#'s 100-199, use request_id=1?? """
+    request_id = request.args.get('request_id', '')
+
+    if not validate_id_query(request_id):
+        flash('Bad request', 'errorn')
+        try:
+            return redirect(request.referrer)
+        except:
+            return render_template('index.html')
+
+    with sqlite3.connect(requests_db) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        sql_query = "SELECT * FROM bots WHERE id GLOB ? ORDER BY id DESC;"
+        data_tuple = (request_id,)
+        c.execute(sql_query, data_tuple)
+        id_stats = c.fetchall()
+
+        c.close()
+    conn.close()
+
+    return render_template('stats.html',
+        stats = id_stats,
+        totalHits = len(id_stats),
+        statName = f'ID: {request_id}')
+
+# currently editing DELETE route. ADMIN ONLY
+@main.route('/admin/delete_single', methods = ['POST'])
+@login_required
+@admin_required
+def delete_record_by_id():
+    """ Delete an individual request by ID#. """
+
+    # Get the id# from the request args, and validate that it's numeric
+    request_id = request.args.get('request_id')
+    if not request_id.isnumeric():
+        flash('ID# must be numeric', 'errorn')
+        return redirect(request.referrer)
+
+    # Delete the row from database
+    with sqlite3.connect(requests_db) as conn:
+        c = conn.cursor()
+        # Delete the row with id = request_id
+        sql_query = "DELETE FROM bots WHERE id = ?;"
+        data_tuple = (request_id,)
+        c.execute(sql_query, data_tuple)
+        conn.commit()
+
+        c.close()
+    conn.close()
+
+    # Log the action to systemd logs
+    logging.info(f'Deleted request ID# {request_id} by user {current_user.username}')
+
+    flash(f'Deleted request #{request_id}', 'successn')
+    return redirect(request.referrer)
 
 @main.route('/search', methods = ['GET'])
 @login_required
@@ -622,13 +756,21 @@ def parse_search_form():
 
 # Misc routes
 
-@main.route('/profile')
+@main.route('/test/profile', methods = ['GET'])
 @login_required
 def profile():
-    """Profile route for testing login, can delete it later."""
+    """ Profile route for testing login. """
     return render_template('profile.html', name=current_user.username)
 
-@main.route('/about')
+@main.route('/test/admin', methods = ['GET'])
+@login_required
+@admin_required
+def admin_test():
+    """ For testing admin_required decorator. """
+    flash('OK', 'successn')
+    return render_template('index.html')
+
+@main.route('/about', methods = ['GET'])
 @login_required
 def about():
     logging.debug(request)
@@ -647,8 +789,8 @@ def robotsTxt():
     """ It's a honeypot, of course I want to allow bots. """
     logging.debug(request)
     return send_from_directory('static', path='txt/robots.txt')
-# Serve the favicon (and stop logging requests for it)
 @main.route('/favicon.ico', methods = ['GET'])
 def serve_favicon():
+    """ Serve the favicon (and stop saving requests for it). """
     logging.debug(request)
     return send_from_directory('static', path='favicon.ico')

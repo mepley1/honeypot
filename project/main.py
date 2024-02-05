@@ -70,7 +70,7 @@ def admin_required(func):
     def decorated_function(*args, **kwargs):
         if not current_user.is_admin:
             logging.info(f'Attempted unauthorized action by user {current_user.username}')
-            flash('Not authorized.', 'errorn')
+            flash('Not authorized: User must have admin privilege.', 'errorn')
             try:
                 return redirect(request.referrer)
             except:
@@ -85,6 +85,16 @@ def validate_ip_query(_ip):
     ip_pattern = r'^[0-9A-Fa-f.:*\[\]\-^]{1,60}$'
     regex = re.compile(ip_pattern)
     if regex.match(_ip):
+        return True
+    else:
+        return False
+
+def validate_id_query(_id):
+    """ Validate queried ID #. """
+    # Numbers + GLOB chars. Loose max length to account for glob queries.
+    id_pattern = r'^[0-9*\[\]\-^?]{1,24}$'
+    regex = re.compile(id_pattern)
+    if regex.match(_id):
         return True
     else:
         return False
@@ -111,7 +121,7 @@ def index(u_path):
         req_hostname = 'Unavailable'
         logging.debug(f'No hostname available, or no connection: {str(e)}')
 
-    req_user_agent = request.headers.get('User-Agent')
+    req_user_agent = request.headers.get('User-Agent', '')
     req_method = request.method
     req_query = request.query_string.decode()
     #Timestamp compatible with ApuseIPDB API
@@ -123,8 +133,9 @@ def index(u_path):
 
     # Adding the try/except block temporarily while I rewrite this section.
     # Need to rewrite it with an if block for each content-type to make it cleaner
-    try:
+    #try:
     # Get the POSTed data
+    """
         if req_method == 'POST':
             try:
                 posted_json = request.json
@@ -146,13 +157,28 @@ def index(u_path):
             posted_data = '' #If not a POST request, use blank
     except Exception as e:
         logging.error(f'Exception while trying to parse POSTed data:\n{str(e)}')
+    """
+
+    # Get the request body. Could be one of any content-type, format, encoding, etc, try to capture
+    # and decode as much as possible.
+    req_content_type = request.headers.get('Content-Type', '')
+    try:
+        if 'application/json' in req_content_type:
+            req_body = json.dumps(request.json)
+        else:
+            req_body = request.get_data().decode('utf-8', errors = 'replace')
+        if not req_body:
+            req_body = ''
+    except Exception as e:
+        posted_data = str(e) # So I can see if anything is still failing
+        logging.error(f'Exception while trying to parse POSTed data: {str(e)}')
 
     # Check request against detection rules, and submit report
     # Adding try/except temporarily while I test some things
     try:
         reported = check_all_rules() #see auto_report.py
     except Exception as e:
-        logging.error(f'Error while executing detection rules:\n{str(e)}')
+        logging.error(f'Error while executing detection rules: {str(e)}')
         reported = 0
 
     # Request data to insert into the database
@@ -165,7 +191,7 @@ def index(u_path):
                 req_method,
                 req_query,
                 req_time,
-                posted_data,
+                req_body,
                 str(req_headers),
                 req_url,
                 reported)
@@ -437,7 +463,7 @@ def bodyStats():
 def reported_stats():
     """ Get records of requests that were reported. """
     reported_status = request.args.get('reported', '1')
-    # Flash an error message if querying for a method not in db
+    # Validate
     if reported_status not in ('0', '1'):
         flash('Bad request. Try reported=0 or reported=1', 'error')
         return render_template('index.html')
@@ -637,6 +663,36 @@ def stats_by_id(request_id):
     return render_template('stats.html',
         stats = id_stats,
         #totalHits = len(id_stats),
+        statName = f'ID: {request_id}')
+
+@main.route('/stats/id/multiple', methods = ['GET'])
+@login_required
+def stats_by_id_multiple():
+    """ Get more than one request by ID#. GLOB query.
+    Usage: For ID#'s 100-199, use request_id=1?? """
+    request_id = request.args.get('request_id', '')
+
+    if not validate_id_query(request_id):
+        flash('Bad request', 'errorn')
+        try:
+            return redirect(request.referrer)
+        except:
+            return render_template('index.html')
+
+    with sqlite3.connect(requests_db) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        sql_query = "SELECT * FROM bots WHERE id GLOB ? ORDER BY id DESC;"
+        data_tuple = (request_id,)
+        c.execute(sql_query, data_tuple)
+        id_stats = c.fetchall()
+
+        c.close()
+    conn.close()
+
+    return render_template('stats.html',
+        stats = id_stats,
+        totalHits = len(id_stats),
         statName = f'ID: {request_id}')
 
 # currently editing DELETE route. ADMIN ONLY

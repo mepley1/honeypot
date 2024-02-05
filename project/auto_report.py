@@ -187,7 +187,18 @@ def is_path_traversal(request):
     ]
     pattern = '|'.join(PATH_TRAVERSAL_SIGS)
     regex = re.compile(pattern, re.IGNORECASE)
-    return bool(regex.search(request.full_path))
+    #return bool(regex.search(request.full_path))
+
+    # Check the path
+    if regex.search(request.full_path):
+        return True
+    # Check the body
+    if request.method == 'POST':
+        body = request.get_data(as_text=True)
+        if regex.search(body):
+            return True
+    # If no signatures found in either, return False
+    return False
 
 def is_misc_software_probe(request):
     """ Misc software probes I see often. """
@@ -463,6 +474,11 @@ def is_proxy_attempt(request):
             return True
     return False
 
+def is_dns_probe(request):
+    """ True if path contains '/dns-query' """
+    DNS_PROBE_PATH = '/dns-query'
+    return DNS_PROBE_PATH in request.path.lower()
+
 # Some misc rules to help prevent false positives.
 # Don't be that oblivious admin who reports NTP servers etc.
 
@@ -550,6 +566,7 @@ def check_all_rules():
         (is_misc_get_probe, 'GET with unexpected args', ['21']),
         (is_programmatic_ua, 'Automated user-agent', ['21']),
         (is_proxy_attempt, 'Sent proxy headers', ['21']),
+        (is_dns_probe, 'Probe for DNS-over-TCP', ['2','14'])
     ]
 
     # Now check against each detection rule, and if positive(True), then append to the report.

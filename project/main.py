@@ -143,8 +143,7 @@ def index(u_path):
                 # If not valid JSON, fall back to request.data
                 try:
                     saved_data = request.get_data() #If calling get_data() AFTER request.data, it'll return empty bytes obj, so save it first
-                    bad_data = request.data.decode('utf-8', errors='replace')
-                    posted_data = bad_data
+                    posted_data = request.data.decode('utf-8', errors='replace')
                     if not posted_data:
                         #If request.data can't parse it and returns an empty object
                         logging.debug('Couldnt parse data, falling back to request.get_data')
@@ -165,12 +164,16 @@ def index(u_path):
     try:
         if 'application/json' in req_content_type:
             req_body = json.dumps(request.json)
+        elif req_content_type == 'application/x-www-form-urlencoded':
+            #req_body = request.form.to_dict()
+            req_body = json.dumps(dict(request.form))
         else:
             req_body = request.get_data().decode('utf-8', errors = 'replace')
         if not req_body:
+            # If it's an empty byte object or nothing etc:
             req_body = ''
     except Exception as e:
-        posted_data = str(e) # So I can see if anything is still failing
+        req_body = str(e) # So I can see if anything is still failing
         logging.error(f'Exception while trying to parse POSTed data: {str(e)}')
 
     # Check request against detection rules, and submit report
@@ -695,12 +698,11 @@ def stats_by_id_multiple():
         totalHits = len(id_stats),
         statName = f'ID: {request_id}')
 
-# currently editing DELETE route. ADMIN ONLY
 @main.route('/admin/delete_single', methods = ['POST'])
 @login_required
 @admin_required
 def delete_record_by_id():
-    """ Delete an individual request by ID#. """
+    """ Delete an individual request by ID#. Admin only. """
 
     # Get the id# from the request args, and validate that it's numeric
     request_id = request.args.get('request_id')
@@ -724,6 +726,31 @@ def delete_record_by_id():
     logging.info(f'Deleted request ID# {request_id} by user {current_user.username}')
 
     flash(f'Deleted request #{request_id}', 'successn')
+    return redirect(request.referrer)
+
+@main.route('/admin/delete_login', methods = ['POST'])
+@login_required
+@admin_required
+def delete_login_record():
+    """ Delete a login record by ID#. Admin only. """
+    _id = request.args.get('login_id', '')
+    # Get the id# from the request args, and validate that it's numeric
+    if not _id.isnumeric():
+        flash('ID# must be numeric', 'errorn')
+        return redirect(request.referrer)
+
+    with sqlite3.connect(requests_db) as conn:
+        c = conn.cursor()
+        sql_query = "DELETE FROM logins WHERE id = ?;"
+        data_tuple = (_id,)
+        c.execute(sql_query, data_tuple)
+        c.close()
+    conn.close()
+
+    # Log the action to systemd logs
+    logging.info(f'Deleted login record {_id} by user {current_user.username}')
+
+    flash(f'Deleted login record #{_id}', 'successn')
     return redirect(request.referrer)
 
 @main.route('/search', methods = ['GET'])

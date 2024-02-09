@@ -521,7 +521,7 @@ def reported_stats():
 def proxy_connection_header_stats():
     """ Get records containing a Proxy-Connection header. (i.e. attempts to proxy the request to another host).
     Can also query for ?header_string=%25proxy%25 to check for anything with the word 'proxy'. """
-    header_string = request.args.get('header_string', "%'proxy-connection':%")
+    header_string = request.args.get('header_string', "%'proxy-%")
 
     with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row

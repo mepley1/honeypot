@@ -164,7 +164,7 @@ def index(u_path):
     try:
         if 'application/json' in req_content_type:
             req_body = json.dumps(request.json)
-        elif req_content_type == 'application/x-www-form-urlencoded':
+        elif 'application/x-www-form-urlencoded' in req_content_type:
             #req_body = request.form.to_dict()
             req_body = json.dumps(dict(request.form))
         else:

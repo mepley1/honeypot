@@ -586,7 +586,7 @@ def check_all_rules():
         (is_misc_get_probe, 'GET with unexpected args', ['21']),
         (is_programmatic_ua, 'Automated user-agent', ['21']),
         (is_proxy_attempt, 'Sent proxy headers', ['21']),
-        (is_dns_probe, 'Probe for DNS-over-TCP', ['2','14'])
+        (is_dns_probe, 'Probe DNS-over-HTTPS', ['2','14'])
     ]
 
     # Now check against each detection rule, and if positive(True), then append to the report.

@@ -4,6 +4,6 @@ flask-login
 flask-sqlalchemy
 Flask-WTF
 requests
-Werkzeug==2.3.0
+Werkzeug==3.0.1
 wheel
 gunicorn

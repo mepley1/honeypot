@@ -157,7 +157,7 @@ def index(u_path):
         logging.error(f'Exception while trying to parse POSTed data:\n{str(e)}')
     """
 
-    # NEW SECTION: Get request body
+    # NEW SECTION: Get the POST request body
     # Get the request body. Could be any content-type, format, encoding, etc, try to capture
     # and decode as much as possible.
     req_content_type = request.headers.get('Content-Type', '')
@@ -168,13 +168,17 @@ def index(u_path):
             #req_body = request.form.to_dict()
             req_body = json.dumps(dict(request.form))
         else:
+            #If no content-type declared
             req_body = request.get_data().decode('utf-8', errors = 'replace')
         if not req_body:
             # If it's an empty byte object or nothing etc:
             req_body = ''
     except Exception as e:
-        req_body = str(e) # So I can see if anything is still failing
-        logging.error(f'Exception while trying to parse POSTed data: {str(e)}')
+        try:
+            req_body = request.get_data(as_text=True)
+        except:
+            req_body = str(e) #See if anything is still failing
+            logging.error(f'Exception while trying to parse POSTed data: {str(e)}')
 
     # Check request against detection rules, and submit report
     # Adding try/except temporarily while I test some things
@@ -329,9 +333,46 @@ def ipStats(ipAddr):
 
 @main.route('/stats/ip/topten', methods = ['GET'])
 @login_required
-def get_top_ten_ips():
+def top_ten_ips():
     """ Return top ten most common IPs. """
-    pass
+    _num_of_ips = request.args.get('limit', 10) # num of IPs to include, i.e. Top X IPs. default 10
+    if not _num_of_ips.isnumeric():
+        flash('Bad request: `limit` must be numeric', 'error')
+        return render_template('index.html')
+
+    with sqlite3.connect(requests_db) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        sql_query = "SELECT remoteaddr, COUNT(*) AS count FROM bots GROUP BY remoteaddr ORDER BY count DESC LIMIT ?;"
+        # Execute the SQL query to get the 10 most common remoteaddr values
+        data_tuple = (_num_of_ips,)
+        c.execute(sql_query, data_tuple)
+        top_ips = c.fetchall()
+
+        # Now query for all requests received from top_ips
+        top_ips_addrs = [row['remoteaddr'] for row in top_ips]
+        top_ips_str = ','.join(top_ips_addrs)
+        logging.debug(top_ips_str)
+
+        #sql_query = "SELECT * FROM bots WHERE remoteaddr IN ( ? ) ORDER BY id DESC LIMIT 100;"
+        sql_query = f"SELECT * FROM bots WHERE remoteaddr IN ({ ','.join(['?']*len(top_ips_addrs)) }) ORDER BY id DESC;"
+        data_tuple_b = (top_ips_str,)
+
+        #c.execute(sql_query, data_tuple_b)
+        c.execute(sql_query, top_ips_addrs)
+        results = c.fetchall()
+
+        c.close()
+    conn.close()
+
+    # Print the results
+    for row in top_ips:
+        flash(f'IP: {row["remoteaddr"]}, Count: {row["count"]}', 'info')
+    return render_template('stats.html',
+        stats = results,
+        totalHits = len(results),
+        statName = f'Top {_num_of_ips} most common IPs'
+        )
 
 @main.route('/stats/method/<method>', methods = ['GET'])
 @login_required
@@ -640,7 +681,7 @@ def headers_single_pretty():
         next_request_id = next_request_id,
         prev_request_id = prev_request_id)
 
-@main.route('/stats/id/<request_id>', methods = ['GET'])
+@main.route('/stats/id/<int:request_id>', methods = ['GET'])
 @login_required
 def stats_by_id(request_id):
     """ Get an individual request by ID#. """

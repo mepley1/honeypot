@@ -3,10 +3,10 @@
 
 import requests
 
-url = 'http://localhost:5000'
+url = 'http://localhost:5000/test/get'
 
 headers = {
-    'User-Agent': '',
+    'User-Agent': 'testing',
 }
 
 if __name__ == '__main__':

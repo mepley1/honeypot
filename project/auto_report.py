@@ -25,21 +25,13 @@ def get_real_ip():
     return real_ip
 
 def exempt_from_reporting(_ip):
-    """ Check whether the IP is within any of configured exempt subnets. """
+    """ Check whether the IP is within any of configured EXEMPT_SUBNETS. """
     if not current_app.config.get('EXEMPT_SUBNETS'):
         return False #If no subnets configured, then not exempt.
-    EXEMPT_SUBNETS = current_app.config.get('EXEMPT_SUBNETS')
-    _ip_addr = ipaddress.ip_address(_ip)
-    '''for subnet in EXEMPT_SUBNETS:
-        try:
-            if ip in ipaddress.ip_network(subnet):
-                return True
-        except ValueError:
-            # Invalid subnet format, skip to the next one
-            continue
-    return False'''
-
-    return any(_ip_addr in ipaddress.ip_network(exempt_subnet) for exempt_subnet in EXEMPT_SUBNETS)
+    else:
+        EXEMPT_SUBNETS = current_app.config.get('EXEMPT_SUBNETS')
+        _ip_addr = ipaddress.ip_address(_ip)
+        return any(_ip_addr in ipaddress.ip_network(exempt_subnet) for exempt_subnet in EXEMPT_SUBNETS)
 
 def submit_report(report_comment, report_categories):
     """ Submit the report. Usage: reported = submit_report(report_comment, report_categories) """

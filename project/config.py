@@ -31,6 +31,11 @@ EXEMPT_SUBNETS = [
     '::1/128', # IPv6 loopback
 ]
 
+### By default, all failed login attempts will be logged, including the password that was used.
+### This creates a risk of exposing passwords if i.e. you mistype your username.
+### If the following option is set to True, then no passwords will be logged at all.
+DONT_LOG_PASSWORDS = True
+
 ################################################
 ### Database URI examples for various database systems. Default: SQLite (/honeypot/instance/db.sqlite)
 ### Uncomment/configure one if using something else.

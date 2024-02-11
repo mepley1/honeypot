@@ -53,7 +53,7 @@ Then point your browser to http://localhost:5000 and log in.
 - Restrict login to specified CIDR subnet. (`ALLOWED_LOGIN_SUBNET` in `config.py`)
 - Auto reporting to AbuseIPDB with somewhat extendable "detection rules."; configurable exempt subnets.
 - Search for arbitrary strings in request path/user-agent/headers/etc.
-- You can also configure your DNS server to return the honeypot server's IP for blocked requests instead of NXROUTE, to gain some visibility- though this can cause odd behavior in some apps.
+- Optional: If you configure your DNS server to return the honeypot server's IP for blocked requests instead of NXDOMAIN, to gain some extra visibility- though this can cause odd behavior in some apps.
 
 # Auto-reporting + Detection rules
 The auto-reporting will report to AbuseIPDB any request that matches the defined "detection rules."

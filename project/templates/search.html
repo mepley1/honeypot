@@ -16,6 +16,11 @@
             
             <form action="{{ url_for('main.parse_search_form') }}" method="GET" id="searchForm">
                 <p>
+                    <input type="radio" name="chosen_query" value="ip_string" id="ip_radio">
+                    <label for="url_radio">IP address:</label><br />
+                    <input type="search" id="ip_query" name="ip_string" placeholder="123.45.67.*" class="form-box" title="IP address to search for." />
+                </p>
+                <p>
                     <input type="radio" name="chosen_query" value="url" id="url_radio">
                     <label for="url_radio">URL contains:</label><br />
                     <input type="search" id="url_query" name="url" placeholder="*/path/to/.env" class="form-box" title="String to search for in the request URLs." />

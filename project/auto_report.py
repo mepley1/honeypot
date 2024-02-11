@@ -241,6 +241,7 @@ def is_misc_software_probe(request):
         '/glass.php',
         'e3e7e71a0b28b5e96cc492e636722f73/4sVKAOvu3D/BDyot0NxyG.php', #Need to look this up
         '/is-bin', #Seen this a handful of times now, along with a cookie.
+        '/vpnsvc/connect.cgi', #SoftEther probe, often by China GFW; see https://ensa.fi/active-probing/#probetype-softether
     ]
     return any(target.lower() in path.lower() for target in MISC_SOFTWARE_PROBE_PATHS)
 

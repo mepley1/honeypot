@@ -452,6 +452,7 @@ def is_programmatic_ua(request):
         'fasthttp',
         'Go-http-client',
         'Hello World', #Not to be confused with Mirai botnet's 'Hello, world' ua with comma
+        'Java/', #i.e. Java/1.8.0_362
         'libwww-perl',
         'masscan/', #https://github.com/robertdavidgraham/masscan
         'Mozila/5.0', #Note misspelling; all with this UA have been command injection of some sort

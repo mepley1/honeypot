@@ -124,7 +124,7 @@ def is_php_easter_egg(request):
         '=PHPE9568F34-D428-11d2-A769-00AA001ACF42', #PHP Logo
     ]
     if request.query_string is not None:
-        query_string_decoded = request.query_string.decode()
+        query_string_decoded = request.query_string.decode(errors='replace')
         return any(target.lower() in query_string_decoded.lower() for target in PHP_EASTER_EGGS)
     return False
 
@@ -147,7 +147,8 @@ def is_cgi_probe(request):
 def is_injection_attack(request):
     """ Command injection attempts in the path+query, POSTed data, or header values. """
     path_full = request.full_path
-    posted_data_decoded = request.data.decode(errors='replace')
+    #posted_data_decoded = request.data.decode(errors='replace')
+    posted_data_decoded = request.get_data(as_text=True)
     header_values_joined = ''.join(request.headers.values())
     INJECTION_SIGNATURES = [
         ';sh',
@@ -241,6 +242,7 @@ def is_misc_software_probe(request):
         '/glass.php',
         'e3e7e71a0b28b5e96cc492e636722f73/4sVKAOvu3D/BDyot0NxyG.php', #Need to look this up
         '/is-bin', #Seen this a handful of times now, along with a cookie.
+        'autodiscover/autodiscover.json?@zdi/Powershell', #Exchange RCE, see https://www.zerodayinitiative.com/blog/2022/11/14/control-your-types-or-get-pwned-remote-code-execution-in-exchange-powershell-backend
     ]
     return any(target.lower() in path.lower() for target in MISC_SOFTWARE_PROBE_PATHS)
 
@@ -294,7 +296,7 @@ def is_mirai_dvr(request):
     path = request.path
     MIRAI_DVR_PATH = '/dvr/cmd'
     if request.method == 'POST' and path.lower() == MIRAI_DVR_PATH:
-        posted_data = request.data
+        posted_data = request.get_data(as_text=True)
         MIRAI_DVR_PAYLOADS = [
             '<DVR Platform="Hi3520">',
             '<SetConfiguration File="service.xml">',
@@ -326,7 +328,7 @@ def is_mirai_netgear(request):
         return False
     # Check query params for the mirai signatures
     if request.query_string is not None:
-        query_string_decoded = request.query_string.decode()
+        query_string_decoded = request.query_string.decode('utf-8', errors = 'replace')
         return any(target in query_string_decoded for target in MIRAI_NETGEAR_SIGNATURES)
     return False
 

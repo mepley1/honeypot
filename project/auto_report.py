@@ -505,6 +505,7 @@ def is_research(request):
         'infrawatch/', #infrawat.ch
         'Uptime-Kuma/', #Uptime-Kuma/1.23.1 - Uptime Kuma's default ua
         'Security Headers Synthetic Checker', # Security headers checker
+        '+http://www.google.com/bot.html', #google bot
     ]
     if user_agent is None:
         return False

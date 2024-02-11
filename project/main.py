@@ -810,6 +810,9 @@ def parse_search_form():
     if not chosen_query or chosen_query is None:
         flash('Must select a query.', 'error')
         return render_template('search.html')
+    if chosen_query == 'ip_string':
+        ip_string = request.args.get('ip_string', '')
+        return redirect(url_for('main.ipStats', ipAddr = ip_string))
     if chosen_query == 'url':
         url = request.args.get('url', '')
         url = '*' + url + '*'

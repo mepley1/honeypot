@@ -34,6 +34,9 @@ def insert_login_record(username, password):
     client_ip = get_ip()
     login_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
+    if current_app.config.get('DONT_LOG_PASSWORDS'):
+        password = '[redacted]'
+
     # Log the attempt in the logins table of database
     try:
         with sqlite3.connect('bots.db') as conn:
@@ -116,7 +119,7 @@ def login_post():
 
     # Record the successful login, but obviously don't log the password.
     # Can query where password = placeholder later, to query for successful logins.
-    insert_login_record(username, '*** SUCCESSFUL LOGIN ***')
+    insert_login_record(username, '[success]')
     logging.info(f'Successful login from {get_ip()}: {username}')
     # if the above check passes, then we know the user has the right credentials, so log them in
     login_user(user, remember=remember)

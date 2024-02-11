@@ -516,16 +516,16 @@ def matches_custom_rule(request):
     """ Read custom rule from config if found, then check for the sigs in the 
     path+query, POSTed data, or header values. """
     if current_app.config.get('CUSTOM_SIGNATURES'):
-        _req_url = request.url
-        _req_body = request.get_data(as_text=True)
+        _request_url = request.url
+        _request_body = request.get_data(as_text=True)
         _header_values_joined = ''.join(request.headers.values())
         # Read the list from config
         CUSTOM_SIGNATURES = current_app.config.get('CUSTOM_SIGNATURES')
         # Check for signatures in the path+query, POSTed data, and headers
         if (
-            any(target in _req_url.lower() for target in CUSTOM_SIGNATURES)
-            or any(target in _req_body.lower() for target in CUSTOM_SIGNATURES)
-            or any(target in _header_values_joined.lower() for target in CUSTOM_SIGNATURES)
+            any(target.lower() in _request_url.lower() for target in CUSTOM_SIGNATURES)
+            or any(target.lower() in _request_body.lower() for target in CUSTOM_SIGNATURES)
+            or any(target.lower() in _header_values_joined.lower() for target in CUSTOM_SIGNATURES)
         ):
             return True
         else:

@@ -160,13 +160,19 @@ def index(u_path):
     # NEW SECTION: Get the POST request body
     # Get the request body. Could be any content-type, format, encoding, etc, try to capture
     # and decode as much as possible.
+    # Not checking for POST method, as occasionally GET requests can have a body as well.
     req_content_type = request.headers.get('Content-Type', '')
     try:
         if 'application/json' in req_content_type:
             req_body = json.dumps(request.json)
         elif 'application/x-www-form-urlencoded' in req_content_type:
-            #req_body = request.form.to_dict()
-            req_body = json.dumps(dict(request.form))
+            # Form data
+            try:
+                req_body = json.dumps(dict(request.form))
+            except TypeError as e:
+                # If not JSON serializable i.e. bytes object etc
+                logging.debug('Form data not serializable, trying get_data()...')
+                req_body = request.get_data(as_text=True)
         else:
             #If no content-type declared
             req_body = request.get_data().decode('utf-8', errors = 'replace')
@@ -174,6 +180,7 @@ def index(u_path):
             # If it's an empty byte object or nothing etc:
             req_body = ''
     except Exception as e:
+        # If any other exceptions
         try:
             req_body = request.get_data(as_text=True)
         except:

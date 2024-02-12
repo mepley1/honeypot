@@ -694,13 +694,6 @@ def headers_single_pretty():
 @login_required
 def stats_by_id(request_id):
     """ Get an individual request by ID#. """
-    if not request_id.isnumeric():
-        flash('Bad request: ID# must be numeric', 'errorn')
-        try:
-            return redirect(request.referrer)
-        except:
-            return render_template('index.html')
-
     with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()

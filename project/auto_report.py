@@ -70,13 +70,15 @@ def is_env_probe(request):
     ENV_PROBE_PATHS = [
         '.env', #The big winner
         '.htaccess', '.htpasswd',
-        'config', '/conf', '.conf',
+        '/config',
+        '/conf',
+        '.conf',
         '/admin',
         '.git', '.svn', #version control
         '/.aws',
         'backend',
         'phpinfo',
-        '/eval',
+        'Util/PHP/eval-stdin.php', #Seen a few versions, mostly /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
         'echo.php',
         '/api',
         '/system/deviceinfo', #seen as /system/deviceinfo
@@ -100,6 +102,11 @@ def is_env_probe(request):
         '/jquery.js',
         '/jquery-3.3.1.min.js', #seen this a bunch of times now
         '.json',
+        '/server-status',
+        '/.DS_Store',
+        '/login.action', #Atlassian?
+        '/_/;/META-INF/maven/com.atlassian.jira/jira-webapp-dist/pom.properties', #/s/43e26313e21323e2430313/_/;/META-INF/maven/com.atlassian.jira/jira-webapp-dist/pom.properties
+        
     ]
     if method in ENV_PROBE_METHODS:
         return any(target in path.lower() for target in ENV_PROBE_PATHS)
@@ -159,6 +166,9 @@ def is_injection_attack(request):
         'rm+-rf',
         ' && ',
         '<?php', 'shell_exec', 'base64_decode', #php injection
+        '/bin/bash',
+        'chmod 777',
+        'eval(', 'echo(',
         # ';', #semicolon in the path would be injection but not headers
     ]
     # Check for signatures in the path+query, POSTed data, and headers
@@ -234,8 +244,14 @@ def is_misc_software_probe(request):
         '/glass.php',
         'e3e7e71a0b28b5e96cc492e636722f73/4sVKAOvu3D/BDyot0NxyG.php', #Need to look this up
         '/is-bin', #Seen this a handful of times now, along with a cookie.
+        '/telescope/requests',
+        '/debug/default/view', #/debug/default/view?panel=config
         'autodiscover/autodiscover.json?@zdi/Powershell', #Exchange RCE, see https://www.zerodayinitiative.com/blog/2022/11/14/control-your-types-or-get-pwned-remote-code-execution-in-exchange-powershell-backend
         '/vpnsvc/connect.cgi', #SoftEther probe, often by China GFW; see https://ensa.fi/active-probing/#probetype-softether
+        '/.vscode/', # Seen probing for both /.vscode/.env and /.vscode/sftp.json
+        'META-INF/maven/com.atlassian.jira/jira-webapp-dist/pom.properties',
+        '/ecp/Current/exporttool/microsoft.exchange.ediscovery.exporttool.application',
+        '/v2/_catalog', #Docker container registry
     ]
     return any(target.lower() in path.lower() for target in MISC_SOFTWARE_PROBE_PATHS)
 
@@ -243,6 +259,7 @@ def is_wordpress_attack(request):
     path = request.path
     WORDPRESS_PATHS = [
         '/wordpress',
+        '/wp/',
         '/wp-content',
         '/wp-admin',
         '/wp-login', #/wp-login.php
@@ -439,7 +456,7 @@ def is_programmatic_ua(request):
     user_agent = request.headers.get('User-Agent', '')
     # Most of the UA's include a version #, i.e. Wget/1.21.3, we'll just search for the name
     PROGRAMMATIC_USER_AGENTS = [
-        'aiohttp/',
+        'aiohttp/', #i.e. Python/3.10 aiohttp/3.9.0
         'curl/',
         'fasthttp',
         'Go-http-client',
@@ -448,16 +465,23 @@ def is_programmatic_ua(request):
         'libwww-perl',
         'masscan/', #https://github.com/robertdavidgraham/masscan
         'Mozila/5.0', #Note misspelling; all with this UA have been command injection of some sort
+        'Mozilla/5.0 (compatible; Nmap Scripting Engine; https://nmap.org/book/nse.html)',
         'Odin; https://docs.getodin.com/', #Odin
         'Offline Explorer/', #WWW Offline Explorer
         'python-httpx/',
         'python-requests/',
+        'python-urllib3/',
         'Wget/',
         'WinHttp.WinHttpRequest',
         'xfa1',
         'zgrab/',
     ]
     return any(target in user_agent for target in PROGRAMMATIC_USER_AGENTS)
+
+def is_xmlhttprequest(request):
+    _x_requested_with = request.headers.get('X-Requested-With')
+    if _x_requested_with:
+        return 'XMLHttpRequest' in _x_requested_with
 
 def is_proxy_attempt(request):
     """ True if request contains a Proxy-Connection or Proxy-Authorization header. """
@@ -508,26 +532,66 @@ def is_research(request):
             return True
     return False
 
+# CUSTOM RULES
+
 def matches_custom_rule(request):
-    """ Read custom rule from config if found, then check for the sigs in the 
+    """ Custom string search. Read custom rule from config if found, then check for the sigs in the 
     path+query, POSTed data, or header values. """
     if current_app.config.get('CUSTOM_SIGNATURES'):
-        _request_url = request.url
-        _request_body = request.get_data(as_text=True)
-        _header_values_joined = ''.join(request.headers.values())
         # Read the list from config
         CUSTOM_SIGNATURES = current_app.config.get('CUSTOM_SIGNATURES')
+        # Validate it's a list
+        if not isinstance(CUSTOM_SIGNATURES, list):
+            logging.warning('Warning: CUSTOM_SIGNATURES is not a valid list; skipping rule.')
+            return False
+
+        __request_url = request.url
+        __request_body = request.get_data(as_text=True)
+        __header_values_joined = ''.join(request.headers.values())
+
         # Check for signatures in the path+query, POSTed data, and headers
         if (
-            any(target.lower() in _request_url.lower() for target in CUSTOM_SIGNATURES)
-            or any(target.lower() in _request_body.lower() for target in CUSTOM_SIGNATURES)
-            or any(target.lower() in _header_values_joined.lower() for target in CUSTOM_SIGNATURES)
+            any(target.lower() in __request_url.lower() for target in CUSTOM_SIGNATURES)
+            or any(target.lower() in __request_body.lower() for target in CUSTOM_SIGNATURES)
+            or any(target.lower() in __header_values_joined.lower() for target in CUSTOM_SIGNATURES)
         ):
             return True
         else:
             return False
     else:
+        #logging.debug('No CUSTOM_SIGNATURES found.')
         return False
+
+def matches_custom_regex(request):
+    """ Custom regex, read patterns from config. """
+    if current_app.config.get('CUSTOM_REGEX'):
+        # Read the list of patterns from config
+        CUSTOM_REGEX = current_app.config.get('CUSTOM_REGEX')
+        # Validate it's a list
+        if not isinstance(CUSTOM_SIGNATURES, list):
+            logging.warning('Warning: CUSTOM_SIGNATURES is not a valid list; skipping rule.')
+            return False
+        # Join patterns with pipe (regex alternate). Ignore case (i flag)
+        custom_regex_pattern = '|'.join(CUSTOM_REGEX)
+        regex = re.compile(custom_regex_pattern, re.IGNORECASE)
+
+        # Check the full URL
+        if regex.search(request.url):
+            return True
+        # Check the body
+        if request.method == 'POST':
+            _body = request.get_data(as_text=True)
+            if regex.search(_body):
+                return True
+        # Check header values
+        __header_values_joined = ''.join(request.headers.values())
+        if regex.search(__header_values_joined):
+            return True
+        # If no signatures found in either, return False
+        return False
+    else:
+        return False
+
 # END RULES
 # BEGIN RULE CHECKING FUNCTIONS
 
@@ -582,8 +646,11 @@ def check_all_rules():
         (no_host_header, 'No Host header', ['21']),
         (is_misc_get_probe, 'GET with unexpected args', ['21']),
         (is_programmatic_ua, 'Automated user-agent', ['21']),
+        (is_xmlhttprequest, 'Automated user-agent', ['21']),
         (is_proxy_attempt, 'Sent proxy headers', ['21']),
-        (is_dns_probe, 'Probe DNS-over-HTTPS', ['2','14'])
+        (is_dns_probe, 'Probe DNS-over-HTTPS', ['2','14']),
+        (matches_custom_rule, 'Custom rule', ['21']),
+        (matches_custom_regex, 'Custom regex', ['21'])
     ]
 
     # Now check against each detection rule, and if positive(True), then append to the report.

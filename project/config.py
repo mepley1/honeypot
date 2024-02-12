@@ -49,3 +49,18 @@ SQLALCHEMY_DATABASE_URI = 'sqlite:///db.sqlite'
 ### PostgreSQL
 #SQLALCHEMY_DATABASE_URI = 'postgresql://username:password@remote_server_ip/database_name'
 ################################################
+
+################################################
+### Custom signatures
+### This list is used in the custom detections rule. Each string in this list will be checked
+### for in the request path, queries, body, and header values. If the string is found, the
+### IP address will be reported. Case insensitive. Must be a valid Python list.
+CUSTOM_SIGNATURES = [
+    '/test/example1',
+]
+
+### Regex version, for more precise matching. Format as a list of regex patterns.
+CUSTOM_REGEX = [
+    r'./test/regex$',
+]
+################################################

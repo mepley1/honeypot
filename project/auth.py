@@ -28,14 +28,17 @@ def get_ip():
         client_ip = request.remote_addr
     return client_ip
 
-def insert_login_record(username, password):
+def insert_login_record(username, password, successful):
     """ sql insert helper function, for logging auth attempts. """
 
     client_ip = get_ip()
     login_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
 
-    if current_app.config.get('DONT_LOG_PASSWORDS'):
-        password = '[redacted]'
+    if successful == False:
+        if current_app.config.get('DONT_LOG_PASSWORDS'):
+            password = '[fail]'
+    elif successful == True:
+        password = '[success]'
 
     # Log the attempt in the logins table of database
     try:
@@ -104,7 +107,7 @@ def login_post():
 
     # If IP isn't in allowed login subnet, record the attempt and redirect.
     if not is_allowed(get_ip()):
-        insert_login_record(username, password)
+        insert_login_record(username, password, False)
         logging.info(f'Blocked login attempt (IP not whitelisted) from {get_ip()}: {username}')
         return redirect(url_for('auth.login'))
 
@@ -113,15 +116,15 @@ def login_post():
     if not user or not check_password_hash(user.password, password):
 
         # Record the attempt in the database
-        insert_login_record(username, password)
-        logging.info(f'Failed login attempt from {get_ip()}: {username}')
+        insert_login_record(username, password, False)
+        logging.info(f'Failed login from {get_ip()}: {username}')
 
         flash('Invalid credentials.', 'errorn')
         return redirect(url_for('auth.login')) # if user doesn't exist or password is wrong, reload page
 
     # Record the successful login, but obviously don't log the password.
     # Can query where password = placeholder later, to query for successful logins.
-    insert_login_record(username, '[success]')
+    insert_login_record(username, '[success]', True)
     logging.info(f'Successful login from {get_ip()}: {username}')
     # if the above check passes, then we know the user has the right credentials, so log them in
     login_user(user, remember=remember)
@@ -132,8 +135,6 @@ def login_post():
 def signup():
     return render_template('signup.html')
 
-# Note: After creating an account, add @login_required decorator to signup_post so
-# you must be logged in to create more accts.
 ## Note: I have the create-user.py script now, so this endpoint isn't needed anymore
 @auth.route('/signup', methods=['POST'])
 @login_required

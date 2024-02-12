@@ -9,6 +9,10 @@ SECRET_KEY = secrets.token_hex()
 ### Session lifetime. Default: 86400
 PERMANENT_SESSION_LIFETIME = 86400
 
+### Site title to display on the navbar. Default: lab.mepley.com
+SITE_TITLE_SUBDOMAIN = 'lab.mepley'
+SITE_TITLE_TLD = '.com'
+
 ### Enter your AbuseIPDB API key below, if you want to enable auto-reporting. Default: none
 #ABUSEIPDB = '12345678'
 

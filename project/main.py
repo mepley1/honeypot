@@ -62,7 +62,9 @@ createDatabase()
 @main.context_processor
 def inject_title():
     '''Return the title to display on the navbar'''
-    return {"SUBDOMAIN": 'lab.mepley', "TLD": '.com'}
+    title_subdomain = current_app.config.get('SITE_TITLE_SUBDOMAIN', 'lab.mepley')
+    title_tld = current_app.config.get('SITE_TITLE_TLD', '.com')
+    return {"SUBDOMAIN": title_subdomain, "TLD": title_tld}
 
 # decorator to require admin user
 def admin_required(func):

@@ -76,7 +76,9 @@ def is_allowed(ip_to_check):
 @auth.context_processor
 def inject_title():
     """Return the title to display on the navbar"""
-    return {"SUBDOMAIN": 'lab.mepley', "TLD": '.com'}
+    site_title_subdomain = current_app.config.get('SITE_TITLE_SUBDOMAIN', 'lab.mepley')
+    site_title_tld = current_app.config.get('SITE_TITLE_TLD', '.com')
+    return {"SUBDOMAIN": site_title_subdomain, "TLD": site_title_tld}
 
 # ROUTES
 

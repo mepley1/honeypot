@@ -568,8 +568,8 @@ def matches_custom_regex(request):
         # Read the list of patterns from config
         CUSTOM_REGEX = current_app.config.get('CUSTOM_REGEX')
         # Validate it's a list
-        if not isinstance(CUSTOM_SIGNATURES, list):
-            logging.warning('Warning: CUSTOM_SIGNATURES is not a valid list; skipping rule.')
+        if not isinstance(CUSTOM_REGEX, list):
+            logging.warning('Warning: CUSTOM_REGEX is not a valid list; skipping rule.')
             return False
         # Join patterns with pipe (regex alternate). Ignore case (i flag)
         custom_regex_pattern = '|'.join(CUSTOM_REGEX)

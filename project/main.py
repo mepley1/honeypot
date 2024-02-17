@@ -110,12 +110,13 @@ HTTP_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'T
 @main.route('/<path:u_path>', methods = HTTP_METHODS)
 def index(u_path):
     """ Catch-all route. Get and save all the request data into the database. """
-    logging.debug(f'{request}')
+    logging.info(f'{request}')
 
     ## note: I *really* need to change these variable names to match the database/headers better
     
     # Need to get real IP from behind Nginx reverse proxy
     req_ip = get_real_ip()
+    req_url = request.url
 
     try: # Get hostname by performing a DNS lookup
         req_hostname = gethostbyaddr(req_ip)[0]
@@ -131,70 +132,77 @@ def index(u_path):
     req_headers = dict(request.headers) # go ahead and save the full headers
     if 'Cookie' in req_headers:
         req_headers['Cookie'] = '[REDACTED]' # Don't expose session cookies! Will be displayed later.
-    req_url = request.url
-
-    # Commenting out old code while I rewrite this.
-    # Get the POSTed data
-    #try:
-    """
-        if req_method == 'POST':
-            try:
-                posted_json = request.json
-                posted_data = json.dumps(posted_json)
-            except:
-                # If not valid JSON, fall back to request.data
-                try:
-                    saved_data = request.get_data() #If calling get_data() AFTER request.data, it'll return empty bytes obj, so save it first
-                    posted_data = request.data.decode('utf-8', errors='replace')
-                    if not posted_data:
-                        #If request.data can't parse it and returns an empty object
-                        logging.debug('Couldnt parse data, falling back to request.get_data')
-                        posted_data = saved_data
-                except Exception as e:
-                    posted_data = str(e) # So I can see if anything is still failing
-                    logging.error(f'Couldnt parse data: {str(e)}.')
-        else:
-            posted_data = '' #If not a POST request, use blank
-    except Exception as e:
-        logging.error(f'Exception while trying to parse POSTed data:\n{str(e)}')
-    """
+    #Note: Add the following to the database schema later
+    if 'From' in req_headers:
+        req_from = req_headers['From']
+    if 'Cf-Ipcountry' in req_headers:
+        req_country_code = req_headers['Cf-Ipcountry']
 
     # NEW SECTION: Get the POST request body
     # Get the request body. Could be any content-type, format, encoding, etc, try to capture
-    # and decode as much as possible.
-    # Not checking for POST method, as occasionally GET requests can have a body as well.
+    # and decode as much as possible. Don't rely on declared encodings etc because some wild attacks
+    # that I want to capture may involve exploiting discrepancies.
+    # Not checking for POST method, as occasionally GET requests have a body as well.
+    ## Decoding notes: According to https://stackoverflow.com/questions/74276512/can-you-safely-read-utf8-and-latin1-files-with-a-na%C3%AFve-try-except-block
+    ### A comment says: "Your initial assumption is right: if a file that can only be utf-8 of latin1 encoded cannot be read as utf-8, then it is latin1 encoded.
+    ### The fact is that any sequence of bytes can be decoded as latin1 because there the latin1 encoding is a bijection between the 256 possible bytes and the unicode characters with code point in the [0;256[ range.
+    # So for now I *think* my tactic of trying decode as utf-8 and then latin-1 second is right, and should produce minimal mojibake, unless the data is neither utf-8 nor latin-1.
+
+    #req_content_type = request.content_type #This returns a None if no content-type declared, so use headers.get() with a default instead
     req_content_type = request.headers.get('Content-Type', '')
+
     try:
+        # JSON: Serialize the body data, if that doesn't work just use get_data().
         if 'application/json' in req_content_type:
-            req_body = json.dumps(request.json)
-        elif 'application/x-www-form-urlencoded' in req_content_type:
-            # Form data
             try:
-                req_body = json.dumps(dict(request.form))
-            except TypeError as e:
-                # If not JSON serializable i.e. bytes object etc
-                logging.debug('Form data not serializable, trying get_data()...')
-                req_body = request.get_data(as_text=True)
-        else:
-            #If no content-type declared
-            req_body = request.get_data().decode('utf-8', errors = 'replace')
-        if not req_body:
-            # If it's an empty byte object or nothing etc:
-            req_body = ''
+                #req_body = json.dumps(request.json)
+                req_body = json.dumps(request.get_json(force=True))
+            except:
+                logging.debug('Serializing failed, attempting to decode as utf-8...')
+                req_body = request.get_data().decode('utf-8', errors = 'backslashreplace')
+        elif 'application/x-www-form-urlencoded' in req_content_type:
+            # If content-type is Form data. 
+            if isinstance(request.get_data(), bytes):
+                """If body is bytes: try utf-8 first, if that doesn't work then latin-1.
+                Should add a database column later for un-decoded body, as well as which set worked. """
+                try:
+                    logging.debug('Form data is bytes. Attempting to parse as utf-8...')
+                    req_body = request.get_data().decode('utf-8')
+                except UnicodeDecodeError:
+                    try:
+                        logging.debug('Attempting to parse as latin-1...')
+                        req_body = request.get_data().decode('latin-1')
+                    except UnicodeDecodeError:
+                        logging.debug('Fuck it, just use replacement chars if utf-8 or latin-1 dont work.')
+                        req_body = request.get_data().decode('utf-8', errors = 'backslashreplace')
+            else:
+                """ If not bytes, either serialize it if possible, or decode. """
+                try:
+                    req_body = json.dumps(dict(request.form)) #This is resulting in an empty string if it can't parse it
+                except TypeError as e:
+                    logging.debug('Form data not serializable, trying get_data()...')
+                    req_body = request.get_data().decode('utf-8', errors = 'replace')
+        if 'text/html' in req_content_type or 'text/plain' in req_content_type:
+            req_body = request.get_data().decode('utf-8', errors = 'backslashreplace')
+        else: #Any other content-type, or if no content-type declared
+            try:
+                req_body = request.get_data().decode('utf-8')
+            except UnicodeDecodeError:
+                req_body = request.get_data().decode('utf-8', errors = 'backslashreplace')
     except Exception as e:
-        # If any other exceptions
-        try:
-            req_body = request.get_data(as_text=True)
-        except:
-            req_body = str(e) #See if anything is still failing
-            logging.error(f'Exception while trying to parse POSTed data: {str(e)}')
+        #If any other exceptions
+        logging.error(f'Exception while trying to parse body. Saving with backslashreplace. : {str(e)}')
+        #req_body = str(e) #See if anything is still failing
+        req_body = request.get_data().decode('utf-8', errors='backslashreplace')
+        #req_body = request.data
+
 
     # Check request against detection rules, and submit report
     # Adding try/except temporarily while I test some things
     try:
         reported = check_all_rules() #see auto_report.py
     except Exception as e:
-        logging.error(f'Error while executing detection rules: {str(e)}')
+        logging.error(f'Error while executing detections: {str(e)}')
         reported = 0
 
     # Request data to insert into the database
@@ -345,8 +353,8 @@ def ipStats(ipAddr):
 def top_ten_ips():
     """ Return top ten most common IPs. """
     _num_of_ips = request.args.get('limit', 10) # num of IPs to include, i.e. Top X IPs. default 10
-    if not _num_of_ips.isnumeric():
-        flash('Bad request: `limit` must be numeric', 'error')
+    if not isinstance(_num_of_ips, int):
+        flash('Bad request: `limit` must be type int', 'error')
         return render_template('index.html')
 
     with sqlite3.connect(requests_db) as conn:
@@ -360,14 +368,15 @@ def top_ten_ips():
 
         # Now query for all requests received from top_ips
         top_ips_addrs = [row['remoteaddr'] for row in top_ips]
-        top_ips_str = ','.join(top_ips_addrs)
-        logging.debug(top_ips_str)
+        logging.debug(f'Top IPs: {top_ips_addrs}') #testing, delete this
+        top_ips_str = ', '.join(top_ips_addrs)
+
+        logging.debug(','.join(top_ips_addrs*len(top_ips_addrs))) #testing, delete
 
         #sql_query = "SELECT * FROM bots WHERE remoteaddr IN ( ? ) ORDER BY id DESC LIMIT 100;"
         sql_query = f"SELECT * FROM bots WHERE remoteaddr IN ({ ','.join(['?']*len(top_ips_addrs)) }) ORDER BY id DESC;"
         data_tuple_b = (top_ips_str,)
 
-        #c.execute(sql_query, data_tuple_b)
         c.execute(sql_query, top_ips_addrs)
         results = c.fetchall()
 

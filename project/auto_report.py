@@ -146,8 +146,8 @@ def is_cgi_probe(request):
 def is_injection_attack(request):
     """ Command injection attempts in the path+query, POSTed data, or header values. """
     path_full = request.full_path
-    posted_data_decoded = request.get_data(as_text=True)
-    #posted_data_decoded = request.get_data.decode('utf-8', errors='replace')
+    #posted_data_decoded = request.get_data(as_text=True)
+    posted_data_decoded = request.get_data().decode('utf-8', errors='replace')
     header_values_joined = ''.join(request.headers.values())
     INJECTION_SIGNATURES = [
         ';sh',
@@ -497,9 +497,27 @@ def is_proxy_attempt(request):
     return False
 
 def is_dns_probe(request):
-    """ True if path contains '/dns-query' """
-    DNS_PROBE_PATH = '/dns-query'
-    return DNS_PROBE_PATH in request.path.lower()
+    """ True if content-type = application/dns-message, query string contains 'dns=',
+    or path matches any of DNS_PROBE_PATHS. """
+    # Can be either a GET with query params, or POST with the queried domain as the body,
+    # occasionally neither. Content-type in all of them has been application/dns-message.
+    # Scheme obv will be HTTPS, so check that first.
+    DNS_CONTENT_TYPE = 'application/dns-message'
+    DNS_PROBE_PATHS = [
+        '/dns-query',
+        '/resolve',
+        '/query',
+    ]
+    DNS_QUERY_ARG = 'dns'
+    #If scheme is HTTPS, check for any of the indicators and return True if found.
+    if request.scheme == 'https':
+        if (
+            DNS_CONTENT_TYPE in request.headers.get('Content-type', '')
+            or DNS_QUERY_ARG in request.args.keys()
+            or any(target == request.path.lower() for target in DNS_PROBE_PATHS)
+        ):
+            return True
+    return False
 
 # Some misc rules to help prevent false positives.
 # Don't be that oblivious admin who reports NTP servers etc.
@@ -581,7 +599,7 @@ def matches_custom_regex(request):
         custom_regex_pattern = '|'.join(CUSTOM_REGEX)
         regex = re.compile(custom_regex_pattern, re.IGNORECASE)
 
-        # Check the full URL
+        # Check the full URL (incl. any query args)
         if regex.search(request.url):
             return True
         # Check the body

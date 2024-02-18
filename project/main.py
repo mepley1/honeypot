@@ -36,7 +36,9 @@ def createDatabase(): # note: change column names to just match http headers, th
                 postjson TEXT,
                 headers TEXT,
                 url TEXT,
-                reported NUMERIC
+                reported NUMERIC,
+                contenttype TEXT,
+                country TEXT
                 );
         """)
         #logging.debug('Bots table initialized.')
@@ -133,10 +135,8 @@ def index(u_path):
     if 'Cookie' in req_headers:
         req_headers['Cookie'] = '[REDACTED]' # Don't expose session cookies! Will be displayed later.
     #Note: Add the following to the database schema later
-    if 'From' in req_headers:
-        req_from = req_headers['From']
-    if 'Cf-Ipcountry' in req_headers:
-        req_country_code = req_headers['Cf-Ipcountry']
+    req_from_contact = request.headers.get('From')
+    req_country_code = request.headers.get('Cf-Ipcountry', '')
 
     # NEW SECTION: Get the POST request body
     # Get the request body. Could be any content-type, format, encoding, etc, try to capture
@@ -207,8 +207,8 @@ def index(u_path):
 
     # Request data to insert into the database
     sql_query = """INSERT INTO bots
-        (id,remoteaddr,hostname,useragent,requestmethod,querystring,time,postjson,headers,url,reported)
-        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"""
+        (id,remoteaddr,hostname,useragent,requestmethod,querystring,time,postjson,headers,url,reported,contenttype,country)
+        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"""
     data_tuple = (req_ip,
                 req_hostname,
                 req_user_agent,
@@ -218,7 +218,9 @@ def index(u_path):
                 req_body,
                 str(req_headers),
                 req_url,
-                reported)
+                reported,
+                req_content_type,
+                req_country_code)
 
     @after_this_request
     def closeConnection(response):

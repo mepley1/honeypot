@@ -146,8 +146,8 @@ def is_cgi_probe(request):
 def is_injection_attack(request):
     """ Command injection attempts in the path+query, POSTed data, or header values. """
     path_full = request.full_path
-    #posted_data_decoded = request.data.decode(errors='replace')
     posted_data_decoded = request.get_data(as_text=True)
+    #posted_data_decoded = request.get_data.decode('utf-8', errors='replace')
     header_values_joined = ''.join(request.headers.values())
     INJECTION_SIGNATURES = [
         ';sh',
@@ -160,6 +160,7 @@ def is_injection_attack(request):
         ';wget',
         'wget+',
         '&wget',
+        'wget http', #may be http or https
         ';chmod',
         'cd+',
         ';rm -rf', #formatted with spaces in headers injection
@@ -479,6 +480,7 @@ def is_programmatic_ua(request):
     return any(target in user_agent for target in PROGRAMMATIC_USER_AGENTS)
 
 def is_xmlhttprequest(request):
+    """ True if request contains X-Requested-With header set to XMLHttpRequest. """
     _x_requested_with = request.headers.get('X-Requested-With')
     if _x_requested_with:
         return 'XMLHttpRequest' in _x_requested_with
@@ -521,8 +523,12 @@ def is_research(request):
         'SecurityScanner',
         'infrawatch/', #infrawat.ch
         'Uptime-Kuma/', #Uptime-Kuma/1.23.1 - Uptime Kuma's default ua
-        'Security Headers Synthetic Checker', # Security headers checker
+        'Security Headers Synthetic Checker', #Security headers checker
         '+http://www.google.com/bot.html', #google bot
+        '(compatible; GoogleOther)', #Google, another
+        'keycdn-tools/br', #KeyCDN brotli checker
+        'keycdn-tools/curl', #KeyCDN HTTP Header Checker
+        'keycdn-tools/perf', #KeyCDN Performance Test
     ]
     if user_agent is None:
         return False

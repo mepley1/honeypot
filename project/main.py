@@ -455,7 +455,7 @@ def urlStats():
     with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
-        # Query for matching user agent
+        # Query for matching URL
         sql_query = """
             SELECT * FROM bots WHERE (url GLOB ?) ORDER BY id DESC;
             """
@@ -818,25 +818,41 @@ def return_search_page():
 @login_required
 def parse_search_form():
     """ Redirect to one of the other views, depending on which search was selected. """
+    #logging.debug(request.args) #testing
     chosen_query = request.args.get('chosen_query', '')
+    query_text = request.args.get('query_text', '')
+
+    # Flash message if no query input
+    if not query_text or query_text is None:
+        flash('No query input', 'error')
+        return render_template('search.html')
 
     if not chosen_query or chosen_query is None:
         flash('Must select a query.', 'error')
         return render_template('search.html')
+
+    #Parse and redirect, based on which field was selected
     if chosen_query == 'ip_string':
-        ip_string = request.args.get('ip_string', '')
+        ip_string = query_text
         return redirect(url_for('main.ipStats', ipAddr = ip_string))
     if chosen_query == 'url':
-        url = request.args.get('url', '')
+        url = query_text
         url = '*' + url + '*'
         return redirect(url_for('main.urlStats', url = url))
     elif chosen_query == 'header_string':
-        header_string = request.args.get('header_string', '')
+        header_string = query_text
         return redirect(url_for('main.header_string_search', header_string = header_string))
     elif chosen_query == 'ua_string':
-        ua_string = request.args.get('ua_string', '')
+        ua_string = query_text
         ua_string = '%25' + ua_string + '%25'
         return redirect(url_for('main.uaStats', ua = ua_string))
+    elif chosen_query == 'body_string':
+        body_string = query_text
+        body_string = '%' + body_string + '%'
+        return redirect(url_for('main.bodyStats', body = body_string))
+    elif chosen_query == 'hostname_string':
+        hostname_string = query_text
+        return redirect(url_for('main.hostname_stats', hostname = hostname_string))
 
 # Misc routes
 

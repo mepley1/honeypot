@@ -12,6 +12,7 @@ I'll just make a simpler stats page with less data that will be better for mobil
 	--main-accent-color: #2563ea;
 	--main-heading-color: #FFFFFF;
 	--main-text-color: #D2D4D3;
+	/*--main-text-color: #D8D6C4;*/ /*more cream-y off-white */
 	/* --main-text-color: #f2f4f3; */
 	--content-bg-color: #202938;
 	--form-bg-color: #202938;
@@ -173,6 +174,14 @@ label {
 input:focus:invalid{
 	/* color: var(--errorColor); */
 	/* background-color: var(--input-invalid); */
+}
+
+/* You can't do much with option element, it's styled by the OS */
+select > option{
+	font-size: 16px;
+	font-family: var(--text-font);
+	color: var(--lightgray);
+	background-color: var(--main-bg-color);
 }
 
 .h-captcha{

@@ -85,7 +85,7 @@ def inject_title():
 
 # ROUTES
 
-@auth.route('/login')
+@auth.route('/nigol')
 def login():
     """Route for /login GET requests, just display the login page"""
     client_ip = get_ip() #get user's ip to display
@@ -96,7 +96,7 @@ def login():
     flash(f'Connecting from: {client_ip}', 'info')
     return render_template('login.html')
 
-@auth.route('/login', methods=['POST'])
+@auth.route('/nigol', methods=['POST'])
 def login_post():
     """Grab the form data, authenticate and log in the user"""
     username = request.form.get('username')
@@ -130,6 +130,7 @@ def login_post():
     login_user(user, remember=remember)
     return redirect(url_for('main.stats'))
 
+'''
 @auth.route('/signup')
 @login_required
 def signup():
@@ -158,6 +159,7 @@ def signup_post():
 
     flash('User created successfully.', 'successn')
     return redirect(url_for('auth.login'))
+'''
 
 @auth.route('/logout')
 @login_required

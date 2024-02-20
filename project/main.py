@@ -82,6 +82,8 @@ def admin_required(func):
         return func(*args, **kwargs)
     return decorated_function
 
+### Validation
+
 # Validate an IP address
 def validate_ip_query(_ip):
     """ Validate queried IP. """
@@ -89,6 +91,17 @@ def validate_ip_query(_ip):
     ip_pattern = r'^[0-9A-Fa-f.:*\[\]\-^]{1,60}$'
     regex = re.compile(ip_pattern)
     if regex.match(_ip):
+        return True
+    else:
+        return False
+
+# Validate CIDR
+def validate_cidr(_cidr_net):
+    """ Validate CIDR input. """
+    # IPv4/v6 chars + /
+    cidr_pattern = r'^[0-9A-Fa-f\.:\/]{1,43}$'
+    regex = re.compile(cidr_pattern)
+    if regex.match(_cidr_net):
         return True
     else:
         return False
@@ -103,7 +116,24 @@ def validate_id_query(_id):
     else:
         return False
 
-# Define routes
+### SQLite function callbacks
+
+#Callback for SQLite CIDR user function    
+def cidr_match(item, subnet):
+    """ Callback for SQLite user function. Usage: SELECT * FROM bots WHERE CIDR(remoteaddr, ?) """
+    try:
+        subnet_conv = ipaddress.ip_network(subnet)
+        ip_conv = ipaddress.ip_address(item)
+        return ip_conv in subnet_conv
+    except ValueError as e:
+        return False
+
+#Callback for SQLite REGEXP function
+def regexp(expr, item):
+    reg = re.compile(expr)
+    return reg.search(str(item)) is not None
+
+### Define Flask app routes
 
 # Will use this in a couple places so I don't have to list them all out
 HTTP_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'TRACE', 'PATCH']
@@ -349,6 +379,49 @@ def ipStats(ipAddr):
         stats = ipStats,
         totalHits = len(ipStats),
         statName = ipAddr)
+
+@main.route('/stats/subnet', methods = ['GET'])
+@login_required
+def subnet_stats():
+    """ Get requests from a CIDR subnet, using SQL user function (callback to cidr_match()). """
+    test_subnet = request.args.get('net', '')
+    
+    # Validate
+    try:
+        ipaddress.ip_network(test_subnet)
+    except ValueError as e:
+        logging.error(f'Invalid CIDR: {str(e)}')
+        flash('Bad request: must be a valid CIDR subnet', 'errorn')
+        try:
+            return redirect(request.referer)
+        except:
+            return ('Bad request', 400)
+            #return redirect(url_for('main.index'))
+
+    """ Get rows that came from a given CIDR subnet. """
+    with sqlite3.connect(requests_db) as conn:
+        #create user function, have to create it each time the connection is created
+        conn.create_function("CIDR", 2, cidr_match)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        sql_query = "SELECT * FROM bots WHERE CIDR(remoteaddr, ?) ORDER BY id DESC LIMIT 10000;"
+        data_tuple = (test_subnet,)
+        try:
+            c.execute(sql_query, data_tuple)
+        except Exception as e:
+            logging.error(f'{str(e)}')
+            #flash('invalid input', 'errorn')
+            return redirect(url_for('main.index'))
+        subnet_stats = c.fetchall()
+
+        c.close()
+    conn.close()
+
+    flash('Note: Limited to 10000 results.', 'info')
+    return render_template('stats.html',
+        stats = subnet_stats,
+        totalHits = len(subnet_stats),
+        statName = f'CIDR Subnet: {test_subnet}')
 
 @main.route('/stats/ip/topten', methods = ['GET'])
 @login_required
@@ -810,7 +883,7 @@ def delete_login_record():
 @main.route('/search', methods = ['GET'])
 @login_required
 def return_search_page():
-    """ Return the search page. NOTE: Still working on a search page template, so won't quite work."""
+    """ Return the search page. NOTE: Still working on a search page template."""
     return render_template('search.html')
 
 # this is ugly as fuck but it works for now i guess
@@ -835,7 +908,10 @@ def parse_search_form():
     if chosen_query == 'ip_string':
         ip_string = query_text
         return redirect(url_for('main.ipStats', ipAddr = ip_string))
-    if chosen_query == 'url':
+    elif chosen_query == 'cidr_string':
+        cidr_string = query_text
+        return redirect(url_for('main.subnet_stats', net = cidr_string))
+    elif chosen_query == 'url':
         url = query_text
         url = '*' + url + '*'
         return redirect(url_for('main.urlStats', url = url))
@@ -855,6 +931,38 @@ def parse_search_form():
         return redirect(url_for('main.hostname_stats', hostname = hostname_string))
 
 # Misc routes
+
+@main.route('/test/regexp', methods = ['GET'])
+@login_required
+def test_regexp():
+    """ Test regex. Get a record by id#.
+    Reference: https://stackoverflow.com/a/5365533 """
+    request_id = '10000'
+    #Callback for SQLite REGEXP function
+    '''def regexp(expr, item):
+        reg = re.compile(expr)
+        return reg.search(str(item)) is not None'''
+    
+    
+
+    """ Get an individual request by ID#. """
+    with sqlite3.connect(requests_db) as conn:
+        #create regexp function, have to create it each time connection is created
+        conn.create_function("REGEXP", 2, regexp)
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        sql_query = "SELECT * FROM bots WHERE id REGEXP (?);"
+        data_tuple = (request_id,)
+        c.execute(sql_query, data_tuple)
+        id_stats = c.fetchall()
+
+        c.close()
+    conn.close()
+
+    return render_template('stats.html',
+        stats = id_stats,
+        totalHits = len(id_stats),
+        statName = f'ID: {request_id}')
 
 @main.route('/test/profile', methods = ['GET'])
 @login_required
@@ -883,12 +991,12 @@ def about():
 def securityTxt():
     """ Serve a security.txt in case Nginx isn't there to do it. """
     logging.debug(request)
-    return send_from_directory('static', path='txt/security.txt')
+    return send_from_directory('static/txt', path='security.txt')
 @main.route('/robots.txt')
 def robotsTxt():
     """ It's a honeypot, of course I want to allow bots. """
     logging.debug(request)
-    return send_from_directory('static', path='txt/robots.txt')
+    return send_from_directory('static/txt', path='robots.txt')
 @main.route('/favicon.ico', methods = ['GET'])
 def serve_favicon():
     """ Serve the favicon (and stop saving requests for it). """

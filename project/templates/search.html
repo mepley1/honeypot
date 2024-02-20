@@ -18,7 +18,8 @@
                 <p>
                     <label for="chosen_query">Field to search:</label><br>
                     <select name="chosen_query" id="chosen_query" class="form-box">
-                        <option value="ip_string">IP Address (use * for wildcard)</option>
+                        <option value="ip_string">IP Address (v4/v6, * for wildcard)</option>
+                        <option value="cidr_string">CIDR Subnet (v4 or v6)</option>
                         <option value="url">URL (including any Query params)</option>
                         <option value="header_string">Headers</option>
                         <option value="ua_string">User-agent</option>

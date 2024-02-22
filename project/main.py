@@ -742,11 +742,58 @@ def hostname_stats():
         statName = f'Hostname: {hostname}'
         )
 
+# test retrieve JSON headers
+@main.route('/stats/headers/single/<request_id>', methods = ['GET'])
+@login_required
+def headers_single_json(request_id):
+    """ Pull headers from db by ID#, and display on headers_json.html. """
+    #request_id = request.args.get('id', '')
+
+    if not request_id or not request_id.isnumeric():
+        return ('Bad request: ID must be numeric.', 400)
+
+    request_id = int(request_id)
+    next_request_id = request_id + 1
+    prev_request_id = request_id - 1
+
+    #pull headers from db
+    with sqlite3.connect(requests_db) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        # Select the single request from the db, by it's ID
+        sql_query = "SELECT headers_json FROM bots WHERE id = ?;"
+        data_tuple = (request_id,)
+        c.execute(sql_query, data_tuple)
+        try:
+            saved_headers = c.fetchone()[0]
+        except TypeError as e:
+            flash('Bad request; ID doesn\'t exist.', 'error')
+            return render_template('index.html')
+
+        #Get an individual header value:
+        #sql_query = "SELECT JSON_EXTRACT(headers_json, '$.Host') AS host FROM bots WHERE id = ?;"
+        #c.execute(sql_query, data_tuple)
+        #data_host = c.fetchone()['host']
+        #logging.debug(f'HOST: {data_host}')
+        c.close()
+    conn.close()
+
+    data = json.loads(saved_headers)
+    #logging.debug(f'Request headers: {data}')
+
+    return render_template('headers_json.html',
+        stats = data,
+        request_id = request_id,
+        next_request_id = next_request_id,
+        prev_request_id = prev_request_id
+        )
+
+'''
 @main.route('/stats/headers/pretty')
 @login_required
 def headers_single_pretty():
-    """ Display a single request's headers on page in a more readable format.
-    Deprecated; leaving it here for now so I can reuse the code in a script.
+    """ DEPRECATED; Leaving it here for now so I can reuse the code in a script.
+    Display a single request's headers on page in a more readable format.
     Will use json.dumps(recreated_dictionary) to copy the headers to the new JSON column. """
 
     request_id = request.args.get('id', '')
@@ -783,6 +830,7 @@ def headers_single_pretty():
         request_id = request_id,
         next_request_id = next_request_id,
         prev_request_id = prev_request_id)
+'''
 
 @main.route('/stats/id/<int:request_id>', methods = ['GET'])
 @login_required
@@ -973,51 +1021,6 @@ def test_regexp():
         stats = id_stats,
         totalHits = len(id_stats),
         statName = f'ID: {request_id}')
-
-# test save headers as JSON
-@main.route('/stats/headers/single/<request_id>', methods = ['GET'])
-def headers_single_json(request_id):
-    """ Pull headers from db by ID#, and display on headers_json.html. """
-    #request_id = request.args.get('id', '')
-
-    if not request_id or not request_id.isnumeric():
-        return ('Bad request: ID must be numeric.', 400)
-
-    request_id = int(request_id)
-    next_request_id = request_id + 1
-    prev_request_id = request_id - 1
-
-    #pull headers from db
-    with sqlite3.connect(requests_db) as conn:
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-        # Select the single request from the db, by it's ID
-        sql_query = "SELECT headers_json FROM bots WHERE id = ?;"
-        data_tuple = (request_id,)
-        c.execute(sql_query, data_tuple)
-        try:
-            saved_headers = c.fetchone()[0]
-        except TypeError as e:
-            flash('Bad request; ID doesn\'t exist.', 'error')
-            return render_template('index.html')
-
-        #Get an individual header value:
-        #sql_query = "SELECT JSON_EXTRACT(headers_json, '$.Host') AS host FROM bots WHERE id = ?;"
-        #c.execute(sql_query, data_tuple)
-        #data_host = c.fetchone()['host']
-        #logging.debug(f'HOST: {data_host}')
-        c.close()
-    conn.close()
-
-    data = json.loads(saved_headers)
-    #logging.debug(f'Request headers: {data}')
-
-    return render_template('headers_json.html',
-        stats = data,
-        request_id = request_id,
-        next_request_id = next_request_id,
-        prev_request_id = prev_request_id
-        )
 
 @main.route('/test/profile', methods = ['GET'])
 @login_required

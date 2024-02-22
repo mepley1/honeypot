@@ -35,6 +35,7 @@ def createDatabase(): # note: change column names to just match http headers, th
                 time DATETIME,
                 postjson TEXT,
                 headers TEXT,
+                headers_json TEXT,
                 url TEXT,
                 reported NUMERIC,
                 contenttype TEXT,
@@ -107,10 +108,20 @@ def validate_cidr(_cidr_net):
         return False
 
 def validate_id_query(_id):
-    """ Validate queried ID #. """
+    """ Validate queried ID # (for GLOB queries). """
     # Numbers + GLOB chars. Loose max length to account for glob queries.
     id_pattern = r'^[0-9*\[\]\-^?]{1,24}$'
     regex = re.compile(id_pattern)
+    if regex.match(_id):
+        return True
+    else:
+        return False
+
+def validate_id_numeric(_id):
+    """ Validate queried ID #. (Numeric) """
+    # Numberic
+    id_numeric_pattern = r'^[0-9]{1,32}$'
+    regex = re.compile(id_numeric_pattern)
     if regex.match(_id):
         return True
     else:
@@ -164,6 +175,7 @@ def index(u_path):
     req_headers = dict(request.headers) # go ahead and save the full headers
     if 'Cookie' in req_headers:
         req_headers['Cookie'] = '[REDACTED]' # Don't expose session cookies! Will be displayed later.
+    headers_json = json.dumps(req_headers)
     #Note: Add the following to the database schema later
     req_from_contact = request.headers.get('From')
     req_country_code = request.headers.get('Cf-Ipcountry', '')
@@ -237,8 +249,8 @@ def index(u_path):
 
     # Request data to insert into the database
     sql_query = """INSERT INTO bots
-        (id,remoteaddr,hostname,useragent,requestmethod,querystring,time,postjson,headers,url,reported,contenttype,country)
-        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"""
+        (id,remoteaddr,hostname,useragent,requestmethod,querystring,time,postjson,headers,headers_json,url,reported,contenttype,country)
+        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"""
     data_tuple = (req_ip,
                 req_hostname,
                 req_user_agent,
@@ -247,6 +259,7 @@ def index(u_path):
                 req_time,
                 req_body,
                 str(req_headers),
+                headers_json,
                 req_url,
                 reported,
                 req_content_type,
@@ -732,7 +745,9 @@ def hostname_stats():
 @main.route('/stats/headers/pretty')
 @login_required
 def headers_single_pretty():
-    """ Display a single request's headers on page in a more human-readable format. """
+    """ Display a single request's headers on page in a more readable format.
+    Deprecated; leaving it here for now so I can reuse the code in a script.
+    Will use json.dumps(recreated_dictionary) to copy the headers to the new JSON column. """
 
     request_id = request.args.get('id', '')
     next_request_id = int(request_id) + 1
@@ -755,15 +770,10 @@ def headers_single_pretty():
     conn.close()
 
     #Recreate the dictionary from the saved data.
-    '''Could maybe use json.dumps instead, but have to replace single quotes w/double;
-    This breaks when there are header values that contain doublequotes. So what I really need is
-    a better way of storing the headers in the database.'''
-
     recreated_dictionary = ast.literal_eval(saved_headers)
-    
-    #flash(f'Headers sent in Request #{request_id}', 'headersDictTitle')
 
     """
+    flash(f'Headers sent in Request #{request_id}', 'headersDictTitle')
     for key, value in recreated_dictionary.items():
         flash(f'{key}: {value}', 'headersDictMessage')
     """
@@ -963,6 +973,51 @@ def test_regexp():
         stats = id_stats,
         totalHits = len(id_stats),
         statName = f'ID: {request_id}')
+
+# test save headers as JSON
+@main.route('/stats/headers/single/<request_id>', methods = ['GET'])
+def headers_single_json(request_id):
+    """ Pull headers from db by ID#, and display on headers_json.html. """
+    #request_id = request.args.get('id', '')
+
+    if not request_id or not request_id.isnumeric():
+        return ('Bad request: ID must be numeric.', 400)
+
+    request_id = int(request_id)
+    next_request_id = request_id + 1
+    prev_request_id = request_id - 1
+
+    #pull headers from db
+    with sqlite3.connect(requests_db) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        # Select the single request from the db, by it's ID
+        sql_query = "SELECT headers_json FROM bots WHERE id = ?;"
+        data_tuple = (request_id,)
+        c.execute(sql_query, data_tuple)
+        try:
+            saved_headers = c.fetchone()[0]
+        except TypeError as e:
+            flash('Bad request; ID doesn\'t exist.', 'error')
+            return render_template('index.html')
+
+        #Get an individual header value:
+        #sql_query = "SELECT JSON_EXTRACT(headers_json, '$.Host') AS host FROM bots WHERE id = ?;"
+        #c.execute(sql_query, data_tuple)
+        #data_host = c.fetchone()['host']
+        #logging.debug(f'HOST: {data_host}')
+        c.close()
+    conn.close()
+
+    data = json.loads(saved_headers)
+    #logging.debug(f'Request headers: {data}')
+
+    return render_template('headers_json.html',
+        stats = data,
+        request_id = request_id,
+        next_request_id = next_request_id,
+        prev_request_id = prev_request_id
+        )
 
 @main.route('/test/profile', methods = ['GET'])
 @login_required

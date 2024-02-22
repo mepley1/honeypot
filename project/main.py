@@ -778,7 +778,14 @@ def headers_single_json(request_id):
         c.close()
     conn.close()
 
-    data = json.loads(saved_headers)
+    try:
+        data = json.loads(saved_headers)
+    except TypeError as e:
+        # Catch TypeError when headers_json field is NULL (i.e. database isn't updated)
+        # Only need this until I update the existing database.
+        flash('Bad request; ID doesn\'t exist.', 'error')
+        return render_template('index.html')
+
     #logging.debug(f'Request headers: {data}')
 
     return render_template('headers_json.html',

@@ -30,8 +30,9 @@ Configuration, find in config.py. Can also use environment variables prepended w
 4. `ALLOWED_LOGIN_SUBNET_V6` - Same, for an IPv6 subnet.
 5. `EXEMPT_SUBNETS` - IPs in these subnets won't be reported to AbuseIPDB.
 6. `CUSTOM_SIGNATUES` and `CUSTOM_REGEX` - Custom strings or regex patterns to search for in received requests.
+7. `SQLALCHEMY_DATABASE_URI` - URI for the user accounts db. Default is a SQLite db file in /instance. (User accounts and HTTP request data are stored in two separate databases.)
 
-Initialize database:
+Initialize users database:
 
 `python db_initialize.py`
 
@@ -53,8 +54,8 @@ Then point your browser to http://localhost:5000 and log in.
 - Toggle display/hide data columns.
 - Now has proper auth + remember me (set `SECRET_KEY` in `config.py`)
 - Restrict login to specified CIDR subnet. (`ALLOWED_LOGIN_SUBNET` in `config.py`)
-- Auto reporting to AbuseIPDB with somewhat extendable "detection rules."; configurable exempt subnets.
-- Search for arbitrary strings in request path/user-agent/headers/etc.
+- Auto reporting to AbuseIPDB with somewhat extendable "detection rules."; configurable exempt subnets + custom rules.
+- Search for arbitrary strings in request path/headers/body etc.
 - Optional/bonus: If you configure your DNS server to return the honeypot server's IP for blocked requests instead of NXDOMAIN, to gain some extra visibility- though this can cause odd failures in some apps.
 
 # Auto-reporting + Detection rules
@@ -88,8 +89,8 @@ To-do: Deployment guide. Include Nginx proxy conf & systemd service unit.
 
 # To-do:
 - Pagination
-- Rewrite detection rules using regex instead of string searches. Move the bigger lists to a separate file to import at run time rather than defining each list inside the functions- should greatly improve performance, and will allow for easier custom lists.
-- Rewrite SQL queries, using SQLAlchemy instead of raw SQL.
+- Rewrite detection rules using regex instead of string searches. Move the bigger lists to a separate file to import at run time rather than defining each list inside the functions- should greatly improve performance, and will allow for easier custom rules.
 - Deployment guide - deployment.md - Include Nginx vhost conf file, systemd service unit example
 - Some graphs/charts - do some analysis on top IPs/paths/location data/etc.
 - Per-account login IP whitelist.
+- Separate stats routes into another blueprint

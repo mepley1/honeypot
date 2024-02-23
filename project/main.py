@@ -747,7 +747,6 @@ def hostname_stats():
 @login_required
 def headers_single_json(request_id):
     """ Pull headers from db by ID#, and display on headers_json.html. """
-    #request_id = request.args.get('id', '')
 
     if not request_id or not request_id.isnumeric():
         return ('Bad request: ID must be numeric.', 400)
@@ -794,50 +793,6 @@ def headers_single_json(request_id):
         next_request_id = next_request_id,
         prev_request_id = prev_request_id
         )
-
-'''
-@main.route('/stats/headers/pretty')
-@login_required
-def headers_single_pretty():
-    """ DEPRECATED; Leaving it here for now so I can reuse the code in a script.
-    Display a single request's headers on page in a more readable format.
-    Will use json.dumps(recreated_dictionary) to copy the headers to the new JSON column. """
-
-    request_id = request.args.get('id', '')
-    next_request_id = int(request_id) + 1
-    prev_request_id = int(request_id) - 1
-
-    with sqlite3.connect(requests_db) as conn:
-        conn.row_factory = sqlite3.Row
-        c = conn.cursor()
-        # Select the single request from the db, by it's ID
-        sql_query = "SELECT headers FROM bots WHERE id = ?;"
-        data_tuple = (request_id,)
-        c.execute(sql_query, data_tuple)
-        try:
-            saved_headers = c.fetchone()[0]
-        except TypeError as e:
-            flash('Bad request; ID doesn\'t exist.', 'error')
-            return render_template('index.html')
-
-        c.close()
-    conn.close()
-
-    #Recreate the dictionary from the saved data.
-    recreated_dictionary = ast.literal_eval(saved_headers)
-
-    """
-    flash(f'Headers sent in Request #{request_id}', 'headersDictTitle')
-    for key, value in recreated_dictionary.items():
-        flash(f'{key}: {value}', 'headersDictMessage')
-    """
-
-    return render_template('headers_single.html',
-        stats = recreated_dictionary,
-        request_id = request_id,
-        next_request_id = next_request_id,
-        prev_request_id = prev_request_id)
-'''
 
 @main.route('/stats/id/<int:request_id>', methods = ['GET'])
 @login_required

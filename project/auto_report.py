@@ -101,53 +101,53 @@ def submit_report(report_comment, report_categories):
 
 # BEGIN RULES
 
+ENV_PROBE_PATHS = [
+    '.env', #The big winner
+    '.htaccess', '.htpasswd',
+    '/config',
+    '/conf',
+    '.conf',
+    '/admin',
+    '.git', '.svn', #version control
+    '/.aws',
+    'backend',
+    'phpinfo',
+    'Util/PHP/eval-stdin.php', #Seen a few versions, mostly /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
+    'echo.php',
+    '/api',
+    '/system/deviceinfo', #seen as /system/deviceinfo
+    '/public',
+    '/src',
+    '/app',
+    '/www',
+    '/vendor',
+    '/laravel',
+    '/storage', '/protected', # seen as /storage/protected - Redlion RAS
+    '/library',
+    '/auth',
+    '/login',
+    '/logon',
+    '/database',
+    '/scripts',
+    '/99vt', '/99vu', '/gate.php', '/aaaaaaaaaaaaaaaaaaaaaaaaaqr', #some misc malware
+    '/form.html', 'upl.php', 'info.php', '/bundle.js', '/files/', #Usually probed together
+    '/whyareugay', # Some malware maybe? Been seeing it from the same couple subnets
+    '/log/',
+    '/jquery.js',
+    '/jquery-3.3.1.min.js', #seen this a bunch of times now
+    '.json',
+    '/server-status',
+    '/.DS_Store',
+    '/login.action', #Atlassian?
+    '/_/;/META-INF/maven/com.atlassian.jira/jira-webapp-dist/pom.properties', #/s/43e26313e21323e2430313/_/;/META-INF/maven/com.atlassian.jira/jira-webapp-dist/pom.properties
+]
+
 def is_env_probe(request):
     """ Returns True if path contains any of target strings. Only catch GET for this rule.
     Some environment/config probes I see often. """
     path = request.path
     method = request.method
     ENV_PROBE_METHODS = ['GET', 'HEAD']
-    ENV_PROBE_PATHS = [
-        '.env', #The big winner
-        '.htaccess', '.htpasswd',
-        '/config',
-        '/conf',
-        '.conf',
-        '/admin',
-        '.git', '.svn', #version control
-        '/.aws',
-        'backend',
-        'phpinfo',
-        'Util/PHP/eval-stdin.php', #Seen a few versions, mostly /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
-        'echo.php',
-        '/api',
-        '/system/deviceinfo', #seen as /system/deviceinfo
-        '/public',
-        '/src',
-        '/app',
-        '/www',
-        '/vendor',
-        '/laravel',
-        '/storage', '/protected', # seen as /storage/protected - Redlion RAS
-        '/library',
-        '/auth',
-        '/login',
-        '/logon',
-        '/database',
-        '/scripts',
-        '/99vt', '/99vu', '/gate.php', '/aaaaaaaaaaaaaaaaaaaaaaaaaqr', #some misc malware
-        '/form.html', 'upl.php', 'info.php', '/bundle.js', '/files/', #Usually probed together
-        '/whyareugay', # Some malware maybe? Been seeing it from the same couple subnets
-        '/log/',
-        '/jquery.js',
-        '/jquery-3.3.1.min.js', #seen this a bunch of times now
-        '.json',
-        '/server-status',
-        '/.DS_Store',
-        '/login.action', #Atlassian?
-        '/_/;/META-INF/maven/com.atlassian.jira/jira-webapp-dist/pom.properties', #/s/43e26313e21323e2430313/_/;/META-INF/maven/com.atlassian.jira/jira-webapp-dist/pom.properties
-        
-    ]
     if method in ENV_PROBE_METHODS:
         return any(target in path.lower() for target in ENV_PROBE_PATHS)
     return False
@@ -244,56 +244,59 @@ def is_path_traversal(request):
     # If no signatures found in either, return False
     return False
 
+MISC_SOFTWARE_PROBE_PATHS = [
+    '/adminer',
+    '/ReportServer', #Microsoft SQL report service
+    '/boaform/admin/formLogin', #/boaform/admin/formLogin = Some OEM Fiber gear. Usually seen POSTing `username=admin&psd=Feefifofum`
+    '/actuator', #/actuator/health - Sping Boot health check
+    '/druid', #Apache Druid
+    '/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php', #phpunit CVE-2017-9841 = POST to /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
+    '/geoserver/web', '/webui', #Cisco ios xe - recent vuln being exploited - usually seen as /webui/logoutconfirm.html?logon_hash=1
+    '/mailchimp', # mailchimp probes
+    '/portal', '/redlion', #seen as /portal/redlion; keep as 2 separate paths so can detect other portals
+    '/hudson', #Hudson CI
+    '/stalker_portal', #IPTV middleware
+    '/manager/text/list', #Tomcat
+    '/manager/html', #Tomcat (Nmap fingerprint)
+    '/Temporary_Listen_Addresses', #Windows Communication Framework
+    '/webfig',
+    '/solr',
+    '/ckeditor',
+    '/Telerik',
+    '/showLogin.cc', #ManageEngine
+    '/api/session/properties', #MetaBase
+    '/sugar_version.json', #SugarCRM
+    '/sitecore/', #Sitecore, seen as /sitecore/shell/sitecore.version.xml
+    '/level/15/exec/-/sh/run/CR', #Cisco routers without authentication on the HTTP interface.
+    '/+CSCOE+', '/CSCOE', #Cisco firewall WebVPN service
+    '/Portal0000.htm', '__Additional', #Siemens S7–3**, PCS7 - scada servers - nmap scan
+    '/docs/cplugError.html/', '/Portal/Portal.mwsl', #Siemens Simatic S7 scada devices - nmap scan
+    '/CSS/Miniweb.css', #more scada servers
+    '/localstart.asp', #old IIS vuln, nmap scan
+    '/scripts/WPnBr.dll', #Citric XenApp and XenDesktop - Stack-Based Buffer Overflow in Citrix XML Service
+    '/exactarget', #salesforce stuff
+    '/cgi/networkDiag.cgi', # Sunhillo SureLine https://nvd.nist.gov/vuln/detail/CVE-2021-36380
+    '/nation.php', #Seen posting form-encoded data to it: tuid=727737499&control=fconn&payload=d0xxZtY5RVygPWB%2B
+    '/V5wZ', '/EIei', '/fw6I', #seen a few sets of requests that include each of these
+    '/glass.php',
+    'e3e7e71a0b28b5e96cc492e636722f73/4sVKAOvu3D/BDyot0NxyG.php', #Need to look this up
+    '/is-bin', #Seen this a handful of times now, along with a cookie.
+    '/telescope/requests',
+    '/debug/default/view', #/debug/default/view?panel=config
+    #'autodiscover/autodiscover.json?@zdi/Powershell', #Exchange RCE, see https://www.zerodayinitiative.com/blog/2022/11/14/control-your-types-or-get-pwned-remote-code-execution-in-exchange-powershell-backend
+    'autodiscover/autodiscover', 'ews/autodiscover', #Exchange, see above
+    '/vpnsvc/connect.cgi', #SoftEther probe, often by China GFW; see https://ensa.fi/active-probing/#probetype-softether
+    '/.vscode/', # Seen probing for both /.vscode/.env and /.vscode/sftp.json
+    'META-INF/maven/com.atlassian.jira/jira-webapp-dist/pom.properties',
+    '/ecp/Current/exporttool/microsoft.exchange.ediscovery.exporttool.application',
+    '/v2/_catalog', #Docker container registry
+    'readme.', #readme.txt, .md, etc
+]
+
 def is_misc_software_probe(request):
     """ Misc software probes I see often. """
     path = request.path
     #Note: alphabetize these, it's getting too long. Could also import them from a txt file
-    MISC_SOFTWARE_PROBE_PATHS = [
-        '/adminer',
-        '/ReportServer', #Microsoft SQL report service
-        '/boaform/admin/formLogin', #/boaform/admin/formLogin = Some OEM Fiber gear. Usually seen POSTing `username=admin&psd=Feefifofum`
-        '/actuator', #/actuator/health - Sping Boot health check
-        '/druid', #Apache Druid
-        '/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php', #phpunit CVE-2017-9841 = POST to /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
-        '/geoserver/web', '/webui', #Cisco ios xe - recent vuln being exploited - usually seen as /webui/logoutconfirm.html?logon_hash=1
-        '/mailchimp', # mailchimp probes
-        '/portal', '/redlion', #seen as /portal/redlion; keep as 2 separate paths so can detect other portals
-        '/hudson', #Hudson CI
-        '/stalker_portal', #IPTV middleware
-        '/manager/text/list', #Tomcat
-        '/manager/html', #Tomcat (Nmap fingerprint)
-        '/Temporary_Listen_Addresses', #Windows Communication Framework
-        '/webfig',
-        '/solr',
-        '/ckeditor',
-        '/Telerik',
-        '/showLogin.cc', #ManageEngine
-        '/api/session/properties', #MetaBase
-        '/sugar_version.json', #SugarCRM
-        '/sitecore/', #Sitecore, seen as /sitecore/shell/sitecore.version.xml
-        '/level/15/exec/-/sh/run/CR', #Cisco routers without authentication on the HTTP interface.
-        '/+CSCOE+', '/CSCOE', #Cisco firewall WebVPN service
-        '/Portal0000.htm', '__Additional', #Siemens S7–3**, PCS7 - scada servers - nmap scan
-        '/docs/cplugError.html/', '/Portal/Portal.mwsl', #Siemens Simatic S7 scada devices - nmap scan
-        '/CSS/Miniweb.css', #more scada servers
-        '/localstart.asp', #old IIS vuln, nmap scan
-        '/scripts/WPnBr.dll', #Citric XenApp and XenDesktop - Stack-Based Buffer Overflow in Citrix XML Service
-        '/exactarget', #salesforce stuff
-        '/cgi/networkDiag.cgi', # Sunhillo SureLine https://nvd.nist.gov/vuln/detail/CVE-2021-36380
-        '/nation.php', #Seen posting form-encoded data to it: tuid=727737499&control=fconn&payload=d0xxZtY5RVygPWB%2B
-        '/V5wZ', '/EIei', '/fw6I', #seen a few sets of requests that include each of these
-        '/glass.php',
-        'e3e7e71a0b28b5e96cc492e636722f73/4sVKAOvu3D/BDyot0NxyG.php', #Need to look this up
-        '/is-bin', #Seen this a handful of times now, along with a cookie.
-        '/telescope/requests',
-        '/debug/default/view', #/debug/default/view?panel=config
-        'autodiscover/autodiscover.json?@zdi/Powershell', #Exchange RCE, see https://www.zerodayinitiative.com/blog/2022/11/14/control-your-types-or-get-pwned-remote-code-execution-in-exchange-powershell-backend
-        '/vpnsvc/connect.cgi', #SoftEther probe, often by China GFW; see https://ensa.fi/active-probing/#probetype-softether
-        '/.vscode/', # Seen probing for both /.vscode/.env and /.vscode/sftp.json
-        'META-INF/maven/com.atlassian.jira/jira-webapp-dist/pom.properties',
-        '/ecp/Current/exporttool/microsoft.exchange.ediscovery.exporttool.application',
-        '/v2/_catalog', #Docker container registry
-    ]
     return any(target.lower() in path.lower() for target in MISC_SOFTWARE_PROBE_PATHS)
 
 def is_wordpress_attack(request):

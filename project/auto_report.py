@@ -6,7 +6,11 @@ import json
 import logging
 import requests
 import re
+import sqlite3
 from flask import request, current_app
+from dateutil.parser import parse
+
+requests_db = 'bots.db'
 
 def get_real_ip():
     """ Get client's IP from behind Nginx/Cloudflare. """
@@ -32,6 +36,42 @@ def exempt_from_reporting(_ip):
         EXEMPT_SUBNETS = current_app.config.get('EXEMPT_SUBNETS')
         _ip_addr = ipaddress.ip_address(_ip)
         return any(_ip_addr in ipaddress.ip_network(exempt_subnet) for exempt_subnet in EXEMPT_SUBNETS)
+
+def already_reported(_ip):
+    """ Return True if IP has been reported within past 15 minutes. """
+    ip_to_check = _ip
+    current_time = datetime.datetime.now().astimezone().replace(microsecond=0).isoformat()
+    rate_limit_delta = datetime.timedelta(minutes=15)
+
+    #Retrieve timestamp of the last hit from given ip that was reported
+    with sqlite3.connect(requests_db) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        sql_query = """SELECT time FROM bots
+            WHERE remoteaddr LIKE ? AND reported = 1
+            ORDER BY id DESC
+            LIMIT 1;"""
+        data_tuple = (ip_to_check,)
+        c.execute(sql_query, data_tuple)
+        last_reported_hit = c.fetchone()
+        c.close()
+    conn.close()
+    
+    #Compare timestamp to current time, if any hits found
+    if last_reported_hit:
+        last_reported_time = last_reported_hit['time']
+        #logging.debug(f'last reported time: {last_reported_time}')
+        current_time_parsed = parse(current_time)
+        last_reported_time_parsed = parse(last_reported_time)
+        time_difference = current_time_parsed - last_reported_time_parsed
+        #logging.debug(f'Difference: {time_difference}')
+        if abs(time_difference) < rate_limit_delta:
+            logging.debug('IP already reported in past 15 minutes; not reporting.')
+            return True
+        else:
+            logging.debug('Not already reported.')
+            return False
+    return False
 
 def submit_report(report_comment, report_categories):
     """ Submit the report. Usage: reported = submit_report(report_comment, report_categories) """
@@ -705,8 +745,12 @@ def check_all_rules():
                 return reported
             else:
                 try:
-                    reported = submit_report(report_comment, report_categories)
-                    logging.info(f'Matched {rules_matched} rules. Reported to AbuseIPDB.')
+                    # Check now whether IP has already been reported
+                    if not already_reported(get_real_ip()):
+                        reported = submit_report(report_comment, report_categories)
+                        logging.info(f'Matched {rules_matched} rules. Reported to AbuseIPDB.')
+                    else:
+                        reported = 0
                 except requests.exceptions.ConnectionError as e:
                     reported = 0
                     logging.error(f'Connection error while submitting report: {str(e)}')

@@ -3,6 +3,7 @@ flask
 flask-login
 flask-sqlalchemy
 Flask-WTF
+python-dateutil
 requests
 Werkzeug
 wheel

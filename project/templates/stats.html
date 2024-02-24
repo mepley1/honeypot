@@ -38,6 +38,12 @@
                     <input type="checkbox" name="dataCheckbox" value="dataIP" checked>IP
                 </label>
                 <label>
+                    <input type="checkbox" name="dataCheckbox" value="dataScheme">Scheme
+                </label>
+                <label>
+                    <input type="checkbox" name="dataCheckbox" value="dataHost">Host
+                </label>
+                <label>
                     <input type="checkbox" name="dataCheckbox" value="dataURL" checked>URL
                 </label>
                 <label>
@@ -65,6 +71,9 @@
                     <input type="checkbox" name="dataCheckbox" value="dataContentType">Content-Type
                 </label>
                 <label>
+                    <input type="checkbox" name="dataCheckbox" value="dataReferer">Referer
+                </label>
+                <label>
                     <input type="checkbox" name="dataCheckbox" value="dataCountry">Country
                 </label>
                 <label>
@@ -84,6 +93,8 @@
                 <tr>
                     <th class="dataID hidden">#</th>
                     <th class="dataIP selectt">IP</th>
+                    <th class="dataScheme hidden">Scheme</th>
+                    <th class="dataHost hidden">Host</th>
                     <th class="dataURL selectt">URL</th>
                     <th class="dataMethod selectt">Method</th>
                     <th class="dataQueryString selectt">Query String</th>
@@ -93,6 +104,7 @@
                     <th class="dataUA selectt">User Agent</th>
                     <th class="dataHeaders selectt hidden">Headers</th>
                     <th class="dataContentType selectt hidden">Content-Type</th>
+                    <th class="dataReferer hidden">Referer</th>
                     <th class="dataCountry selectt hidden">Country</th>
                     <th class="dataLinks">Links</th>
                     <th class="dataReported hidden">Reported</th>
@@ -103,6 +115,8 @@
                 <tr>
                     <td class="dataID dataToLink dim hidden"><a href="{{url_for('main.headers_single_json', request_id=row['id'])}}">{{row['id']}}</a></td>
                     <td class="dataIP ipToLink selectt"><a href="{{url_for('main.ipStats', ipAddr=row['remoteaddr'])}}">{{row['remoteaddr']}}</a></td>
+                    <td class="dataScheme hidden">{{ row['scheme'] }}</td>
+                    <td class="dataHost hidden">{{ row['host'] }}</td>
                     <td class="dataURL dataToLink selectt"><a href="{{url_for('main.urlStats', url=row['url'])}}">{{row['url']}}</a></td>
                     <td class="dataMethod dataToLink selectt"><a href="{{url_for('main.methodStats', method=row['requestmethod'])}}">{{row['requestmethod']}}</a></td>
                     <td class="dataQueryString dataToLink mono smaller selectt"><a href="{{url_for('main.queriesStats', query=row['querystring'])}}">{{row['querystring']|e}}</a></td>
@@ -112,6 +126,7 @@
                     <td class="dataUA dataToLink selectt"><a href="{{url_for('main.uaStats', ua=row['useragent']|urlencode)}}">{{row['useragent']|e}}</a></td>
                     <td class="dataHeaders smallerer mono selectt hidden">{{row['headers_json']|e}}</td>
                     <td class="dataContentType hidden">{{row['contenttype']}}</td>
+                    <td class="dataReferer hidden">{{row['referer']}}</td>
                     <td class="dataCountry hidden">{{row['country']}}</td>
                     <td class="dataLinks ipToLink"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> <span class="dim">|</span> <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a> <span class="dim">|</span> <a href="https://virustotal.com/gui/ip-address/{{row['remoteaddr']}}" target="_blank">VirusTotal</a></td>
                     <td class="dataReported hidden">{{row['reported']}}</td>

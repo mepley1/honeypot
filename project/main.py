@@ -24,24 +24,32 @@ def createDatabase(): # note: change column names to just match http headers, th
     """ Create the bots.db database that will contain all the requests data. """
     with sqlite3.connect(requests_db) as conn:
         c = conn.cursor()
+
         c.execute("""
-                CREATE TABLE IF NOT EXISTS bots(
-                id INTEGER PRIMARY KEY,
-                remoteaddr TEXT,
-                hostname TEXT,
-                useragent TEXT,
-                requestmethod TEXT,
-                querystring TEXT,
-                time DATETIME,
-                postjson TEXT,
-                headers TEXT,
-                headers_json TEXT,
-                url TEXT,
-                reported NUMERIC,
-                contenttype TEXT,
-                country TEXT
-                );
-        """)
+            CREATE TABLE IF NOT EXISTS "bots" (
+            "id"    INTEGER,
+            "remoteaddr"	TEXT CHECK(length("remoteaddr") <= 64),
+            "hostname"	TEXT CHECK(length("hostname") <= 4096),
+            "useragent"	TEXT CHECK(length("useragent") <= 16384),
+            "requestmethod"	TEXT CHECK(length("requestmethod") <= 8),
+            "querystring"	TEXT,
+            "time"	DATETIME CHECK(length("time") <= 1024),
+            "postjson"	TEXT,
+            "headers"	TEXT,
+            "headers_json"	TEXT,
+            "url"	TEXT,
+            "reported"	NUMERIC CHECK(length("reported") <= 1),
+            "contenttype"	TEXT CHECK(length("contenttype") <= 16384),
+            "country"	TEXT CHECK(length("country") <= 3),
+            "from_contact"	TEXT CHECK(length("from_contact") <= 16384),
+            "scheme"	TEXT CHECK(length("scheme") <= 5),
+            "host"	TEXT CHECK(length("host") <= 16384),
+            "path"	TEXT,
+            "referer"	TEXT CHECK(length("referer") <= 16384),
+            PRIMARY KEY("id")
+            );
+            """)
+
         #logging.debug('Bots table initialized.')
 
         # Create Logins table, to record login attempts.
@@ -176,9 +184,13 @@ def index(u_path):
     if 'Cookie' in req_headers:
         req_headers['Cookie'] = '[REDACTED]' # Don't expose session cookies! Will be displayed later.
     headers_json = json.dumps(req_headers)
-    #Note: Add the following to the database schema later
-    req_from_contact = request.headers.get('From')
     req_country_code = request.headers.get('Cf-Ipcountry', '')
+    #Note: Add the following to the database schema later
+    req_from_contact = request.headers.get('From', '')
+    req_scheme = request.scheme
+    req_host = request.host
+    req_path = request.path
+    req_referer = request.referrer
 
     # NEW SECTION: Get the POST request body
     # Get the request body. Could be any content-type, format, encoding, etc, try to capture
@@ -249,8 +261,8 @@ def index(u_path):
 
     # Request data to insert into the database
     sql_query = """INSERT INTO bots
-        (id,remoteaddr,hostname,useragent,requestmethod,querystring,time,postjson,headers,headers_json,url,reported,contenttype,country)
-        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"""
+        (id,remoteaddr,hostname,useragent,requestmethod,querystring,time,postjson,headers,headers_json,url,reported,contenttype,country,from_contact,scheme,host,path,referer)
+        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"""
     data_tuple = (req_ip,
                 req_hostname,
                 req_user_agent,
@@ -263,7 +275,12 @@ def index(u_path):
                 req_url,
                 reported,
                 req_content_type,
-                req_country_code)
+                req_country_code,
+                req_from_contact,
+                req_scheme,
+                req_host,
+                req_path,
+                req_referer)
 
     @after_this_request
     def closeConnection(response):
@@ -693,7 +710,7 @@ def proxy_connection_header_stats():
 @login_required
 def header_string_search():
     """ Query for a certain string in headers.
-    Usage: example.com/stats/headers/contains?header_string=<search_string> """
+    Usage: /stats/headers/contains?header_string=<search_string> """
     header_string = request.args.get('header_string', '')
     header_string_q = '%' + header_string + '%'
 
@@ -701,9 +718,10 @@ def header_string_search():
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         # Query for headers containing the string
-        sql_query = """
-            SELECT * FROM bots WHERE (headers LIKE ?) ORDER BY id DESC;
-        """
+        sql_query = """SELECT * FROM bots
+            WHERE (headers_json LIKE ?)
+            ORDER BY id DESC
+            LIMIT 5000;"""
         data_tuple = (header_string_q,)
         c.execute(sql_query, data_tuple)
         headers_contains_stats = c.fetchall()
@@ -742,7 +760,6 @@ def hostname_stats():
         statName = f'Hostname: {hostname}'
         )
 
-# test retrieve JSON headers
 @main.route('/stats/headers/single/<request_id>', methods = ['GET'])
 @login_required
 def headers_single_json(request_id):
@@ -792,6 +809,47 @@ def headers_single_json(request_id):
         request_id = request_id,
         next_request_id = next_request_id,
         prev_request_id = prev_request_id
+        )
+
+@main.route('/stats/headers/key_search', methods = ['GET'])
+@login_required
+def headers_key_search():
+    """ Find requests with a given header. """
+    header_name = request.args.get('key', 'no input')
+    #query db
+    with sqlite3.connect(requests_db) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        sql_query = """SELECT *, (JSON_EXTRACT(headers_json, ?)) AS thing
+                    FROM bots
+                    WHERE (JSON_EXTRACT(headers_json, ?)) IS NOT NULL
+                    ORDER BY id DESC
+                    LIMIT 10000;
+                    """
+        data_tuple = (f'$.{header_name}', f'$.{header_name}',)
+        c.execute(sql_query, data_tuple)
+        try:
+            results = c.fetchall()
+            for r in results:
+                print(r['thing'])
+
+        except TypeError as e:
+            flash(f'{str(e)}', 'error')
+            return render_template('index.html')
+
+        #Get an individual header value:
+        #sql_query = "SELECT JSON_EXTRACT(headers_json, '$.Host') AS host FROM bots WHERE id = ?;"
+        #c.execute(sql_query, data_tuple)
+        #data_host = c.fetchone()['host']
+        #logging.debug(f'HOST: {data_host}')
+        c.close()
+    conn.close()
+
+    flash('Note: Limited to 10k results', 'info')
+    return render_template('stats.html',
+        stats = results,
+        statName = f'In header keys: {header_name}',
+        totalHits = len(results)
         )
 
 @main.route('/stats/id/<int:request_id>', methods = ['GET'])
@@ -962,8 +1020,6 @@ def test_regexp():
     '''def regexp(expr, item):
         reg = re.compile(expr)
         return reg.search(str(item)) is not None'''
-    
-    
 
     """ Get an individual request by ID#. """
     with sqlite3.connect(requests_db) as conn:
@@ -983,6 +1039,51 @@ def test_regexp():
         stats = id_stats,
         totalHits = len(id_stats),
         statName = f'ID: {request_id}')
+
+@main.route('/test/timestamp_compare', methods = ['GET'])
+@login_required
+def is_already_reported():
+    """ Check whether IP has been reported within 15 minutes. """
+    #from datetime import datetime, timedelta
+    from dateutil.parser import parse
+    ip_to_check = request.args.get('ip', '')
+    if not ip_to_check:
+        return ({'error':'no input given'}, 400)
+    current_time = datetime.datetime.now().astimezone().replace(microsecond=0).isoformat()
+    one_day_delta = datetime.timedelta(days=1)
+
+    #Retrieve timestamp of the last hit from ip that was reported
+    with sqlite3.connect(requests_db) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        #Only need time for this function, but select * so I can use the other columns for things
+        sql_query = """SELECT * FROM bots
+            WHERE remoteaddr LIKE ? AND reported = 1
+            ORDER BY id DESC
+            LIMIT 1;"""
+        data_tuple = (ip_to_check,)
+        c.execute(sql_query, data_tuple)
+        last_reported_hit = c.fetchone()
+        c.close()
+    conn.close()
+
+    #Compare timestamp to current time
+    if last_reported_hit:
+        last_reported_time = last_reported_hit['time']
+        logging.debug(f'last reported time: {last_reported_time}')
+        #logging.debug(f'Last reported request: {last_reported_hit["requestmethod"]} {last_reported_hit["url"]}')
+        current_time_parsed = parse(current_time)
+        last_reported_time_parsed = parse(last_reported_time)
+
+        time_difference = current_time_parsed - last_reported_time_parsed
+        #logging.debug(f'Difference: {time_difference}')
+        if abs(time_difference) < one_day_delta:
+            #logging.debug('True')
+            return (['True', last_reported_time_parsed], 200)
+        else:
+            #logging.debug('False')
+            return (['False', last_reported_time_parsed], 200)
+    return (['False', 'no rows found'], 200)
 
 @main.route('/test/profile', methods = ['GET'])
 @login_required

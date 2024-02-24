@@ -3,6 +3,8 @@
 import datetime #for logging
 import logging
 import sqlite3 #for logging bad logins
+import json #for hCaptcha
+import requests #hCaptcha
 from flask import Blueprint, current_app, render_template, redirect, url_for, request, flash, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, login_required, logout_user
@@ -94,11 +96,34 @@ def login():
     else:
         flash('Login disallowed: IP address not in whitelist.', 'errorn')
     flash(f'Connecting from: {client_ip}', 'info')
-    return render_template('login.html')
+    return render_template('login.html', HCAPTCHA_SITE_KEY = current_app.config.get('HCAPTCHA_SITE_KEY', ''))
 
 @auth.route('/nigol', methods=['POST'])
 def login_post():
-    """Grab the form data, authenticate and log in the user"""
+    """Verify captcha, Grab the form data, authenticate and log in the user"""
+    #hCaptcha first
+    if current_app.config.get('HCAPTCHA_SITE_KEY'):
+        hcaptcha_token = request.form.get('h-captcha-response', '')
+        api_endpoint = 'https://hcaptcha.com/siteverify'
+        hc_data = {
+            'response': hcaptcha_token,
+            'secret': current_app.config.get('HCAPTCHA_SECRET', 'None'),
+            'remoteip': get_ip(),
+            'sitekey': current_app.config.get('HCAPTCHA_SITE_KEY', ''),
+            }
+        r = requests.post(url = api_endpoint, data = hc_data)
+        answer = r.text
+        result = json.loads(r.text)
+        if 'error-codes' in result:
+            logging.error(error for error in result['error-codes'])
+        if result['success'] != bool(1):
+            logging.error(f'Failed hCaptcha challenge: {get_ip()}')
+            flash('Please complete the Captcha correctly.', 'errorn')
+            return redirect(url_for('auth.login'))
+        else:
+            logging.info('hCaptcha solved successfully')
+
+    #After captcha solved, grab the form data
     username = request.form.get('username')
     password = request.form.get('password')
     remember = True if request.form.get('remember') else False #Remember Me checkbox

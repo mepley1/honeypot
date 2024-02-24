@@ -26,6 +26,11 @@
                 <p>
                     <input type="checkbox" name="remember">Remember me
                 </p>
+                {% if HCAPTCHA_SITE_KEY %}
+                <!-- hCaptcha -->
+                <div class="h-captcha" data-sitekey="{{ HCAPTCHA_SITE_KEY }}" data-theme="dark"></div>
+                <!-- end hCaptcha -->
+                {% endif %}
                 <p>
                     <button type="submit" class="submit-button">Login</button>
                 </p>
@@ -42,6 +47,10 @@
 
         </div>
     </div>
-    
+    {% if HCAPTCHA_SITE_KEY %}
+    <!-- hCaptcha -->
+    <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+    <!-- end hCaptcha -->
+    {% endif %}
 </body>
 </html>

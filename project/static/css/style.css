@@ -19,6 +19,7 @@ I'll just make a simpler stats page with less data that will be better for mobil
 	--input-invalid: #2a2938;
 	--site-title-color: #FFFFFF;
 	--dotnet-color: #FF7F02;
+	/*--dotnet-color: #00bcb7;*/
 	--dotnet-hover-color: #FFFFFF;
 	--nav-link-color: #DDDDDD;
 	--nav-hover-color: #FFFFFF;
@@ -27,6 +28,7 @@ I'll just make a simpler stats page with less data that will be better for mobil
 	--text-font: "Abel", sans-serif;
 	--mono-font: "Oxygen Mono", monospace;
 	--orange1: #FF7F02;
+	/*--orange1: #00bcb7;*/
 	--white1: #FFFFFF;
 	--darkblue: #111828;
 	--paleblue: #202938;
@@ -185,7 +187,7 @@ select > option{
 }
 
 .h-captcha{
-	margin-bottom: 26px;
+	margin: 30px;
 }
 
 h1, h2, h3, h4{

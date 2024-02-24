@@ -13,10 +13,13 @@
 	<div class="everything"><center>
         <h1><span class="dim">Stats -></span> {{statName}}</h1>
         <div class="content">
-            <p>Total hits in database: {{totalHits}}</p>
+            <p>Total hits in database: <span class="mono">{{totalHits}}</span></p>
 
             {% if top_ip %}
-            <p>Most common IP: <a href="{{url_for('main.ipStats', ipAddr=top_ip['remoteaddr'])}}">{{top_ip['remoteaddr']}}</a> seen {{top_ip['count']}} times.</p>
+            <p>Most common IP (all time): <a href="{{url_for('main.ipStats', ipAddr=top_ip['remoteaddr'])}}" class="no-decoration">{{top_ip['remoteaddr']}}</a> seen {{top_ip['count']}} times.</p>
+            {% endif %}
+            {% if top_ip_weekly %}
+            <p>Most common IP (7 days): <a href="{{url_for('main.ipStats', ipAddr=top_ip_weekly['remoteaddr'])}}" class="no-decoration">{{top_ip_weekly['remoteaddr']}}</a> seen {{top_ip_weekly['count']}} times.</p>
             {% endif %}
 
             {% with messages = get_flashed_messages(with_categories=true) %}

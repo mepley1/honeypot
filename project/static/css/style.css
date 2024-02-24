@@ -537,6 +537,13 @@ td.dataToLink a:hover {
 	color: var(--midgray);
 }
 
+a.no-decoration{
+	text-decoration: none;
+}
+a.no-decoration:hover{
+	text-decoration: underline;
+}
+
 /* for jQuery hiding columns */
 /* NOTE: Replaced this with .hidden - leaving this here for now, I'll delete it later. */
 .selectt {

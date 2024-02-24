@@ -14,6 +14,7 @@ from flask import request, redirect, url_for, render_template, jsonify, Response
 from flask_login import login_required, current_user
 from urllib.parse import unquote # for uaStats()
 from functools import wraps
+from dateutil.parser import parse
 
 main = Blueprint('main', __name__)
 requests_db = 'bots.db'
@@ -151,6 +152,18 @@ def cidr_match(item, subnet):
 def regexp(expr, item):
     reg = re.compile(expr)
     return reg.search(str(item)) is not None
+
+
+#Callback for SQLite compare_time custom function
+def compare_time(timestamp):
+    """True if timestamp is within the past day. """
+    current_time = datetime.datetime.now(datetime.timezone.utc)
+    timestamp = parse(timestamp)
+    timestamp_p = timestamp.astimezone(datetime.timezone.utc)
+    #one_day = datetime.timedelta(days=7)
+    difference = current_time - timestamp_p
+    #logging.debug(difference)
+    return abs(difference) < datetime.timedelta(days=7)
 
 ### Define Flask app routes
 
@@ -339,14 +352,32 @@ def stats():
             top_ip_addr = top_ip['remoteaddr']
             top_ip_count = top_ip['count']
 
+        #Get most common IP of past 7 days
+        conn.create_function("PASTWEEK", 1, compare_time)
+        sql_query = """
+            SELECT remoteaddr, COUNT(*) AS count
+            FROM bots
+            WHERE PASTWEEK(time)
+            GROUP BY remoteaddr
+            ORDER BY count DESC, MAX(id) DESC
+            LIMIT 1;
+            """
+        c.execute(sql_query)
+        top_ip_weekly = c.fetchone()
+        if top_ip_weekly:
+            top_ip_weekly_addr = top_ip_weekly['remoteaddr']
+            top_ip_weekly_ct = top_ip_weekly['count']
+
         c.close()
     conn.close()
 
+    #flash(f'Past 7 days top IP: {top_ip_weekly_addr} Count: {top_ip_weekly_ct}')
     return render_template('stats.html',
         stats = stats,
         totalHits = totalHits,
         statName = f'Most Recent {records_limit} HTTP Requests',
-        top_ip = top_ip
+        top_ip = top_ip,
+        top_ip_weekly = top_ip_weekly,
     )
 
 # To do: Change the stats routes to use a single /stats/<statname> sort of scheme,
@@ -1045,7 +1076,7 @@ def test_regexp():
 def is_already_reported():
     """ Check whether IP has been reported within 15 minutes. """
     #from datetime import datetime, timedelta
-    from dateutil.parser import parse
+    #from dateutil.parser import parse
     ip_to_check = request.args.get('ip', '')
     if not ip_to_check:
         return ({'error':'no input given'}, 400)

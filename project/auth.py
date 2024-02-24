@@ -115,7 +115,7 @@ def login_post():
         answer = r.text
         result = json.loads(r.text)
         if 'error-codes' in result:
-            logging.error(error for error in result['error-codes'])
+            logging.error(result['error-codes'])
         if result['success'] != bool(1):
             logging.error(f'Failed hCaptcha challenge: {get_ip()}')
             flash('Please complete the Captcha correctly.', 'errorn')

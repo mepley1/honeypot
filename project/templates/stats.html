@@ -13,20 +13,6 @@
 	<div class="everything"><center>
         <h1><span class="dim">Stats -></span> {{statName}}</h1>
         <div class="content">
-            <p>Total hits in database: <span class="mono">{{totalHits}}</span></p>
-
-            {% if top_ip %}
-            <p>Most common IPs:<br/>
-            All time: <a href="{{url_for('main.ipStats', ipAddr=top_ip['remoteaddr'])}}" class="no-decoration">{{top_ip['remoteaddr']}}</a> Count: {{top_ip['count']}}<br/>
-            {% endif %}
-            {% if top_ip_weekly %}
-            7 days: <a href="{{url_for('main.ipStats', ipAddr=top_ip_weekly['remoteaddr'])}}" class="no-decoration">{{top_ip_weekly['remoteaddr']}}</a> seen {{top_ip_weekly['count']}} times.<br/>
-            {% endif %}
-            {% if top_ip_weekly %}
-            1 day: <a href="{{url_for('main.ipStats', ipAddr=top_ip_daily['remoteaddr'])}}" class="no-decoration">{{top_ip_daily['remoteaddr']}}</a> seen {{top_ip_daily['count']}} times.
-            </p>
-            {% endif %}
-
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, msg in messages %}
@@ -35,6 +21,26 @@
                 {% endif %}
             {% endwith %}
 
+            {% if totalHits %}
+            <p>Total hits in database: <span class="mono">{{totalHits}}</span></p>
+            {% endif %}
+
+            {% if top_ip %}
+            <p>Most common IP:<br/>
+            All time: <a href="{{url_for('main.ipStats', ipAddr=top_ip['remoteaddr'])}}" class="no-decoration">{{top_ip['remoteaddr']}}</a> Count: {{top_ip['count']}}</p>
+            {% endif %}
+            {% if top_ip_weekly %}
+            <p>7 days: <a href="{{url_for('main.ipStats', ipAddr=top_ip_weekly['remoteaddr'])}}" class="no-decoration">{{top_ip_weekly['remoteaddr']}}</a> seen {{top_ip_weekly['count']}} times.</p>
+            {% endif %}
+            {% if top_ip_daily %}
+            <p>1 day: <a href="{{url_for('main.ipStats', ipAddr=top_ip_daily['remoteaddr'])}}" class="no-decoration">{{top_ip_daily['remoteaddr']}}</a> seen {{top_ip_daily['count']}} times.</p>
+            {% endif %}
+
+            {% if image_data %}
+            <p class="plot_image"><img src="data:image/png;base64,{{image_data}}"/></p>
+            {% endif %}
+
+            {% if stats %}
             <h2>Most Recent Requests matching query</h2>
 
             <div id="dataToggles">
@@ -159,7 +165,7 @@
                     });
                 });
             </script>
-
+            {% endif %}
         </div>
     </center>
 	</div>

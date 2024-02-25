@@ -23,7 +23,8 @@ I'll just make a simpler stats page with less data that will be better for mobil
 	--dotnet-hover-color: #FFFFFF;
 	--nav-link-color: #DDDDDD;
 	--nav-hover-color: #FFFFFF;
-	--nav-submenu-bg: #6b818c;
+	--nav-submenu-bg: #6b818c; /* Lynch */
+	--table-nth-child: #1d2635;
 	--header-font: "Gemunu Libre", sans-serif;
 	--text-font: "Abel", sans-serif;
 	--mono-font: "Oxygen Mono", monospace;
@@ -36,7 +37,7 @@ I'll just make a simpler stats page with less data that will be better for mobil
 	--blue1: #2563EA;
 	--lightgray: #D2D4D3;
 	--lightergray: #DDDDDD;
-	--midgray: #6B818C;
+	--midgray: #6B818C; /* Lynch */
 	--errorColor: #BB2020;
 	--success-color: #22AA44;
 	--size-notifications: 20px;
@@ -59,6 +60,7 @@ body{
 	color: var(--main-text-color);
 	margin: 0;
 	font-size: 0;
+	padding-bottom: 48px;
 }
 
 .everything{
@@ -454,7 +456,7 @@ table{
 }
 
 tr:nth-child(even) {
-	background-color: #1d2635;
+	background-color: var(--table-nth-child);
 }
 
 thead{

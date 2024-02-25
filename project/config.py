@@ -9,12 +9,17 @@ SECRET_KEY = secrets.token_hex()
 ### Session lifetime. Default: 86400
 PERMANENT_SESSION_LIFETIME = 86400
 
-### Site title to display on the navbar. Default: lab.mepley.com
-SITE_TITLE_SUBDOMAIN = 'lab.mepley'
+### Site title to display on the navbar. Default: x2.mepley.com
+SITE_TITLE_SUBDOMAIN = 'x2.mepley'
 SITE_TITLE_TLD = '.com'
 
-### Enter your AbuseIPDB API key below, if you want to enable auto-reporting. Default: none
+### Enter your AbuseIPDB API key below, if you want to enable auto-reporting. Default: disabled
 #ABUSEIPDB = '12345678'
+
+### hCaptcha site key + secret, for login form captcha. See https://dashboard.hcaptcha.com/settings
+### To disable hCaptcha challenges, comment-out these lines or set value = False.
+#HCAPTCHA_SITE_KEY = '12345678'
+#HCAPTCHA_SECRET = '12345678'
 
 ### Restrict login to certain CIDR subnet. Default: 0.0.0.0/0 (v4) and ::/0 (v6) (allow anywhere).
 ### Configure these to match whatever network you'll be logging in from, unless you
@@ -35,14 +40,14 @@ EXEMPT_SUBNETS = [
     '::1/128', # IPv6 loopback
 ]
 
-### By default, all failed login attempts will be logged, including the password that was used.
+### If False, all failed login attempts will be logged, including the password that was used.
 ### This creates a risk of exposing passwords if i.e. you mistype your username.
-### If the following option is set to True, then no passwords will be logged at all.
+### If the following option is set to True, then no passwords will be logged at all. (Default: True)
 DONT_LOG_PASSWORDS = True
 
 ################################################
 ### Database URI examples for various database systems. Default: SQLite (/honeypot/instance/db.sqlite)
-### Uncomment/configure one if using something else.
+### Uncomment/configure one if using something else. Users db only.
 
 ### SQLite (default)
 SQLALCHEMY_DATABASE_URI = 'sqlite:///db.sqlite'

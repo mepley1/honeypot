@@ -153,17 +153,23 @@ def regexp(expr, item):
     reg = re.compile(expr)
     return reg.search(str(item)) is not None
 
-
 #Callback for SQLite compare_time custom function
-def compare_time(timestamp):
-    """True if timestamp is within the past day. """
+def compare_time(timestamp, num_days):
+    """True if timestamp is within the past <num_days> days. """
     current_time = datetime.datetime.now(datetime.timezone.utc)
     timestamp = parse(timestamp)
     timestamp_p = timestamp.astimezone(datetime.timezone.utc)
     #one_day = datetime.timedelta(days=7)
     difference = current_time - timestamp_p
     #logging.debug(difference)
-    return abs(difference) < datetime.timedelta(days=7)
+    return abs(difference) < datetime.timedelta(days=num_days)
+
+def compare_time_b(timestamp, num_days):
+    """True if timestamp is within the past <num_days> days. """
+    current_time = datetime.datetime.now(datetime.timezone.utc)
+    cutoff = current_time - datetime.timedelta(days=num_days)
+    timestamp_p = parse(timestamp).astimezone(datetime.timezone.utc)
+    return timestamp_p > cutoff
 
 ### Define Flask app routes
 
@@ -185,7 +191,7 @@ def index(u_path):
     try: # Get hostname by performing a DNS lookup
         req_hostname = gethostbyaddr(req_ip)[0]
     except herror as e:
-        req_hostname = 'Unavailable'
+        req_hostname = ''
         logging.debug(f'No hostname available, or no connection: {str(e)}')
 
     req_user_agent = request.headers.get('User-Agent', '')
@@ -203,7 +209,7 @@ def index(u_path):
     req_scheme = request.scheme
     req_host = request.host
     req_path = request.path
-    req_referer = request.referrer
+    req_referer = request.headers.get('Referer', '')
 
     # NEW SECTION: Get the POST request body
     # Get the request body. Could be any content-type, format, encoding, etc, try to capture
@@ -348,36 +354,42 @@ def stats():
         """
         c.execute(sql_query)
         top_ip = c.fetchone()
-        if top_ip:
-            top_ip_addr = top_ip['remoteaddr']
-            top_ip_count = top_ip['count']
 
         #Get most common IP of past 7 days
-        conn.create_function("PASTWEEK", 1, compare_time)
+        conn.create_function("COMPARETIME", 2, compare_time_b)
         sql_query = """
             SELECT remoteaddr, COUNT(*) AS count
             FROM bots
-            WHERE PASTWEEK(time)
+            WHERE COMPARETIME(time, 7)
             GROUP BY remoteaddr
             ORDER BY count DESC, MAX(id) DESC
             LIMIT 1;
             """
         c.execute(sql_query)
         top_ip_weekly = c.fetchone()
-        if top_ip_weekly:
-            top_ip_weekly_addr = top_ip_weekly['remoteaddr']
-            top_ip_weekly_ct = top_ip_weekly['count']
+
+        #Get top IP of past 24 hours
+        sql_query = """
+            SELECT remoteaddr, COUNT(*) AS count
+            FROM bots
+            WHERE COMPARETIME(time, 1)
+            GROUP BY remoteaddr
+            ORDER BY count DESC, MAX(id) DESC
+            LIMIT 1;
+            """
+        c.execute(sql_query)
+        top_ip_daily = c.fetchone()
 
         c.close()
     conn.close()
 
-    #flash(f'Past 7 days top IP: {top_ip_weekly_addr} Count: {top_ip_weekly_ct}')
     return render_template('stats.html',
         stats = stats,
         totalHits = totalHits,
         statName = f'Most Recent {records_limit} HTTP Requests',
         top_ip = top_ip,
         top_ip_weekly = top_ip_weekly,
+        top_ip_daily = top_ip_daily,
     )
 
 # To do: Change the stats routes to use a single /stats/<statname> sort of scheme,
@@ -851,19 +863,16 @@ def headers_key_search():
     with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
-        sql_query = """SELECT *, (JSON_EXTRACT(headers_json, ?)) AS thing
+        sql_query = """SELECT *
                     FROM bots
                     WHERE (JSON_EXTRACT(headers_json, ?)) IS NOT NULL
                     ORDER BY id DESC
                     LIMIT 10000;
                     """
-        data_tuple = (f'$.{header_name}', f'$.{header_name}',)
+        data_tuple = (f'$.{header_name}',)
         c.execute(sql_query, data_tuple)
         try:
             results = c.fetchall()
-            for r in results:
-                print(r['thing'])
-
         except TypeError as e:
             flash(f'{str(e)}', 'error')
             return render_template('index.html')

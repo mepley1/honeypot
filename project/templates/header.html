@@ -19,6 +19,8 @@
 				<a href="{{url_for('main.methodStats', method='POST')}}">Method: POST</a>
 				<a href="{{url_for('main.reported_stats', reported='1')}}">Reported</a>
 				<a href="{{url_for('main.proxy_connection_header_stats')}}">Sent Proxy Headers</a>
+				<a href="{{url_for('main.headers_key_search', key='Authorization')}}">Headers: Authorization</a>
+				<a href="{{url_for('main.headers_key_search', key='X-Requested-With')}}">Headers: X-Requested-With</a>
 				<a href="{{url_for('main.ipStats', ipAddr='*:*')}}">All IPv6</a>
 				<a href="{{url_for('main.return_search_page')}}">Search</a>
 			</div>

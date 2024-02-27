@@ -611,7 +611,7 @@ def urlStats():
         c.close()
     conn.close()
 
-    flash('Use * in URL for wildcard, i.e. /stats/url?url=*.example.com/*', 'info')
+    flash('Note: Use * for wildcard, i.e. url=*.example.com/*', 'info')
     return render_template('stats.html',
         stats = urlStats,
         totalHits = len(urlStats),
@@ -908,6 +908,9 @@ def stats_by_id(request_id):
         c.close()
     conn.close()
 
+    if not id_stats:
+        return ({'Bad request': 'ID doesn\'t exist.'}, 400)
+
     return render_template('stats.html',
         stats = id_stats,
         #totalHits = len(id_stats),
@@ -1080,12 +1083,10 @@ def test_regexp():
         totalHits = len(id_stats),
         statName = f'ID: {request_id}')
 
-@main.route('/test/timestamp_compare', methods = ['GET'])
+@main.route('/test/recently_reported', methods = ['GET'])
 @login_required
 def is_already_reported():
-    """ Check whether IP has been reported within 15 minutes. """
-    #from datetime import datetime, timedelta
-    #from dateutil.parser import parse
+    """ Check whether IP has been reported within past day. """
     ip_to_check = request.args.get('ip', '')
     if not ip_to_check:
         return ({'error':'no input given'}, 400)
@@ -1123,7 +1124,7 @@ def is_already_reported():
         else:
             #logging.debug('False')
             return (['False', last_reported_time_parsed], 200)
-    return (['False', 'no rows found'], 200)
+    return (['False', 'IP never reported.'], 200)
 
 @main.route('/test/profile', methods = ['GET'])
 @login_required

@@ -107,7 +107,7 @@ def validate_ip_query(_ip):
 
 # Validate CIDR
 def validate_cidr(_cidr_net):
-    """ Validate CIDR input. """
+    """ Validate CIDR input. Not perfect, but better than nothing. """
     # IPv4/v6 chars + /
     cidr_pattern = r'^[0-9A-Fa-f\.:\/]{1,43}$'
     regex = re.compile(cidr_pattern)
@@ -464,12 +464,7 @@ def subnet_stats():
         ipaddress.ip_network(test_subnet)
     except ValueError as e:
         logging.error(f'Invalid CIDR: {str(e)}')
-        flash('Bad request: must be a valid CIDR subnet', 'errorn')
-        try:
-            return redirect(request.referer)
-        except:
-            return ('Bad request', 400)
-            #return redirect(url_for('main.index'))
+        return ('Bad request: Must be a valid CIDR subnet.', 400)
 
     """ Get rows that came from a given CIDR subnet. """
     with sqlite3.connect(requests_db) as conn:
@@ -702,17 +697,20 @@ def reported_stats():
             """
         c.execute(sql_query, data_tuple)
         top_reported = c.fetchone()
-        top_reported_ip_count = top_reported['count']
-        top_reported_ip_addr = top_reported['remoteaddr']
+        if top_reported:
+            top_reported_ip_count = top_reported['count']
+            top_reported_ip_addr = top_reported['remoteaddr']
 
         c.close()
     conn.close()
 
     # Flash a message based on reported or unreported
-    if reported_status == '1':
+    if reported_status == '1' and top_reported:
         top_reported_ip_message = f'Most reported IP: {top_reported_ip_addr}, reported {top_reported_ip_count} times.'
-    elif reported_status == '0':
-        top_reported_ip_message = f'Most un-reported IP: {top_reported_ip_addr}, slipped by {top_reported_ip_count} times.'
+    elif reported_status == '0' and top_reported:
+        top_reported_ip_message = f'Most un-reported IP: {top_reported_ip_addr} - {top_reported_ip_count} requests not reported.'
+    else:
+        top_reported_ip_message = 'Nothing has been reported.' #To prevent UnboundLocalError
 
     flash(top_reported_ip_message, 'info')
     return render_template('stats.html',

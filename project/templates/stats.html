@@ -58,22 +58,25 @@
                     <input type="checkbox" name="dataCheckbox" value="dataHost">Host
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataURL" checked>URL
-                </label>
-                <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataMethod" checked>Method
+                    <input type="checkbox" name="dataCheckbox" value="dataPath" checked>Path
                 </label>
                 <label>
                     <input type="checkbox" name="dataCheckbox" value="dataQueryString" checked>Query String
+                </label>
+                <label>
+                    <input type="checkbox" name="dataCheckbox" value="dataURL">URL
+                </label>
+                <label>
+                    <input type="checkbox" name="dataCheckbox" value="dataPostData" checked>Body
+                </label>
+                <label>
+                    <input type="checkbox" name="dataCheckbox" value="dataMethod" checked>Method
                 </label>
                 <label>
                     <input type="checkbox" name="dataCheckbox" value="dataHostname" checked>Hostname
                 </label>
                 <label>
                     <input type="checkbox" name="dataCheckbox" value="dataTime" checked>Time
-                </label>
-                <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataPostData" checked>Body
                 </label>
                 <label>
                     <input type="checkbox" name="dataCheckbox" value="dataUA" checked>User Agent
@@ -106,20 +109,21 @@
                 <thead>
                 <tr>
                     <th class="dataID hidden">#</th>
-                    <th class="dataIP selectt">IP</th>
+                    <th class="dataIP">IP</th>
                     <th class="dataScheme hidden">Scheme</th>
                     <th class="dataHost hidden">Host</th>
-                    <th class="dataURL selectt">URL</th>
-                    <th class="dataMethod selectt">Method</th>
-                    <th class="dataQueryString selectt">Query String</th>
-                    <th class="dataHostname selectt">Hostname</th>
-                    <th class="dataTime selectt">Time</th>
-                    <th class="dataPostData selectt">Request Body</th>
-                    <th class="dataUA selectt">User Agent</th>
-                    <th class="dataHeaders selectt hidden">Headers</th>
-                    <th class="dataContentType selectt hidden">Content-Type</th>
+                    <th class="dataPath">Path</th>
+                    <th class="dataQueryString">Query String</th>
+                    <th class="dataURL hidden">URL</th>
+                    <th class="dataPostData">Request Body</th>
+                    <th class="dataMethod">Method</th>
+                    <th class="dataHostname">Hostname</th>
+                    <th class="dataTime">Time</th>
+                    <th class="dataUA">User Agent</th>
+                    <th class="dataHeaders hidden">Headers</th>
+                    <th class="dataContentType hidden">Content-Type</th>
                     <th class="dataReferer hidden">Referer</th>
-                    <th class="dataCountry selectt hidden">Country</th>
+                    <th class="dataCountry hidden">Country</th>
                     <th class="dataLinks">Links</th>
                     <th class="dataReported hidden">Reported</th>
                     {% if current_user.is_admin %}<th class="dataDeleteRow hidden">Delete</th>{% endif %}
@@ -128,17 +132,18 @@
                 {% for row in stats: %}
                 <tr>
                     <td class="dataID dataToLink dim hidden"><a href="{{url_for('main.headers_single_json', request_id=row['id'])}}">{{row['id']}}</a></td>
-                    <td class="dataIP ipToLink selectt"><a href="{{url_for('main.ipStats', ipAddr=row['remoteaddr'])}}">{{row['remoteaddr']}}</a></td>
+                    <td class="dataIP ipToLink"><a href="{{url_for('main.ipStats', ipAddr=row['remoteaddr'])}}">{{row['remoteaddr']}}</a></td>
                     <td class="dataScheme hidden">{{ row['scheme'] }}</td>
                     <td class="dataHost hidden">{{ row['host'] }}</td>
-                    <td class="dataURL dataToLink selectt"><a href="{{url_for('main.urlStats', url=row['url'])}}">{{row['url']}}</a></td>
-                    <td class="dataMethod dataToLink selectt"><a href="{{url_for('main.methodStats', method=row['requestmethod'])}}">{{row['requestmethod']}}</a></td>
-                    <td class="dataQueryString dataToLink mono smaller selectt"><a href="{{url_for('main.queriesStats', query=row['querystring'])}}">{{row['querystring']|e}}</a></td>
-                    <td class="dataHostname dataToLink selectt"><a href="{{url_for('main.hostname_stats', hostname=row['hostname'])}}">{{row['hostname']}}</a></td>
-                    <td class="dataTime selectt">{{row['time']}}</td>
-                    <td class="dataPostData dataToLink mono smaller selectt"><a href="{{url_for('main.bodyStats', body=row['postjson'])}}">{{row['postjson']|e}}</a></td>
-                    <td class="dataUA dataToLink selectt"><a href="{{url_for('main.uaStats', ua=row['useragent']|urlencode)}}">{{row['useragent']|e}}</a></td>
-                    <td class="dataHeaders smallerer mono selectt hidden">{{row['headers_json']|e}}</td>
+                    <td class="dataPath">{{ row['path'] }}</td>
+                    <td class="dataQueryString dataToLink mono smaller"><a href="{{url_for('main.queriesStats', query=row['querystring'])}}">{{row['querystring']|e}}</a></td>
+                    <td class="dataURL dataToLink hidden"><a href="{{url_for('main.urlStats', url=row['url'])}}">{{row['url']}}</a></td>
+                    <td class="dataPostData dataToLink mono smaller"><a href="{{url_for('main.bodyStats', body=row['postjson'])}}">{{row['postjson']|e}}</a></td>
+                    <td class="dataMethod dataToLink"><a href="{{url_for('main.methodStats', method=row['requestmethod'])}}">{{row['requestmethod']}}</a></td>
+                    <td class="dataHostname dataToLink"><a href="{{url_for('main.hostname_stats', hostname=row['hostname'])}}">{{row['hostname']}}</a></td>
+                    <td class="dataTime">{{row['time']}}</td>
+                    <td class="dataUA dataToLink"><a href="{{url_for('main.uaStats', ua=row['useragent']|urlencode)}}">{{row['useragent']|e}}</a></td>
+                    <td class="dataHeaders smallerer mono hidden">{{row['headers_json']|e}}</td>
                     <td class="dataContentType hidden">{{row['contenttype']}}</td>
                     <td class="dataReferer hidden">{{row['referer']}}</td>
                     <td class="dataCountry hidden">{{row['country']}}</td>

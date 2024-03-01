@@ -309,7 +309,9 @@ def is_wordpress_attack(request):
         '/wp-login', #/wp-login.php
         '/wp-upload',
         '/wp-includes',
+        '/wp-json',
         'xmlrpc.php',
+        '/wp-blog',
     ]
     return any(target in path.lower() for target in WORDPRESS_PATHS)
 
@@ -414,11 +416,19 @@ def is_mirai_ua(request):
     return user_agent == MIRAI_USER_AGENT
 
 def is_androx(request):
-    """ AndroxGh0st malware, searching for leaked app secrets in exposed Laravel .env.
-    Method usually POST as form data. Path varies. """
+    """ AndroxGh0st malware, searching for leaked app secrets in exposed Laravel/other .env.
+    Method usually POST as form data. Path varies. Almost always preceded by `GET /.env` 
+    True if 0x[] or 0x01[] in form data keys. """
+    ANDROX_SIGS = [
+        #'androxgh0st', 'legion', 'ridho', 'janc0xsec', #values I've seen so far
+        '0x[]',
+        '0x%5B%5D',
+        '0x01[]', #legion
+        '0x01%5B%5D', #legion
+    ]
     if request.method == 'POST' and request.content_type == 'application/x-www-form-urlencoded':
-        form_data = ''.join(request.form.values())
-        return 'androxgh0st' in form_data #True if both conditions met, else False
+        form_data_keys = [item.lower() for item in request.form.keys()]
+        return any(target.lower() in form_data_keys for target in ANDROX_SIGS)
     return False
 
 def is_cobalt_strike_scan(request):
@@ -703,7 +713,7 @@ def check_all_rules():
         (is_mirai_netgear, 'Netgear command injection exploit, likely Mirai', ['23','21']),
         (is_mirai_jaws, 'Jaws webserver command injection, likely Mirai', ['23', '21']),
         (is_mirai_ua, 'User-agent associated with Mirai', ['23','19']),
-        (is_androx, 'Detected AndroxGh0st', ['21']),
+        (is_androx, 'AndroxGh0st/variant', ['21']),
         (is_cobalt_strike_scan, 'Cobalt Strike path', ['21']),
         (is_systembc_path, 'SystemBC malware path', ['21']),
         (is_wsus_attack, 'Windows WSUS attack', ['21']),

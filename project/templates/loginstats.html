@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Stats / Logins</title>
+	<title>Stats - Logins</title>
 	<link rel="stylesheet" href="{{url_for('static', filename='css/style.css')}}">
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script> <!-- to show/hide columns -->
@@ -21,6 +21,7 @@
                 {% endif %}
             {% endwith %}
             <p>Total auth attempts in database: {{totalLogins}}</p>
+            {% if stats %}
             <h2>Most recent login attempts: </h2>
             <div id="dataToggles">
                 Toggle data columns:
@@ -47,7 +48,6 @@
                 </label>{% endif %}
             </div>
             <br />
-
             <table>
                 <thead>
                 <tr>
@@ -79,18 +79,19 @@
                 </tr>
                 {% endfor %}
             </table>
-            <script type="text/javascript">
-                $(document).ready(function() {
-                    $('input[type="checkbox"]').click(function() {
-                        var inputValue = $(this).attr("value");
-                        $("." + inputValue).toggle();
-      
-                    });
-                });
-            </script>
+            {% endif %}
+
 
         </div>
     </center>
 	</div>
 </body>
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('input[type="checkbox"]').click(function() {
+            var inputValue = $(this).attr("value");
+            $("." + inputValue).toggle();
+        });
+    });
+</script>
 </html>

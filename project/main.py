@@ -142,7 +142,7 @@ def validate_id_numeric(_id):
 def cidr_match(item, subnet):
     """ Callback for SQLite user function. Usage: SELECT * FROM bots WHERE CIDR(remoteaddr, ?) """
     try:
-        subnet_conv = ipaddress.ip_network(subnet)
+        subnet_conv = ipaddress.ip_network(subnet, strict=False)
         ip_conv = ipaddress.ip_address(item)
         return ip_conv in subnet_conv
     except ValueError as e:
@@ -461,7 +461,7 @@ def subnet_stats():
     
     # Validate
     try:
-        ipaddress.ip_network(test_subnet)
+        ipaddress.ip_network(test_subnet, strict=False)
     except ValueError as e:
         logging.error(f'Invalid CIDR: {str(e)}')
         return ('Bad request: Must be a valid CIDR subnet.', 400)
@@ -611,6 +611,33 @@ def urlStats():
         stats = urlStats,
         totalHits = len(urlStats),
         statName = f"URL: {url}"
+        )
+
+@main.route('/stats/path', methods = ['GET'])
+@login_required
+def path_stats():
+    """ Get rows matching the Path. """
+    path = request.args.get('path', '')
+    #path_q = '%' + path + '%'
+
+    with sqlite3.connect(requests_db) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        # Query for matching path
+        sql_query = """
+            SELECT * FROM bots WHERE (path LIKE ?) ORDER BY id DESC;
+            """
+        data_tuple = (path,)
+        c.execute(sql_query, data_tuple)
+        path_stats = c.fetchall()
+        c.close()
+    conn.close()
+
+    flash('Note: Use % for wildcard, i.e. path=/admin/%', 'info')
+    return render_template('stats.html',
+        stats = path_stats,
+        totalHits = len(path_stats),
+        statName = f"PATH: {path}"
         )
 
 @main.route('/stats/query', methods = ['GET'])

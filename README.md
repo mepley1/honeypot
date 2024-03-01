@@ -3,7 +3,7 @@
 [![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fmepley1%2Fhoneypot&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=false)](https://hits.seeyoufarm.com)
 
 A simple HTTP honeypot for capturing and viewing HTTP requests + auto reporting. 
-Stores request data in a SQLite database and includes some stats views for easy analysis of the bot traffic hitting your web services. Includes a catch-all route to catch requests using any HTTP method for (almost) any URI.
+Stores request data in a SQLite database and includes some stats views for easier analysis of wild bot(net)/scanner traffic. Includes a catch-all route to catch requests using any HTTP method for (almost) any URI.
 
 Very much a work in progress. 
 
@@ -23,9 +23,9 @@ Install required Python modules in the venv:
 
 `pip install -r requirements.txt`
 
-Configuration, find in config.py. Can also use environment variables prepended with _FLASK.
-1. Edit the `SECRET_KEY` in `config.py` if you want cookies to work, or export it as an environment variable: `export FLASK_SECRET_KEY=0123456789` (To generate a good key, in a Python shell run `secrets.token_hex()`)
-2. `ABUSEIPDB=0123456789` - Set your AbuseIPDB API key, for auto-reporting. If not set, nothing will be reported to AbuseIPDB.
+Configuration, find in config.py. Can also use environment variables prepended with `FLASK_`.
+1. Edit the `SECRET_KEY` in `config.py` if you want cookies to work, or export it as an environment variable: `export FLASK_SECRET_KEY='0123456789'` (To generate a good key, in a Python shell run `secrets.token_hex()`)
+2. `ABUSEIPDB='0123456789'` - Set your AbuseIPDB API key, for auto-reporting. If not set, nothing will be reported to AbuseIPDB.
 3. `ALLOWED_LOGIN_SUBNET` - Restrict logins to only this subnet. (A single IP works as well)
 4. `ALLOWED_LOGIN_SUBNET_V6` - Same, for an IPv6 subnet.
 5. `EXEMPT_SUBNETS` - IPs in these subnets won't be reported to AbuseIPDB.

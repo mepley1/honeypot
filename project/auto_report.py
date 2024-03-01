@@ -644,7 +644,7 @@ def matches_custom_regex(request):
     if current_app.config.get('CUSTOM_REGEX'):
         # Read the list of patterns from config
         CUSTOM_REGEX = current_app.config.get('CUSTOM_REGEX')
-        # Validate it's a list
+        # Validate it's a list; return early if not.
         if not isinstance(CUSTOM_REGEX, list):
             logging.warning('Warning: CUSTOM_REGEX is not a valid list; skipping rule.')
             return False
@@ -656,10 +656,9 @@ def matches_custom_regex(request):
         if regex.search(request.url):
             return True
         # Check the body
-        if request.method == 'POST':
-            _body = request.get_data(as_text=True)
-            if regex.search(_body):
-                return True
+        _body = request.get_data(as_text=True)
+        if regex.search(_body):
+            return True
         # Check header values
         __header_values_joined = ''.join(request.headers.values())
         if regex.search(__header_values_joined):

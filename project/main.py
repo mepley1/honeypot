@@ -12,7 +12,7 @@ from .auto_report import check_all_rules, get_real_ip #The new report module. Wi
 from socket import gethostbyaddr, herror
 from flask import request, redirect, url_for, render_template, jsonify, Response, send_from_directory, g, after_this_request, flash, Blueprint, current_app
 from flask_login import login_required, current_user
-from urllib.parse import unquote # for uaStats()
+from urllib.parse import parse_qs, unquote
 from functools import wraps
 from dateutil.parser import parse
 
@@ -239,23 +239,35 @@ def index(u_path):
                 """If body is bytes: try utf-8 first, if that doesn't work then latin-1.
                 Should add a database column later for un-decoded body, as well as which set worked. """
                 try:
-                    logging.debug('Form data is bytes. Attempting to parse as utf-8...')
+                    logging.debug('Form data is bytes. Attempting to decode as utf-8...')
                     req_body = request.get_data().decode('utf-8')
                 except UnicodeDecodeError:
                     try:
-                        logging.debug('Attempting to parse as latin-1...')
+                        logging.debug('Attempting to decode as latin-1...')
                         req_body = request.get_data().decode('latin-1')
                     except UnicodeDecodeError:
-                        logging.debug('Fuck it, just use replacement chars if utf-8 or latin-1 dont work.')
+                        logging.debug('Just use replacement chars if utf-8 or latin-1 dont work.')
                         req_body = request.get_data().decode('utf-8', errors = 'backslashreplace')
+
+                try: #After decoding, try to serialize again, if can't then leave it as-is
+                    logging.debug('Attempting to serialize decoded body...')
+                    body_dict = parse_qs(req_body) #parse into a dict
+                    #logging.debug(f'parsed dict: {body_dict}') #testing
+                    if len(body_dict) > 0:
+                        req_body = json.dumps(body_dict)
+                except Exception as e:
+                    logging.debug(f'Serializing decoded form data failed (saving as-is): {str(e)}')
+                    pass
             else:
                 """ If not bytes, either serialize it if possible, or decode. """
                 try:
+                    logging.debug('Serialize form data...')
                     req_body = json.dumps(dict(request.form)) #This is resulting in an empty string if it can't parse it
                 except TypeError as e:
                     logging.debug('Form data not serializable, trying get_data()...')
                     req_body = request.get_data().decode('utf-8', errors = 'replace')
-        if 'text/html' in req_content_type or 'text/plain' in req_content_type:
+        elif 'text/html' in req_content_type or 'text/plain' in req_content_type:
+            logging.debug('content-type: text/html or text/plain')
             req_body = request.get_data().decode('utf-8', errors = 'backslashreplace')
         else: #Any other content-type, or if no content-type declared
             try:
@@ -268,7 +280,6 @@ def index(u_path):
         #req_body = str(e) #See if anything is still failing
         req_body = request.get_data().decode('utf-8', errors='backslashreplace')
         #req_body = request.data
-
 
     # Check request against detection rules, and submit report
     # Adding try/except temporarily while I test some things

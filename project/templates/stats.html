@@ -73,6 +73,9 @@
                     <input type="checkbox" name="dataCheckbox" value="dataPostData" checked>Body
                 </label>
                 <label>
+                    <input type="checkbox" name="dataCheckbox" value="dataContentType">Content-Type
+                </label>
+                <label>
                     <input type="checkbox" name="dataCheckbox" value="dataHostname" checked>Hostname
                 </label>
                 <label>
@@ -83,9 +86,6 @@
                 </label>
                 <label>
                     <input type="checkbox" name="dataCheckbox" value="dataHeaders">Headers
-                </label>
-                <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataContentType">Content-Type
                 </label>
                 <label>
                     <input type="checkbox" name="dataCheckbox" value="dataReferer">Referer
@@ -116,12 +116,12 @@
                     <th class="dataPath">Path</th>
                     <th class="dataQueryString">Query String</th>
                     <th class="dataURL hidden">URL</th>
-                    <th class="dataPostData">Request Body</th>
+                    <th class="dataPostData">Body</th>
+                    <th class="dataContentType hidden">Content-Type</th>
                     <th class="dataHostname">Hostname</th>
                     <th class="dataTime">Time</th>
                     <th class="dataUA">User Agent</th>
                     <th class="dataHeaders hidden">Headers</th>
-                    <th class="dataContentType hidden">Content-Type</th>
                     <th class="dataReferer hidden">Referer</th>
                     <th class="dataCountry hidden">Country</th>
                     <th class="dataLinks">Links</th>
@@ -140,12 +140,11 @@
                     <td class="dataQueryString dataToLink mono smaller"><a href="{{url_for('main.queriesStats', query=row['querystring'])}}">{{row['querystring']|e}}</a></td>
                     <td class="dataURL dataToLink hidden"><a href="{{url_for('main.urlStats', url=row['url'])}}">{{row['url']}}</a></td>
                     <td class="dataPostData dataToLink mono smaller"><a href="{{url_for('main.bodyStats', body=row['postjson'])}}">{{row['postjson']|e}}</a></td>
-                    
+                    <td class="dataContentType hidden">{{row['contenttype']}}</td>
                     <td class="dataHostname dataToLink"><a href="{{url_for('main.hostname_stats', hostname=row['hostname'])}}">{{row['hostname']}}</a></td>
                     <td class="dataTime">{{row['time']}}</td>
-                    <td class="dataUA dataToLink"><a href="{{url_for('main.uaStats', ua=row['useragent']|urlencode)}}">{{row['useragent']|e}}</a></td>
+                    <td class="dataUA dataToLink"><a href="{{url_for('main.uaStats', ua=row['useragent']|urlencode)}}">{{row['useragent']}}</a></td>
                     <td class="dataHeaders smallerer mono hidden">{{row['headers_json']|e}}</td>
-                    <td class="dataContentType hidden">{{row['contenttype']}}</td>
                     <td class="dataReferer hidden">{{row['referer']}}</td>
                     <td class="dataCountry hidden">{{row['country']}}</td>
                     <td class="dataLinks ipToLink"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> <span class="dim">|</span> <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a> <span class="dim">|</span> <a href="https://virustotal.com/gui/ip-address/{{row['remoteaddr']}}" target="_blank">VirusTotal</a></td>

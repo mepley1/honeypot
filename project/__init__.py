@@ -46,6 +46,10 @@ def create_app():
     from .main import main as main_blueprint
     app.register_blueprint(main_blueprint)
 
+    # blueprint for analysis etc routes
+    from .analysis import analysis as analysis_blueprint
+    app.register_blueprint(analysis_blueprint)
+
     # Exempt the catch-all route (/) from CSRF protection, otherwise no POST requests will hit it.
     from .main import index
     csrf.exempt(index)

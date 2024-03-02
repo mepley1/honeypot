@@ -10,6 +10,9 @@
 			<a href="{{url_for('main.about')}}">About</a>
 		</li>
 		{% if current_user.is_authenticated %}
+		<li>
+			<a href="{{url_for('main.return_search_page')}}">Search</a>
+		</li>
 		<li class="dropdown">
 			<a href="#" class="dropbtn">Stats</a>
 			<div class="dropdown-content">
@@ -23,7 +26,15 @@
 				<a href="{{url_for('main.headers_key_search', key='Authorization')}}">Headers: Authorization</a>
 				<a href="{{url_for('main.headers_key_search', key='Via')}}">Headers: Via</a>
 				<a href="{{url_for('main.headers_key_search', key='X-Requested-With')}}">Headers: X-Requested-With</a>
-				<a href="{{url_for('main.return_search_page')}}">Search</a>
+			</div>
+		</li>
+		<li class="dropdown">
+			<a href="#" class="dropbtn">Analysis</a>
+			<div class="dropdown-content">
+				<a href="{{url_for('analysis.total_per_day', num_of_days=7)}}">Total hits/day, 7 days</a>
+				<a href="{{url_for('analysis.total_per_day', num_of_days=30)}}">Total hits/day, 30 days</a>
+				<a href="{{url_for('analysis.ip_per_day', days=7, ip='*')}}">IP per day</a>
+				<a href="{{url_for('analysis.top_ten_paths', limit=10)}}">Top n path</a>
 			</div>
 		</li>
 		{% endif %}

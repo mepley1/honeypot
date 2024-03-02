@@ -232,12 +232,12 @@ def index(u_path):
                 req_body = json.dumps(request.get_json(force=True))
             except:
                 logging.debug('Serializing failed, attempting to decode as utf-8...')
-                req_body = request.get_data().decode('utf-8', errors = 'backslashreplace')
+                req_body = request.get_data().decode('utf-8', errors = 'replace')
         elif 'application/x-www-form-urlencoded' in req_content_type:
             # If content-type is Form data. 
             if isinstance(request.get_data(), bytes):
                 """If body is bytes: try utf-8 first, if that doesn't work then latin-1.
-                Should add a database column later for un-decoded body, as well as which set worked. """
+                Should add database column later for blob of original body, + which codec worked. """
                 try:
                     logging.debug('Form data is bytes. Attempting to decode as utf-8...')
                     req_body = request.get_data().decode('utf-8')
@@ -247,12 +247,12 @@ def index(u_path):
                         req_body = request.get_data().decode('latin-1')
                     except UnicodeDecodeError:
                         logging.debug('Just use replacement chars if utf-8 or latin-1 dont work.')
-                        req_body = request.get_data().decode('utf-8', errors = 'backslashreplace')
+                        req_body = request.get_data().decode('utf-8', errors = 'replace')
 
                 try: #After decoding, try to serialize again, if can't then leave it as-is
                     logging.debug('Attempting to serialize decoded body...')
                     body_dict = parse_qs(req_body) #parse into a dict
-                    #logging.debug(f'parsed dict: {body_dict}') #testing
+                    logging.debug(f'parsed dict: {body_dict}') #testing
                     if len(body_dict) > 0:
                         req_body = json.dumps(body_dict)
                 except Exception as e:
@@ -268,18 +268,17 @@ def index(u_path):
                     req_body = request.get_data().decode('utf-8', errors = 'replace')
         elif 'text/html' in req_content_type or 'text/plain' in req_content_type:
             logging.debug('content-type: text/html or text/plain')
-            req_body = request.get_data().decode('utf-8', errors = 'backslashreplace')
+            req_body = request.get_data().decode('utf-8', errors = 'replace')
         else: #Any other content-type, or if no content-type declared
             try:
                 req_body = request.get_data().decode('utf-8')
             except UnicodeDecodeError:
-                req_body = request.get_data().decode('utf-8', errors = 'backslashreplace')
+                req_body = request.get_data().decode('utf-8', errors = 'replace')
     except Exception as e:
         #If any other exceptions
-        logging.error(f'Exception while trying to parse body. Saving with backslashreplace. : {str(e)}')
+        logging.error(f'Uncaught exception while trying to parse body. Saving with replacement chars. : {str(e)}')
         #req_body = str(e) #See if anything is still failing
-        req_body = request.get_data().decode('utf-8', errors='backslashreplace')
-        #req_body = request.data
+        req_body = request.get_data().decode('utf-8', errors='replace')
 
     # Check request against detection rules, and submit report
     # Adding try/except temporarily while I test some things

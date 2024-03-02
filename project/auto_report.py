@@ -603,6 +603,7 @@ def is_research(request):
         'Mozilla/5.0 (compatible; GenomeCrawlerd/1.0; +https://www.nokia.com/networks/ip-networks/deepfield/genome/)', #Nokia Deepfield Genome
         'Mozilla/5.0 (compatible; NetcraftSurveyAgent/1.0; +info@netcraft.com)', #Netcraft
         'Cloud mapping experiment. Contact research@pdrlabs.net',
+        '(+http://code.google.com/appengine; appid: s~virustotalcloud)', #VirusTotal URL check
     ]
     if user_agent is None:
         return False

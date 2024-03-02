@@ -3,6 +3,8 @@
 import datetime #for logging
 import logging
 import sqlite3 #for logging bad logins
+import json #for hCaptcha
+import requests #hCaptcha
 from flask import Blueprint, current_app, render_template, redirect, url_for, request, flash, abort
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask_login import login_user, login_required, logout_user
@@ -28,11 +30,17 @@ def get_ip():
         client_ip = request.remote_addr
     return client_ip
 
-def insert_login_record(username, password):
+def insert_login_record(username, password, successful):
     """ sql insert helper function, for logging auth attempts. """
 
     client_ip = get_ip()
     login_time = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    if successful == False:
+        if current_app.config.get('DONT_LOG_PASSWORDS'):
+            password = '[fail]'
+    elif successful == True:
+        password = '[success]'
 
     # Log the attempt in the logins table of database
     try:
@@ -73,11 +81,13 @@ def is_allowed(ip_to_check):
 @auth.context_processor
 def inject_title():
     """Return the title to display on the navbar"""
-    return {"SUBDOMAIN": 'lab.mepley', "TLD": '.com'}
+    site_title_subdomain = current_app.config.get('SITE_TITLE_SUBDOMAIN', 'lab.mepley')
+    site_title_tld = current_app.config.get('SITE_TITLE_TLD', '.com')
+    return {"SUBDOMAIN": site_title_subdomain, "TLD": site_title_tld}
 
 # ROUTES
 
-@auth.route('/login')
+@auth.route('/nigol')
 def login():
     """Route for /login GET requests, just display the login page"""
     client_ip = get_ip() #get user's ip to display
@@ -86,11 +96,34 @@ def login():
     else:
         flash('Login disallowed: IP address not in whitelist.', 'errorn')
     flash(f'Connecting from: {client_ip}', 'info')
-    return render_template('login.html')
+    return render_template('login.html', HCAPTCHA_SITE_KEY = current_app.config.get('HCAPTCHA_SITE_KEY', ''))
 
-@auth.route('/login', methods=['POST'])
+@auth.route('/nigol', methods=['POST'])
 def login_post():
-    """Grab the form data, authenticate and log in the user"""
+    """Verify captcha, Grab the form data, authenticate and log in the user"""
+    #hCaptcha first
+    if current_app.config.get('HCAPTCHA_SITE_KEY'):
+        hcaptcha_token = request.form.get('h-captcha-response', '')
+        api_endpoint = 'https://hcaptcha.com/siteverify'
+        hc_data = {
+            'response': hcaptcha_token,
+            'secret': current_app.config.get('HCAPTCHA_SECRET', 'None'),
+            'remoteip': get_ip(),
+            'sitekey': current_app.config.get('HCAPTCHA_SITE_KEY', ''),
+            }
+        r = requests.post(url = api_endpoint, data = hc_data)
+        answer = r.text
+        result = json.loads(r.text)
+        if 'error-codes' in result:
+            logging.error(result['error-codes'])
+        if result['success'] != bool(1):
+            logging.error(f'Failed hCaptcha challenge: {get_ip()}')
+            flash('Please complete the Captcha correctly.', 'errorn')
+            return redirect(url_for('auth.login'))
+        else:
+            logging.info('hCaptcha solved successfully')
+
+    #After captcha solved, grab the form data
     username = request.form.get('username')
     password = request.form.get('password')
     remember = True if request.form.get('remember') else False #Remember Me checkbox
@@ -99,7 +132,7 @@ def login_post():
 
     # If IP isn't in allowed login subnet, record the attempt and redirect.
     if not is_allowed(get_ip()):
-        insert_login_record(username, password)
+        insert_login_record(username, password, False)
         logging.info(f'Blocked login attempt (IP not whitelisted) from {get_ip()}: {username}')
         return redirect(url_for('auth.login'))
 
@@ -108,27 +141,26 @@ def login_post():
     if not user or not check_password_hash(user.password, password):
 
         # Record the attempt in the database
-        insert_login_record(username, password)
-        logging.info(f'Failed login attempt from {get_ip()}: {username}')
+        insert_login_record(username, password, False)
+        logging.info(f'Failed login from {get_ip()}: {username}')
 
         flash('Invalid credentials.', 'errorn')
         return redirect(url_for('auth.login')) # if user doesn't exist or password is wrong, reload page
 
     # Record the successful login, but obviously don't log the password.
     # Can query where password = placeholder later, to query for successful logins.
-    insert_login_record(username, '*** SUCCESSFUL LOGIN ***')
+    insert_login_record(username, '[success]', True)
     logging.info(f'Successful login from {get_ip()}: {username}')
     # if the above check passes, then we know the user has the right credentials, so log them in
     login_user(user, remember=remember)
     return redirect(url_for('main.stats'))
 
+'''
 @auth.route('/signup')
 @login_required
 def signup():
     return render_template('signup.html')
 
-# Note: After creating an account, add @login_required decorator to signup_post so
-# you must be logged in to create more accts.
 ## Note: I have the create-user.py script now, so this endpoint isn't needed anymore
 @auth.route('/signup', methods=['POST'])
 @login_required
@@ -152,6 +184,7 @@ def signup_post():
 
     flash('User created successfully.', 'successn')
     return redirect(url_for('auth.login'))
+'''
 
 @auth.route('/logout')
 @login_required

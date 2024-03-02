@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Stats / Logins</title>
+	<title>Stats - Logins</title>
 	<link rel="stylesheet" href="{{url_for('static', filename='css/style.css')}}">
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script> <!-- to show/hide columns -->
@@ -11,11 +11,18 @@
 <body>
 	{% include 'header.html' %}
 	<div class="everything"><center>
-        <h1>Stats -> Logins</h1>
+        <h1><span class="dim">Stats -></span> Logins</h1>
         <div class="content">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, msg in messages %}
+                        <p class="{{category}}">{{msg}}</p>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
             <p>Total auth attempts in database: {{totalLogins}}</p>
+            {% if stats %}
             <h2>Most recent login attempts: </h2>
-
             <div id="dataToggles">
                 Toggle data columns:
                 <label>
@@ -36,9 +43,11 @@
                 <label>
                     <input type="checkbox" name="dataCheckbox" value="dataLinks" checked>Info Links
                 </label>
+                {% if current_user.is_admin %}<label>
+                    <input type="checkbox" name="dataCheckbox" value="dataDeleteRow">Delete
+                </label>{% endif %}
             </div>
             <br />
-
             <table>
                 <thead>
                 <tr>
@@ -48,6 +57,7 @@
                     <th class="dataPassword selectt">Password</th>
                     <th class="dataTime selectt">Time</th>
                     <th class="dataLinks selectt">Links</th>
+                    {% if current_user.is_admin %}<th class="dataDeleteRow hidden">Delete</th>{% endif %}
                 </tr>
                 </thead>
                 {% for row in stats: %}
@@ -58,21 +68,30 @@
                     <td class="dataPassword selectt">{{row['password']}}</td>
                     <td class="dataTime selectt">{{row['time']}}</td>
                     <td class="dataLinks ipToLink selectt"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> <span class="dim">|</span> <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a></td>
+                    {% if current_user.is_admin %}
+                        <td class="dataDeleteRow dataToLink dim hidden">
+                            <form action="{{ url_for('main.delete_login_record', login_id=row['id']) }}" method="POST" id="delete_button">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="delete-button">&#10060; Delete</button>
+                            </form>
+                        </td>
+                    {% endif %}
                 </tr>
                 {% endfor %}
             </table>
-            <script type="text/javascript">
-                $(document).ready(function() {
-                    $('input[type="checkbox"]').click(function() {
-                        var inputValue = $(this).attr("value");
-                        $("." + inputValue).toggle();
-      
-                    });
-                });
-            </script>
+            {% endif %}
+
 
         </div>
     </center>
 	</div>
 </body>
+<script type="text/javascript">
+    $(document).ready(function() {
+        $('input[type="checkbox"]').click(function() {
+            var inputValue = $(this).attr("value");
+            $("." + inputValue).toggle();
+        });
+    });
+</script>
 </html>

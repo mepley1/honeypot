@@ -1,6 +1,9 @@
 # Webpot
+
+[![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fmepley1%2Fhoneypot&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=false)](https://hits.seeyoufarm.com)
+
 A simple HTTP honeypot for capturing and viewing HTTP requests + auto reporting. 
-Stores request data in a SQLite database and includes some stats views for easy analysis of the bot traffic hitting your web services. Includes a catch-all route to catch requests using any HTTP method for (almost) any URI.
+Stores request data in a SQLite database and includes some stats views for easier analysis of wild bot(net)/scanner traffic. Includes a catch-all route to catch requests using any HTTP method for (almost) any URI.
 
 Very much a work in progress. 
 
@@ -20,14 +23,16 @@ Install required Python modules in the venv:
 
 `pip install -r requirements.txt`
 
-Configuration, find in config.py. Can also use environment variables prepended with _FLASK.
-1. Edit the `SECRET_KEY` in `config.py` if you want cookies to work, or export it as an environment variable: `export FLASK_SECRET_KEY=0123456789` (To generate a good key, in a Python shell run `secrets.token_hex()`)
-2. `ABUSEIPDB=0123456789` - Set your AbuseIPDB API key, for auto-reporting. If not set, nothing will be reported to AbuseIPDB.
+Configuration, find in config.py. Can also use environment variables prepended with `FLASK_`.
+1. Edit the `SECRET_KEY` in `config.py` if you want cookies to work, or export it as an environment variable: `export FLASK_SECRET_KEY='0123456789'` (To generate a good key, in a Python shell run `secrets.token_hex()`)
+2. `ABUSEIPDB='0123456789'` - Set your AbuseIPDB API key, for auto-reporting. If not set, nothing will be reported to AbuseIPDB.
 3. `ALLOWED_LOGIN_SUBNET` - Restrict logins to only this subnet. (A single IP works as well)
 4. `ALLOWED_LOGIN_SUBNET_V6` - Same, for an IPv6 subnet.
 5. `EXEMPT_SUBNETS` - IPs in these subnets won't be reported to AbuseIPDB.
+6. `CUSTOM_SIGNATUES` and `CUSTOM_REGEX` - Custom strings or regex patterns to search for in received requests.
+7. `SQLALCHEMY_DATABASE_URI` - URI for the user accounts db. Default is a SQLite db file in /instance. (User accounts and HTTP request data are stored in two separate databases.)
 
-Initialize database:
+Initialize users database:
 
 `python db_initialize.py`
 
@@ -37,9 +42,7 @@ Create a login:
 
 Run the app:
 
-`export FLASK_APP=project`
-
-`export FLASK_DEBUG=True` - (Optional) To turn on Flask debug mode if you want/need it for development. (DO NOT use debug mode in production, ever)
+`export FLASK_DEBUG=True` - (Optional) To turn on Flask debug mode if you want/need it for development. (DO NOT use debug mode in production, as with any Flask app)
 
 `flask run`
 
@@ -51,20 +54,20 @@ Then point your browser to http://localhost:5000 and log in.
 - Toggle display/hide data columns.
 - Now has proper auth + remember me (set `SECRET_KEY` in `config.py`)
 - Restrict login to specified CIDR subnet. (`ALLOWED_LOGIN_SUBNET` in `config.py`)
-- Auto reporting to AbuseIPDB with somewhat extendable "detection rules."; configurable exempt subnets.
-- Search for arbitrary strings in request path/user-agent/headers/etc.
-- You can also configure your DNS server to return the honeypot server's IP for blocked requests instead of NXROUTE, to gain some visibility- though this can cause odd behavior in some apps.
+- Auto reporting to AbuseIPDB with somewhat extendable "detection rules."; configurable exempt subnets + custom rules.
+- Search for arbitrary strings in request path/headers/body etc.
+- Optional/bonus: If you configure your DNS server to return the honeypot server's IP for blocked requests instead of NXDOMAIN, to gain some extra visibility- though this can cause odd failures in some apps.
 
 # Auto-reporting + Detection rules
 The auto-reporting will report to AbuseIPDB any request that matches the defined "detection rules."
 
 To enable auto-reporting, copy your AbuseIPDB API key into the ABUSEIPDB value in `config.py`, or create an environment variable `export FLASK_ABUSEIPDB=<your-api-key>`. The application will check for the existence of either the environment variable or the ABUSEIPDB line in config.py, and if it finds either, then reports will be submitted automatically. If no key is configured, it will still check each request against the detection rules, but will skip the submit_report function.
 
-To understand how the rules are structured, see `auto_report.py`. Each detection rule is little more than a function that returns a boolean True/False if certain strings are found in the various properties of the request object. There's probably a more efficient way to do this, but this works well enough for my use case; if I go much further here then I'd just be re-inventing the wheel that Fail2Ban/Snort/Suricata and other tools already do far better.
+To understand how the rules are structured, see `auto_report.py`. Each detection rule is little more than a function that returns a boolean True/False if certain strings are found or regex patterns are matched in the various properties of the request object. There's probably a more efficient way to do this, but this works well enough for my use case; if I go much further here then I'd just be re-inventing the wheel that Fail2Ban/Snort/Suricata and many other tools already do far better. I've tried to keep the rules somewhat conservative, at least not reporting requests for /, and only report requests that are known to be malicious; while avoiding reporting known security researchers/scanners. You can add your own regex patterns or strings to match in config.py; add them to either CUSTOM_REGEX or CUSTOM_SIGNATURES respectively.
 
 # Deploying with Gunicorn+Nginx+Systemd, see deployment.md 
 
-An example systemd service unit file is included, see `/etc/systemd/system/honeypot.service`. After configuring the service unit, place it in your systemd units directory (on Debian `/etc/systemd/system/`). Then you can run it as a systemd unit. Use `sudo systemctl enable honeypot.service && sudo systemctl start honeypot.service` to enable and start it. 
+An example systemd service unit file is included, see `/etc/systemd/system/honeypot.service`. After configuring the service unit, place it in your systemd units directory (on Debian `/etc/systemd/system/`). Then you can run it as a systemd unit. Use `sudo systemctl enable honeypot.service && sudo systemctl start honeypot.service` to enable and start it; `journalctl -u honeypot.service` with any other journalctl options to view logs. By default it will produce a lot of logs, at least a few lines per request; if you want less you can change the log level in `__init__.py`. `DEBUG` (default), `INFO` and `ERROR` are the only levels I've used much in the code, with one or two `WARNING`.
 
 To-do: Deployment guide. Include Nginx proxy conf & systemd service unit. 
 
@@ -85,9 +88,9 @@ To-do: Deployment guide. Include Nginx proxy conf & systemd service unit.
 - Querying for records by POST request body fails to find anything in some cases due to encoding discrepancies.
 
 # To-do:
-- Rewrite detection rules using regex instead of string searches. Move the bigger lists to a separate file to import at run time rather than defining each list inside the functions- should greatly improve performance, and will allow for easier custom lists.
-- Rewrite SQL queries, using SQLAlchemy instead of raw SQL.
+- Pagination
+- Rewrite detection rules using regex instead of string searches. Move the bigger lists to a separate file to import at run time rather than defining each list inside the functions- should greatly improve performance, and will allow for easier custom rules.
 - Deployment guide - deployment.md - Include Nginx vhost conf file, systemd service unit example
-- Filter out private IP ranges on stats pages? / Include config variable to not record requests from specific subnets.
 - Some graphs/charts - do some analysis on top IPs/paths/location data/etc.
 - Per-account login IP whitelist.
+- Separate stats routes into another blueprint

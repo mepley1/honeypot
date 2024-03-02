@@ -6,7 +6,11 @@ import json
 import logging
 import requests
 import re
+import sqlite3
 from flask import request, current_app
+from dateutil.parser import parse
+
+requests_db = 'bots.db'
 
 def get_real_ip():
     """ Get client's IP from behind Nginx/Cloudflare. """
@@ -25,21 +29,49 @@ def get_real_ip():
     return real_ip
 
 def exempt_from_reporting(_ip):
-    """ Check whether the IP is within any of configured exempt subnets. """
+    """ Check whether the IP is within any of configured EXEMPT_SUBNETS. """
     if not current_app.config.get('EXEMPT_SUBNETS'):
         return False #If no subnets configured, then not exempt.
-    EXEMPT_SUBNETS = current_app.config.get('EXEMPT_SUBNETS')
-    _ip_addr = ipaddress.ip_address(_ip)
-    '''for subnet in EXEMPT_SUBNETS:
-        try:
-            if ip in ipaddress.ip_network(subnet):
-                return True
-        except ValueError:
-            # Invalid subnet format, skip to the next one
-            continue
-    return False'''
+    else:
+        EXEMPT_SUBNETS = current_app.config.get('EXEMPT_SUBNETS')
+        _ip_addr = ipaddress.ip_address(_ip)
+        return any(_ip_addr in ipaddress.ip_network(exempt_subnet) for exempt_subnet in EXEMPT_SUBNETS)
 
-    return any(_ip_addr in ipaddress.ip_network(exempt_subnet) for exempt_subnet in EXEMPT_SUBNETS)
+def already_reported(_ip):
+    """ Return True if IP has been reported within past 15 minutes. """
+    ip_to_check = _ip
+    current_time = datetime.datetime.now().astimezone().replace(microsecond=0).isoformat()
+    rate_limit_delta = datetime.timedelta(minutes=15)
+
+    #Retrieve timestamp of the last hit from given ip that was reported
+    with sqlite3.connect(requests_db) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        sql_query = """SELECT time FROM bots
+            WHERE remoteaddr LIKE ? AND reported = 1
+            ORDER BY id DESC
+            LIMIT 1;"""
+        data_tuple = (ip_to_check,)
+        c.execute(sql_query, data_tuple)
+        last_reported_hit = c.fetchone()
+        c.close()
+    conn.close()
+    
+    #Compare timestamp to current time, if any hits found
+    if last_reported_hit:
+        last_reported_time = last_reported_hit['time']
+        #logging.debug(f'last reported time: {last_reported_time}')
+        current_time_parsed = parse(current_time)
+        last_reported_time_parsed = parse(last_reported_time)
+        time_difference = current_time_parsed - last_reported_time_parsed
+        #logging.debug(f'Difference: {time_difference}')
+        if abs(time_difference) < rate_limit_delta:
+            logging.debug('IP already reported in past 15 minutes; not reporting.')
+            return True
+        else:
+            logging.debug('Not already reported.')
+            return False
+    return False
 
 def submit_report(report_comment, report_categories):
     """ Submit the report. Usage: reported = submit_report(report_comment, report_categories) """
@@ -69,46 +101,53 @@ def submit_report(report_comment, report_categories):
 
 # BEGIN RULES
 
+ENV_PROBE_PATHS = [
+    '.env', #The big winner
+    '.htaccess', '.htpasswd',
+    '/config',
+    '/conf',
+    '.conf',
+    '/admin',
+    '.git', '.svn', #version control
+    '/.aws',
+    'backend',
+    'phpinfo',
+    'Util/PHP/eval-stdin.php', #Seen a few versions, mostly /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
+    'echo.php',
+    '/api',
+    '/system/deviceinfo', #seen as /system/deviceinfo
+    '/public',
+    '/src',
+    '/app',
+    '/www',
+    '/vendor',
+    '/laravel',
+    '/storage', '/protected', # seen as /storage/protected - Redlion RAS
+    '/library',
+    '/auth',
+    '/login',
+    '/logon',
+    '/database',
+    '/scripts',
+    '/99vt', '/99vu', '/gate.php', '/aaaaaaaaaaaaaaaaaaaaaaaaaqr', #some misc malware
+    '/form.html', 'upl.php', 'info.php', '/bundle.js', '/files/', #Usually probed together
+    '/whyareugay', # Some malware maybe? Been seeing it from the same couple subnets
+    '/log/',
+    '/jquery.js',
+    '/jquery-3.3.1.min.js', #seen this a bunch of times now
+    '.json',
+    '/server-status',
+    '/.DS_Store',
+    '/login.action', #Atlassian?
+    '/_/;/META-INF/maven/com.atlassian.jira/jira-webapp-dist/pom.properties', #/s/43e26313e21323e2430313/_/;/META-INF/maven/com.atlassian.jira/jira-webapp-dist/pom.properties
+]
+
 def is_env_probe(request):
     """ Returns True if path contains any of target strings. Only catch GET for this rule.
     Some environment/config probes I see often. """
     path = request.path
     method = request.method
     ENV_PROBE_METHODS = ['GET', 'HEAD']
-    ENV_PROBE_PATHS = [
-        '.env', #The big winner
-        '.htaccess', '.htpasswd',
-        'config', '/conf', '.conf',
-        '/admin',
-        '.git', '.svn', #version control
-        '/.aws',
-        'backend',
-        'phpinfo',
-        '/eval',
-        'echo.php',
-        '/api',
-        '/system/deviceinfo', #seen as /system/deviceinfo
-        '/public',
-        '/src',
-        '/app',
-        '/www',
-        '/vendor',
-        '/laravel',
-        '/storage', '/protected', # seen as /storage/protected - Redlion RAS
-        '/library',
-        '/auth',
-        '/login',
-        '/logon',
-        '/database',
-        '/scripts',
-        '/99vt', '/99vu', '/gate.php', '/aaaaaaaaaaaaaaaaaaaaaaaaaqr', #some misc malware
-        '/form.html', 'upl.php', 'info.php', '/bundle.js', '/files/', #Usually probed together
-        '/whyareugay', # Some malware maybe? Been seeing it from the same couple subnets
-        '/log/',
-        '/jquery.js',
-        '/jquery-3.3.1.min.js', #seen this a bunch of times now
-        '.json',
-    ]
     if method in ENV_PROBE_METHODS:
         return any(target in path.lower() for target in ENV_PROBE_PATHS)
     return False
@@ -124,7 +163,7 @@ def is_php_easter_egg(request):
         '=PHPE9568F34-D428-11d2-A769-00AA001ACF42', #PHP Logo
     ]
     if request.query_string is not None:
-        query_string_decoded = request.query_string.decode()
+        query_string_decoded = request.query_string.decode(errors='replace')
         return any(target.lower() in query_string_decoded.lower() for target in PHP_EASTER_EGGS)
     return False
 
@@ -147,7 +186,8 @@ def is_cgi_probe(request):
 def is_injection_attack(request):
     """ Command injection attempts in the path+query, POSTed data, or header values. """
     path_full = request.full_path
-    posted_data_decoded = request.data.decode(errors='replace')
+    #posted_data_decoded = request.get_data(as_text=True)
+    posted_data_decoded = request.get_data().decode('utf-8', errors='replace')
     header_values_joined = ''.join(request.headers.values())
     INJECTION_SIGNATURES = [
         ';sh',
@@ -160,12 +200,16 @@ def is_injection_attack(request):
         ';wget',
         'wget+',
         '&wget',
+        'wget http', #may be http or https
         ';chmod',
         'cd+',
         ';rm -rf', #formatted with spaces in headers injection
         'rm+-rf',
         ' && ',
         '<?php', 'shell_exec', 'base64_decode', #php injection
+        '/bin/bash',
+        'chmod 777',
+        'eval(', 'echo(',
         # ';', #semicolon in the path would be injection but not headers
     ]
     # Check for signatures in the path+query, POSTed data, and headers
@@ -200,60 +244,74 @@ def is_path_traversal(request):
     # If no signatures found in either, return False
     return False
 
+MISC_SOFTWARE_PROBE_PATHS = [
+    '/adminer',
+    '/ReportServer', #Microsoft SQL report service
+    '/boaform/admin/formLogin', #/boaform/admin/formLogin = Some OEM Fiber gear. Usually seen POSTing `username=admin&psd=Feefifofum`
+    '/actuator', #/actuator/health - Sping Boot health check
+    '/druid', #Apache Druid
+    '/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php', #phpunit CVE-2017-9841 = POST to /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
+    '/geoserver/web', '/webui', #Cisco ios xe - recent vuln being exploited - usually seen as /webui/logoutconfirm.html?logon_hash=1
+    '/mailchimp', # mailchimp probes
+    '/portal', '/redlion', #seen as /portal/redlion; keep as 2 separate paths so can detect other portals
+    '/hudson', #Hudson CI
+    '/stalker_portal', #IPTV middleware
+    '/manager/text/list', #Tomcat
+    '/manager/html', #Tomcat (Nmap fingerprint)
+    '/Temporary_Listen_Addresses', #Windows Communication Framework
+    '/webfig',
+    '/solr',
+    '/ckeditor',
+    '/Telerik',
+    '/showLogin.cc', #ManageEngine
+    '/api/session/properties', #MetaBase
+    '/sugar_version.json', #SugarCRM
+    '/sitecore/', #Sitecore, seen as /sitecore/shell/sitecore.version.xml
+    '/level/15/exec/-/sh/run/CR', #Cisco routers without authentication on the HTTP interface.
+    '/+CSCOE+', '/CSCOE', #Cisco firewall WebVPN service
+    '/Portal0000.htm', '__Additional', #Siemens S7–3**, PCS7 - scada servers - nmap scan
+    '/docs/cplugError.html/', '/Portal/Portal.mwsl', #Siemens Simatic S7 scada devices - nmap scan
+    '/CSS/Miniweb.css', #more scada servers
+    '/localstart.asp', #old IIS vuln, nmap scan
+    '/scripts/WPnBr.dll', #Citric XenApp and XenDesktop - Stack-Based Buffer Overflow in Citrix XML Service
+    '/exactarget', #salesforce stuff
+    '/cgi/networkDiag.cgi', # Sunhillo SureLine https://nvd.nist.gov/vuln/detail/CVE-2021-36380
+    '/nation.php', #Seen posting form-encoded data to it: tuid=727737499&control=fconn&payload=d0xxZtY5RVygPWB%2B
+    '/V5wZ', '/EIei', '/fw6I', #seen a few sets of requests that include each of these
+    '/glass.php',
+    'e3e7e71a0b28b5e96cc492e636722f73/4sVKAOvu3D/BDyot0NxyG.php', #Need to look this up
+    '/is-bin', #Seen this a handful of times now, along with a cookie.
+    '/telescope/requests',
+    '/debug/default/view', #/debug/default/view?panel=config
+    #'autodiscover/autodiscover.json?@zdi/Powershell', #Exchange RCE, see https://www.zerodayinitiative.com/blog/2022/11/14/control-your-types-or-get-pwned-remote-code-execution-in-exchange-powershell-backend
+    'autodiscover/autodiscover', 'ews/autodiscover', #Exchange, see above
+    '/vpnsvc/connect.cgi', #SoftEther probe, often by China GFW; see https://ensa.fi/active-probing/#probetype-softether
+    '/.vscode/', # Seen probing for both /.vscode/.env and /.vscode/sftp.json
+    'META-INF/maven/com.atlassian.jira/jira-webapp-dist/pom.properties',
+    '/ecp/Current/exporttool/microsoft.exchange.ediscovery.exporttool.application',
+    '/v2/_catalog', #Docker container registry
+    'readme.', #readme.txt, .md, etc
+]
+
 def is_misc_software_probe(request):
     """ Misc software probes I see often. """
     path = request.path
     #Note: alphabetize these, it's getting too long. Could also import them from a txt file
-    MISC_SOFTWARE_PROBE_PATHS = [
-        '/adminer',
-        '/ReportServer', #Microsoft SQL report service
-        '/boaform/admin/formLogin', #/boaform/admin/formLogin = Some OEM Fiber gear. Usually seen POSTing `username=admin&psd=Feefifofum`
-        '/actuator', #/actuator/health - Sping Boot health check
-        '/druid', #Apache Druid
-        '/vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php', #phpunit CVE-2017-9841 = POST to /vendor/phpunit/phpunit/src/Util/PHP/eval-stdin.php
-        '/geoserver/web', '/webui', #Cisco ios xe - recent vuln being exploited - usually seen as /webui/logoutconfirm.html?logon_hash=1
-        '/mailchimp', # mailchimp probes
-        '/portal', '/redlion', #seen as /portal/redlion; keep as 2 separate paths so can detect other portals
-        '/hudson', #Hudson CI
-        '/stalker_portal', #IPTV middleware
-        '/manager/text/list', #Tomcat
-        '/manager/html', #Tomcat (Nmap fingerprint)
-        '/Temporary_Listen_Addresses', #Windows Communication Framework
-        '/webfig',
-        '/solr',
-        '/ckeditor',
-        '/Telerik',
-        '/showLogin.cc', #ManageEngine
-        '/api/session/properties', #MetaBase
-        '/sugar_version.json', #SugarCRM
-        '/sitecore/', #Sitecore, seen as /sitecore/shell/sitecore.version.xml
-        '/level/15/exec/-/sh/run/CR', #Cisco routers without authentication on the HTTP interface.
-        '/+CSCOE+', '/CSCOE', #Cisco firewall WebVPN service
-        '/Portal0000.htm', '__Additional', #Siemens S7–3**, PCS7 - scada servers - nmap scan
-        '/docs/cplugError.html/', '/Portal/Portal.mwsl', #Siemens Simatic S7 scada devices - nmap scan
-        '/CSS/Miniweb.css', #more scada servers
-        '/localstart.asp', #old IIS vuln, nmap scan
-        '/scripts/WPnBr.dll', #Citric XenApp and XenDesktop - Stack-Based Buffer Overflow in Citrix XML Service
-        '/exactarget', #salesforce stuff
-        '/cgi/networkDiag.cgi', # Sunhillo SureLine https://nvd.nist.gov/vuln/detail/CVE-2021-36380
-        '/nation.php', #Seen posting form-encoded data to it: tuid=727737499&control=fconn&payload=d0xxZtY5RVygPWB%2B
-        '/V5wZ', '/EIei', '/fw6I', #seen a few sets of requests that include each of these
-        '/glass.php',
-        'e3e7e71a0b28b5e96cc492e636722f73/4sVKAOvu3D/BDyot0NxyG.php', #Need to look this up
-        '/is-bin', #Seen this a handful of times now, along with a cookie.
-    ]
     return any(target.lower() in path.lower() for target in MISC_SOFTWARE_PROBE_PATHS)
 
 def is_wordpress_attack(request):
     path = request.path
     WORDPRESS_PATHS = [
         '/wordpress',
+        '/wp/',
         '/wp-content',
         '/wp-admin',
         '/wp-login', #/wp-login.php
         '/wp-upload',
         '/wp-includes',
+        '/wp-json',
         'xmlrpc.php',
+        '/wp-blog',
     ]
     return any(target in path.lower() for target in WORDPRESS_PATHS)
 
@@ -294,7 +352,7 @@ def is_mirai_dvr(request):
     path = request.path
     MIRAI_DVR_PATH = '/dvr/cmd'
     if request.method == 'POST' and path.lower() == MIRAI_DVR_PATH:
-        posted_data = request.data
+        posted_data = request.get_data(as_text=True)
         MIRAI_DVR_PAYLOADS = [
             '<DVR Platform="Hi3520">',
             '<SetConfiguration File="service.xml">',
@@ -326,7 +384,7 @@ def is_mirai_netgear(request):
         return False
     # Check query params for the mirai signatures
     if request.query_string is not None:
-        query_string_decoded = request.query_string.decode()
+        query_string_decoded = request.query_string.decode('utf-8', errors = 'replace')
         return any(target in query_string_decoded for target in MIRAI_NETGEAR_SIGNATURES)
     return False
 
@@ -358,11 +416,19 @@ def is_mirai_ua(request):
     return user_agent == MIRAI_USER_AGENT
 
 def is_androx(request):
-    """ AndroxGh0st malware, searching for leaked app secrets in exposed Laravel .env.
-    Method usually POST as form data. Path varies. """
+    """ AndroxGh0st malware, searching for leaked app secrets in exposed Laravel/other .env.
+    Method usually POST as form data. Path varies. Almost always preceded by `GET /.env` 
+    True if 0x[] or 0x01[] in form data keys. """
+    ANDROX_SIGS = [
+        #'androxgh0st', 'legion', 'ridho', 'janc0xsec', #values I've seen so far
+        '0x[]',
+        '0x%5B%5D',
+        '0x01[]', #legion
+        '0x01%5B%5D', #legion
+    ]
     if request.method == 'POST' and request.content_type == 'application/x-www-form-urlencoded':
-        form_data = ''.join(request.form.values())
-        return 'androxgh0st' in form_data #True if both conditions met, else False
+        form_data_keys = [item.lower() for item in request.form.keys()]
+        return any(target.lower() in form_data_keys for target in ANDROX_SIGS)
     return False
 
 def is_cobalt_strike_scan(request):
@@ -444,24 +510,33 @@ def is_programmatic_ua(request):
     user_agent = request.headers.get('User-Agent', '')
     # Most of the UA's include a version #, i.e. Wget/1.21.3, we'll just search for the name
     PROGRAMMATIC_USER_AGENTS = [
-        'aiohttp/',
+        'aiohttp/', #i.e. Python/3.10 aiohttp/3.9.0
         'curl/',
         'fasthttp',
         'Go-http-client',
         'Hello World', #Not to be confused with Mirai botnet's 'Hello, world' ua with comma
+        'Java/', #i.e. Java/1.8.0_362
         'libwww-perl',
         'masscan/', #https://github.com/robertdavidgraham/masscan
         'Mozila/5.0', #Note misspelling; all with this UA have been command injection of some sort
+        'Mozilla/5.0 (compatible; Nmap Scripting Engine; https://nmap.org/book/nse.html)',
         'Odin; https://docs.getodin.com/', #Odin
         'Offline Explorer/', #WWW Offline Explorer
         'python-httpx/',
         'python-requests/',
+        'python-urllib3/',
         'Wget/',
         'WinHttp.WinHttpRequest',
         'xfa1',
         'zgrab/',
     ]
     return any(target in user_agent for target in PROGRAMMATIC_USER_AGENTS)
+
+def is_xmlhttprequest(request):
+    """ True if request contains X-Requested-With header set to XMLHttpRequest. """
+    _x_requested_with = request.headers.get('X-Requested-With')
+    if _x_requested_with:
+        return 'XMLHttpRequest' in _x_requested_with
 
 def is_proxy_attempt(request):
     """ True if request contains a Proxy-Connection or Proxy-Authorization header. """
@@ -475,9 +550,27 @@ def is_proxy_attempt(request):
     return False
 
 def is_dns_probe(request):
-    """ True if path contains '/dns-query' """
-    DNS_PROBE_PATH = '/dns-query'
-    return DNS_PROBE_PATH in request.path.lower()
+    """ True if content-type = application/dns-message, query string contains 'dns=',
+    or path matches any of DNS_PROBE_PATHS. """
+    # Can be either a GET with query params, or POST with the queried domain as the body,
+    # occasionally neither. Content-type in all of them has been application/dns-message.
+    # Scheme obv will be HTTPS, so check that first.
+    DNS_CONTENT_TYPE = 'application/dns-message'
+    DNS_PROBE_PATHS = [
+        '/dns-query',
+        '/resolve',
+        '/query',
+    ]
+    DNS_QUERY_ARG = 'dns'
+    #If scheme is HTTPS, check for any of the indicators and return True if found.
+    if request.scheme == 'https':
+        if (
+            DNS_CONTENT_TYPE in request.headers.get('Content-type', '')
+            or DNS_QUERY_ARG in request.args.keys()
+            or any(target == request.path.lower() for target in DNS_PROBE_PATHS)
+        ):
+            return True
+    return False
 
 # Some misc rules to help prevent false positives.
 # Don't be that oblivious admin who reports NTP servers etc.
@@ -501,7 +594,16 @@ def is_research(request):
         'SecurityScanner',
         'infrawatch/', #infrawat.ch
         'Uptime-Kuma/', #Uptime-Kuma/1.23.1 - Uptime Kuma's default ua
-        'Security Headers Synthetic Checker', # Security headers checker
+        'Security Headers Synthetic Checker', #Security headers checker
+        '+http://www.google.com/bot.html', #google bot
+        '(compatible; GoogleOther)', #Google, another
+        'keycdn-tools/br', #KeyCDN brotli checker
+        'keycdn-tools/curl', #KeyCDN HTTP Header Checker
+        'keycdn-tools/perf', #KeyCDN Performance Test
+        'Mozilla/5.0 (compatible; GenomeCrawlerd/1.0; +https://www.nokia.com/networks/ip-networks/deepfield/genome/)', #Nokia Deepfield Genome
+        'Mozilla/5.0 (compatible; NetcraftSurveyAgent/1.0; +info@netcraft.com)', #Netcraft
+        'Cloud mapping experiment. Contact research@pdrlabs.net',
+        '(+http://code.google.com/appengine; appid: s~virustotalcloud)', #VirusTotal URL check
     ]
     if user_agent is None:
         return False
@@ -510,6 +612,65 @@ def is_research(request):
         if research_user_agent in user_agent:
             return True
     return False
+
+# CUSTOM RULES
+
+def matches_custom_rule(request):
+    """ Custom string search. Read custom rule from config if found, then check for the sigs in the 
+    path+query, POSTed data, or header values. """
+    if current_app.config.get('CUSTOM_SIGNATURES'):
+        # Read the list from config
+        CUSTOM_SIGNATURES = current_app.config.get('CUSTOM_SIGNATURES')
+        # Validate it's a list
+        if not isinstance(CUSTOM_SIGNATURES, list):
+            logging.warning('Warning: CUSTOM_SIGNATURES is not a valid list; skipping rule.')
+            return False
+
+        __request_url = request.url
+        __request_body = request.get_data(as_text=True)
+        __header_values_joined = ''.join(request.headers.values())
+
+        # Check for signatures in the path+query, POSTed data, and headers
+        if (
+            any(target.lower() in __request_url.lower() for target in CUSTOM_SIGNATURES)
+            or any(target.lower() in __request_body.lower() for target in CUSTOM_SIGNATURES)
+            or any(target.lower() in __header_values_joined.lower() for target in CUSTOM_SIGNATURES)
+        ):
+            return True
+        else:
+            return False
+    else:
+        #logging.debug('No CUSTOM_SIGNATURES found.')
+        return False
+
+def matches_custom_regex(request):
+    """ Custom regex, read patterns from config. """
+    if current_app.config.get('CUSTOM_REGEX'):
+        # Read the list of patterns from config
+        CUSTOM_REGEX = current_app.config.get('CUSTOM_REGEX')
+        # Validate it's a list; return early if not.
+        if not isinstance(CUSTOM_REGEX, list):
+            logging.warning('Warning: CUSTOM_REGEX is not a valid list; skipping rule.')
+            return False
+        # Join patterns with pipe (regex alternate). Ignore case (i flag)
+        custom_regex_pattern = '|'.join(CUSTOM_REGEX)
+        regex = re.compile(custom_regex_pattern, re.IGNORECASE)
+
+        # Check the full URL (incl. any query args)
+        if regex.search(request.url):
+            return True
+        # Check the body
+        _body = request.get_data(as_text=True)
+        if regex.search(_body):
+            return True
+        # Check header values
+        __header_values_joined = ''.join(request.headers.values())
+        if regex.search(__header_values_joined):
+            return True
+        # If no signatures found in either, return False
+        return False
+    else:
+        return False
 
 # END RULES
 # BEGIN RULE CHECKING FUNCTIONS
@@ -555,7 +716,7 @@ def check_all_rules():
         (is_mirai_netgear, 'Netgear command injection exploit, likely Mirai', ['23','21']),
         (is_mirai_jaws, 'Jaws webserver command injection, likely Mirai', ['23', '21']),
         (is_mirai_ua, 'User-agent associated with Mirai', ['23','19']),
-        (is_androx, 'Detected AndroxGh0st', ['21']),
+        (is_androx, 'AndroxGh0st/variant', ['21']),
         (is_cobalt_strike_scan, 'Cobalt Strike path', ['21']),
         (is_systembc_path, 'SystemBC malware path', ['21']),
         (is_wsus_attack, 'Windows WSUS attack', ['21']),
@@ -565,8 +726,11 @@ def check_all_rules():
         (no_host_header, 'No Host header', ['21']),
         (is_misc_get_probe, 'GET with unexpected args', ['21']),
         (is_programmatic_ua, 'Automated user-agent', ['21']),
+        (is_xmlhttprequest, 'Automated user-agent', ['21']),
         (is_proxy_attempt, 'Sent proxy headers', ['21']),
-        (is_dns_probe, 'Probe for DNS-over-TCP', ['2','14'])
+        (is_dns_probe, 'Probe DNS-over-HTTPS', ['2','14']),
+        (matches_custom_rule, 'Custom rule', ['21']),
+        (matches_custom_regex, 'Custom regex', ['21'])
     ]
 
     # Now check against each detection rule, and if positive(True), then append to the report.
@@ -597,8 +761,12 @@ def check_all_rules():
                 return reported
             else:
                 try:
-                    reported = submit_report(report_comment, report_categories)
-                    logging.info(f'Matched {rules_matched} rules. Reported to AbuseIPDB.')
+                    # Check now whether IP has already been reported
+                    if not already_reported(get_real_ip()):
+                        reported = submit_report(report_comment, report_categories)
+                        logging.info(f'Matched {rules_matched} rules. Reported to AbuseIPDB.')
+                    else:
+                        reported = 0
                 except requests.exceptions.ConnectionError as e:
                     reported = 0
                     logging.error(f'Connection error while submitting report: {str(e)}')

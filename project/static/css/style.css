@@ -12,20 +12,24 @@ I'll just make a simpler stats page with less data that will be better for mobil
 	--main-accent-color: #2563ea;
 	--main-heading-color: #FFFFFF;
 	--main-text-color: #D2D4D3;
+	/*--main-text-color: #D8D6C4;*/ /*more cream-y off-white */
 	/* --main-text-color: #f2f4f3; */
 	--content-bg-color: #202938;
 	--form-bg-color: #202938;
 	--input-invalid: #2a2938;
 	--site-title-color: #FFFFFF;
 	--dotnet-color: #FF7F02;
+	/*--dotnet-color: #00bcb7;*/
 	--dotnet-hover-color: #FFFFFF;
 	--nav-link-color: #DDDDDD;
 	--nav-hover-color: #FFFFFF;
-	--nav-submenu-bg: #6b818c;
+	--nav-submenu-bg: #6b818c; /* Lynch */
+	--table-nth-child: #1d2635;
 	--header-font: "Gemunu Libre", sans-serif;
 	--text-font: "Abel", sans-serif;
 	--mono-font: "Oxygen Mono", monospace;
 	--orange1: #FF7F02;
+	/*--orange1: #00bcb7;*/
 	--white1: #FFFFFF;
 	--darkblue: #111828;
 	--paleblue: #202938;
@@ -33,7 +37,7 @@ I'll just make a simpler stats page with less data that will be better for mobil
 	--blue1: #2563EA;
 	--lightgray: #D2D4D3;
 	--lightergray: #DDDDDD;
-	--midgray: #6B818C;
+	--midgray: #6B818C; /* Lynch */
 	--errorColor: #BB2020;
 	--success-color: #22AA44;
 	--size-notifications: 20px;
@@ -56,10 +60,11 @@ body{
 	color: var(--main-text-color);
 	margin: 0;
 	font-size: 0;
+	padding-bottom: 48px;
 }
 
 .everything{
-	max-width: 85vw;
+	max-width: 90vw;
 	margin: auto;
 	/* margin-top: 32px; */
 }
@@ -175,8 +180,16 @@ input:focus:invalid{
 	/* background-color: var(--input-invalid); */
 }
 
+/* You can't do much with option element, it's styled by the OS */
+select > option{
+	font-size: 16px;
+	font-family: var(--text-font);
+	color: var(--lightgray);
+	background-color: var(--main-bg-color);
+}
+
 .h-captcha{
-	margin-bottom: 26px;
+	margin: 30px;
 }
 
 h1, h2, h3, h4{
@@ -443,7 +456,7 @@ table{
 }
 
 tr:nth-child(even) {
-	background-color: #1d2635;
+	background-color: var(--table-nth-child);
 }
 
 thead{
@@ -526,6 +539,13 @@ td.dataToLink a:hover {
 
 .dim a{
 	color: var(--midgray);
+}
+
+a.no-decoration{
+	text-decoration: none;
+}
+a.no-decoration:hover{
+	text-decoration: underline;
 }
 
 /* for jQuery hiding columns */

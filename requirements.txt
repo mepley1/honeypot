@@ -3,7 +3,8 @@ flask
 flask-login
 flask-sqlalchemy
 Flask-WTF
+python-dateutil
 requests
-Werkzeug==2.3.0
+Werkzeug
 wheel
 gunicorn

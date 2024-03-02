@@ -11,14 +11,9 @@
 <body>
 	{% include 'header.html' %}
 	<div class="everything"><center>
-        <h1><span class="dim">Stats -></span> {{statName}}</h1>
+        {% if statName %}<h1><span class="dim">Stats -></span> {{statName}}</h1>{% endif %}
+        {% if subtitle %}<h2>{{subtitle}}</h2>{% endif %}
         <div class="content">
-            <p>Total hits in database: {{totalHits}}</p>
-
-            {% if top_ip %}
-            <p>Most common IP: <a href="{{url_for('main.ipStats', ipAddr=top_ip['remoteaddr'])}}">{{top_ip['remoteaddr']}}</a> seen {{top_ip['count']}} times.</p>
-            {% endif %}
-
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, msg in messages %}
@@ -26,7 +21,26 @@
                     {% endfor %}
                 {% endif %}
             {% endwith %}
+            {% if totalHits %}
+            <p>Total hits in database: <span class="mono">{{totalHits}}</span></p>
+            {% endif %}
 
+            {% if top_ip %}
+            <p>Most common IP:<br/>
+            All time: <a href="{{url_for('main.ipStats', ipAddr=top_ip['remoteaddr'])}}" class="no-decoration">{{top_ip['remoteaddr']}}</a> Count: {{top_ip['count']}}</p>
+            {% endif %}
+            {% if top_ip_weekly %}
+            <p>7 days: <a href="{{url_for('main.ipStats', ipAddr=top_ip_weekly['remoteaddr'])}}" class="no-decoration">{{top_ip_weekly['remoteaddr']}}</a> seen {{top_ip_weekly['count']}} times.</p>
+            {% endif %}
+            {% if top_ip_daily %}
+            <p>1 day: <a href="{{url_for('main.ipStats', ipAddr=top_ip_daily['remoteaddr'])}}" class="no-decoration">{{top_ip_daily['remoteaddr']}}</a> seen {{top_ip_daily['count']}} times.</p>
+            {% endif %}
+
+            {% if image_data %}
+            <p class="plot_image"><img src="data:image/png;base64,{{image_data}}"/></p>
+            {% endif %}
+
+            {% if stats %}
             <h2>Most Recent Requests matching query</h2>
 
             <div id="dataToggles">
@@ -38,13 +52,28 @@
                     <input type="checkbox" name="dataCheckbox" value="dataIP" checked>IP
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataURL" checked>URL
-                </label>
-                <label>
                     <input type="checkbox" name="dataCheckbox" value="dataMethod" checked>Method
                 </label>
                 <label>
+                    <input type="checkbox" name="dataCheckbox" value="dataScheme">Scheme
+                </label>
+                <label>
+                    <input type="checkbox" name="dataCheckbox" value="dataHost">Host
+                </label>
+                <label>
+                    <input type="checkbox" name="dataCheckbox" value="dataPath" checked>Path
+                </label>
+                <label>
                     <input type="checkbox" name="dataCheckbox" value="dataQueryString" checked>Query String
+                </label>
+                <label>
+                    <input type="checkbox" name="dataCheckbox" value="dataURL">URL
+                </label>
+                <label>
+                    <input type="checkbox" name="dataCheckbox" value="dataPostData" checked>Body
+                </label>
+                <label>
+                    <input type="checkbox" name="dataCheckbox" value="dataContentType">Content-Type
                 </label>
                 <label>
                     <input type="checkbox" name="dataCheckbox" value="dataHostname" checked>Hostname
@@ -53,13 +82,16 @@
                     <input type="checkbox" name="dataCheckbox" value="dataTime" checked>Time
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataPostData" checked>Body
-                </label>
-                <label>
                     <input type="checkbox" name="dataCheckbox" value="dataUA" checked>User Agent
                 </label>
                 <label>
                     <input type="checkbox" name="dataCheckbox" value="dataHeaders">Headers
+                </label>
+                <label>
+                    <input type="checkbox" name="dataCheckbox" value="dataReferer">Referer
+                </label>
+                <label>
+                    <input type="checkbox" name="dataCheckbox" value="dataCountry">Country
                 </label>
                 <label>
                     <input type="checkbox" name="dataCheckbox" value="dataLinks" checked>Info Links
@@ -77,15 +109,21 @@
                 <thead>
                 <tr>
                     <th class="dataID hidden">#</th>
-                    <th class="dataIP selectt">IP</th>
-                    <th class="dataURL selectt">URL</th>
-                    <th class="dataMethod selectt">Method</th>
-                    <th class="dataQueryString selectt">Query String</th>
-                    <th class="dataHostname selectt">Hostname</th>
-                    <th class="dataTime selectt">Time</th>
-                    <th class="dataPostData selectt">Request Body</th>
-                    <th class="dataUA selectt">User Agent</th>
-                    <th class="dataHeaders selectt hidden">Headers</th>
+                    <th class="dataIP">IP</th>
+                    <th class="dataMethod">Method</th>
+                    <th class="dataScheme hidden">Scheme</th>
+                    <th class="dataHost hidden">Host</th>
+                    <th class="dataPath">Path</th>
+                    <th class="dataQueryString">Query String</th>
+                    <th class="dataURL hidden">URL</th>
+                    <th class="dataPostData">Body</th>
+                    <th class="dataContentType hidden">Content-Type</th>
+                    <th class="dataHostname">Hostname</th>
+                    <th class="dataTime">Time</th>
+                    <th class="dataUA">User Agent</th>
+                    <th class="dataHeaders hidden">Headers</th>
+                    <th class="dataReferer hidden">Referer</th>
+                    <th class="dataCountry hidden">Country</th>
                     <th class="dataLinks">Links</th>
                     <th class="dataReported hidden">Reported</th>
                     {% if current_user.is_admin %}<th class="dataDeleteRow hidden">Delete</th>{% endif %}
@@ -93,16 +131,22 @@
                 </thead>
                 {% for row in stats: %}
                 <tr>
-                    <td class="dataID dataToLink dim hidden"><a href="{{url_for('main.headers_single_pretty', id=row['id'])}}">{{row['id']}}</a></td>
-                    <td class="dataIP ipToLink selectt"><a href="{{url_for('main.ipStats', ipAddr=row['remoteaddr'])}}">{{row['remoteaddr']}}</a></td>
-                    <td class="dataURL dataToLink selectt"><a href="{{url_for('main.urlStats', url=row['url'])}}">{{row['url']}}</a></td>
-                    <td class="dataMethod dataToLink selectt"><a href="{{url_for('main.methodStats', method=row['requestmethod'])}}">{{row['requestmethod']}}</a></td>
-                    <td class="dataQueryString dataToLink mono smaller selectt"><a href="{{url_for('main.queriesStats', query=row['querystring'])}}">{{row['querystring']|e}}</a></td>
-                    <td class="dataHostname dataToLink selectt"><a href="{{url_for('main.hostname_stats', hostname=row['hostname'])}}">{{row['hostname']}}</a></td>
-                    <td class="dataTime selectt">{{row['time']}}</td>
-                    <td class="dataPostData dataToLink mono smaller selectt"><a href="{{url_for('main.bodyStats', body=row['postjson'])}}">{{row['postjson']|e}}</a></td>
-                    <td class="dataUA dataToLink selectt"><a href="{{url_for('main.uaStats', ua=row['useragent']|urlencode)}}">{{row['useragent']|e}}</a></td>
-                    <td class="dataHeaders smallerer mono selectt hidden">{{row['headers']|e}}</td>
+                    <td class="dataID dataToLink dim hidden"><a href="{{url_for('main.headers_single_json', request_id=row['id'])}}">{{row['id']}}</a></td>
+                    <td class="dataIP ipToLink"><a href="{{url_for('main.ipStats', ipAddr=row['remoteaddr'])}}">{{row['remoteaddr']}}</a></td>
+                    <td class="dataMethod dataToLink"><a href="{{url_for('main.methodStats', method=row['requestmethod'])}}">{{row['requestmethod']}}</a></td>
+                    <td class="dataScheme hidden">{{ row['scheme'] }}</td>
+                    <td class="dataHost hidden">{{ row['host'] }}</td>
+                    <td class="dataPath dataToLink"><a href="{{url_for('main.path_stats', path=row['path'])}}">{{ row['path'] }}</a></td>
+                    <td class="dataQueryString dataToLink mono smaller"><a href="{{url_for('main.queriesStats', query=row['querystring'])}}">{{row['querystring']|e}}</a></td>
+                    <td class="dataURL dataToLink hidden"><a href="{{url_for('main.urlStats', url=row['url'])}}">{{row['url']}}</a></td>
+                    <td class="dataPostData dataToLink mono smaller"><a href="{{url_for('main.bodyStats', body=row['postjson'])}}">{{row['postjson']|e}}</a></td>
+                    <td class="dataContentType hidden">{{row['contenttype']}}</td>
+                    <td class="dataHostname dataToLink"><a href="{{url_for('main.hostname_stats', hostname=row['hostname'])}}">{{row['hostname']}}</a></td>
+                    <td class="dataTime">{{row['time']}}</td>
+                    <td class="dataUA dataToLink"><a href="{{url_for('main.uaStats', ua=row['useragent']|urlencode)}}">{{row['useragent']|e}}</a></td>
+                    <td class="dataHeaders smallerer mono hidden">{{row['headers_json']|e}}</td>
+                    <td class="dataReferer hidden">{{row['referer']}}</td>
+                    <td class="dataCountry hidden">{{row['country']}}</td>
                     <td class="dataLinks ipToLink"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> <span class="dim">|</span> <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a> <span class="dim">|</span> <a href="https://virustotal.com/gui/ip-address/{{row['remoteaddr']}}" target="_blank">VirusTotal</a></td>
                     <td class="dataReported hidden">{{row['reported']}}</td>
                     {% if current_user.is_admin %}
@@ -126,7 +170,7 @@
                     });
                 });
             </script>
-
+            {% endif %}
         </div>
     </center>
 	</div>

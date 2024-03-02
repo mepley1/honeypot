@@ -143,7 +143,7 @@
                     <td class="dataContentType hidden">{{row['contenttype']}}</td>
                     <td class="dataHostname dataToLink"><a href="{{url_for('main.hostname_stats', hostname=row['hostname'])}}">{{row['hostname']}}</a></td>
                     <td class="dataTime">{{row['time']}}</td>
-                    <td class="dataUA dataToLink"><a href="{{url_for('main.uaStats', ua=row['useragent']|urlencode)}}">{{row['useragent']}}</a></td>
+                    <td class="dataUA dataToLink"><a href="{{url_for('main.uaStats', ua=row['useragent']|urlencode)}}">{{row['useragent']|e}}</a></td>
                     <td class="dataHeaders smallerer mono hidden">{{row['headers_json']|e}}</td>
                     <td class="dataReferer hidden">{{row['referer']}}</td>
                     <td class="dataCountry hidden">{{row['country']}}</td>

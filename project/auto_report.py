@@ -600,6 +600,9 @@ def is_research(request):
         'keycdn-tools/br', #KeyCDN brotli checker
         'keycdn-tools/curl', #KeyCDN HTTP Header Checker
         'keycdn-tools/perf', #KeyCDN Performance Test
+        'Mozilla/5.0 (compatible; GenomeCrawlerd/1.0; +https://www.nokia.com/networks/ip-networks/deepfield/genome/)', #Nokia Deepfield Genome
+        'Mozilla/5.0 (compatible; NetcraftSurveyAgent/1.0; +info@netcraft.com)', #Netcraft
+        'Cloud mapping experiment. Contact research@pdrlabs.net',
     ]
     if user_agent is None:
         return False

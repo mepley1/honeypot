@@ -19,11 +19,12 @@ from matplotlib.pyplot import set_loglevel as set_pyplot_loglevel
 
 analysis = Blueprint('analysis', __name__)
 requests_db = 'bots.db'
-set_pyplot_loglevel(level = 'warning') #shut up matplotlib
+
 
 #Set autolayout for matplotlib plots
 from matplotlib import rcParams
 rcParams.update({'figure.autolayout': True})
+set_pyplot_loglevel(level = 'warning') #shut up matplotlib
 
 @analysis.context_processor
 def inject_title():
@@ -74,6 +75,7 @@ def compare_time_b(timestamp, num_days):
     timestamp_p = parse(timestamp).astimezone(datetime.timezone.utc)
     return timestamp_p > cutoff
 
+#This is VERY SLOW, don't use it for huge queries.
 def between_dates(item, startdate, enddate):
     """ True if item is between <startdate> and <enddate> """
     item = parse(item).astimezone(datetime.timezone.utc)
@@ -159,7 +161,8 @@ def total_per_day(num_of_days):
 @login_required
 def ip_per_day():
     """ Return total # of hits per day. """
-    #List of hosts() in ipaddress.ip_network: https://docs.python.org/3/howto/ipaddress.html
+    #note: List of hosts() in ipaddress.ip_network: https://docs.python.org/3/howto/ipaddress.html
+    
     num_of_days = int(request.args.get('days', '7'))
     ip = request.args.get('ip', '*')
 
@@ -199,7 +202,8 @@ def ip_per_day():
         c.close()
     conn.close()
 
-    daily_avg = sum(hits_per_day) / num_of_days
+    daily_avg = sum(hits_per_day) / num_of_days #avg hits/day
+    daily_avg = round(daily_avg, 1)
 
     # Generate the figure **without using pyplot**.
     fig = Figure()
@@ -269,40 +273,39 @@ def top_ten_urls():
     return render_template('stats.html',
         #stats = results,
         totalHits = len(results),
-        statName = f'Top {_num_of_urls} most common URLs'
+        statName = f'Top {_num_of_urls} most common URLs',
         )
 
 @analysis.route('/analysis/path/topten', methods = ['GET'])
 @login_required
 def top_ten_paths():
     """ Return top ten most common paths. """
-    _num_of_paths = request.args.get('limit', 10) # num of paths to include, i.e. Top X paths. default 10
+    _num_of_paths = request.args.get('limit', '10') # num of paths to include, i.e. Top X paths. default 10
 
-    '''if not isinstance(_num_of_paths, int):
-        flash('Bad request: `limit` must be type int', 'error')
-        return render_template('index.html')'''
+    if not _num_of_paths.isnumeric():#validate
+        flash('Bad request: `limit` must be numeric', 'error')
+        return render_template('index.html')
 
     with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
         c = conn.cursor()
         sql_query = "SELECT path, COUNT(*) AS count FROM bots GROUP BY path ORDER BY count DESC LIMIT ?;"
-        # Execute the SQL query to get the 10 most common remoteaddr values
+        # get the 10 most common remoteaddr values
         data_tuple = (_num_of_paths,)
         c.execute(sql_query, data_tuple)
         top_paths = c.fetchall()
 
         top_paths_list = [row['path'] for row in top_paths]
         top_paths_counts = [row['count'] for row in top_paths]
+        #logging.debug(f'Top paths: {top_paths_list}') #testing
+        #logging.debug(f'Top path counts: {top_paths_counts}')
 
-        logging.debug(f'Top paths: {top_paths_list}') #testing, delete this
-        logging.debug(f'Top path counts: {top_paths_counts}')
-
-        #delete the None from the list (database rows where there's no data, before I started saving paths)
+        #delete null item to avoid error (rows where there's no data, before I started saving paths)
         for i in reversed(range(len(top_paths_list))):
             if top_paths_list[i] is None:
                 del top_paths_list[i]
                 del top_paths_counts[i]
-
+        #select all rows where path is a top10 one
         sql_query = f"SELECT * FROM bots WHERE path IN ({ ','.join(['?']*len(top_paths_list)) }) ORDER BY id DESC;"
         c.execute(sql_query, top_paths_list)
         results = c.fetchall()
@@ -310,38 +313,42 @@ def top_ten_paths():
         c.close()
     conn.close()
 
-    # matplot shit
+    # matplot stuff
     # Generate the figure **without using pyplot**.
     fig = Figure()
-    #fig.set_figheight(8)
+    fig.set_facecolor('#D2D4D3')
+    #fig.set_figheight(6)
     ax = fig.subplots()
-    #fig.subplots_adjust(bottom=0.35)
-    ax.bar(top_paths_list, top_paths_counts)
-    ax.set_title(f'Top {_num_of_paths} paths')
-    ax.set_xlabel('Path')
-    ax.set_ylabel('Total hits')
-
+    ax.grid(True, color='#b2b4b3', zorder=0)
+    ax.bar(top_paths_list, top_paths_counts, color='#3BC14A', zorder=2)
+    ax.set_title(f'Top {_num_of_paths} paths', color='#111828')
+    ax.set_xlabel('Path', color='#111828')
+    ax.set_ylabel('Total hits', color='#111828')
+    ax.set_facecolor('#D2D4D3')
     #ax.set_ylim(0, 500) #limit y-axis to soften outliers
-    ax.grid(True)
+    
 
     # rotate x-axis labels for readability
     for tick in ax.get_xticklabels():
         tick.set_rotation(270)
         tick.set_fontsize(7)
-        #tick.set_fontfamily('Hack')
+        tick.set_fontfamily('monospace')
+        tick.set_color('#111828')
+    for tick in ax.get_yticklabels():
+        tick.set_color('#111828')
 
     # Save it to a temporary buffer.
     buf = BytesIO()
     fig.savefig(buf, format="png")
     plot_image = base64.b64encode(buf.getbuffer()).decode("ascii")
 
-
-
-    # Print the results
-    for row in top_paths:
-        flash(f'path: {row["path"]}, Count: {row["count"]}', 'info')
+    # flash the results #testing
+    '''for row in top_paths:
+        flash(f'path: {row["path"]}, Count: {row["count"]}', 'info')'''
     return render_template('stats.html',
         #stats = results,
+        analys_stats = top_paths,
+        analys_titles = ['Path', 'Count'],
         totalHits = len(results),
         statName = f'Top {_num_of_paths} most common paths',
         image_data = plot_image,

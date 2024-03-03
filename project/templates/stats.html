@@ -30,19 +30,39 @@
             All time: <a href="{{url_for('main.ipStats', ipAddr=top_ip['remoteaddr'])}}" class="no-decoration">{{top_ip['remoteaddr']}}</a> Count: {{top_ip['count']}}</p>
             {% endif %}
             {% if top_ip_weekly %}
-            <p>7 days: <a href="{{url_for('main.ipStats', ipAddr=top_ip_weekly['remoteaddr'])}}" class="no-decoration">{{top_ip_weekly['remoteaddr']}}</a> seen {{top_ip_weekly['count']}} times.</p>
+            <p>7 days: <a href="{{url_for('main.ipStats', ipAddr=top_ip_weekly['remoteaddr'])}}" class="no-decoration">{{top_ip_weekly['remoteaddr']}}</a> seen {{top_ip_weekly['count']}} times. <a href="{{ url_for('analysis.ip_per_day', ip=top_ip_weekly['remoteaddr'], days=7) }}">Graph</a></p>
             {% endif %}
             {% if top_ip_daily %}
             <p>1 day: <a href="{{url_for('main.ipStats', ipAddr=top_ip_daily['remoteaddr'])}}" class="no-decoration">{{top_ip_daily['remoteaddr']}}</a> seen {{top_ip_daily['count']}} times.</p>
             {% endif %}
-
+            <!-- analysis route image data -->
             {% if image_data %}
             <p class="plot_image"><img src="data:image/png;base64,{{image_data}}"/></p>
             {% endif %}
+            <!-- end image data -->
+            <!-- analysis results -->
+            {% if analys_stats %}
+            <!--<h2>Data:</h2>-->
+            <table>
+                <thead>
+                    <tr>
+                        {% for title in analys_titles %}
+                        <th>{{title}}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                {% for row in analys_stats %}
+                <tr>
+                    <td>{{row[0]}}</td>
+                    <td>{{row[1]}}</td>
+                </tr>
+                {% endfor %}
+            </table>
+            {% endif %}
+            <!-- end analysis results -->
 
             {% if stats %}
             <h2>Most Recent Requests matching query</h2>
-
             <div id="dataToggles">
                 <label>Toggle data columns:</label>
                 <label>
@@ -160,17 +180,16 @@
                     </tr>
                 {% endfor %}
             </table>
-            
+            {% endif %}
             <script type="text/javascript">
                 $(document).ready(function() {
                     $('input[type="checkbox"]').click(function() {
                         var inputValue = $(this).attr("value");
                         $("." + inputValue).toggle();
-      
+        
                     });
                 });
             </script>
-            {% endif %}
         </div>
     </center>
 	</div>

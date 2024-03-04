@@ -33,7 +33,7 @@
             <p>7 days: <a href="{{url_for('main.ipStats', ipAddr=top_ip_weekly['remoteaddr'])}}" class="no-decoration">{{top_ip_weekly['remoteaddr']}}</a> seen {{top_ip_weekly['count']}} times. <a href="{{ url_for('analysis.ip_per_day', ip=top_ip_weekly['remoteaddr'], days=7) }}">Graph</a></p>
             {% endif %}
             {% if top_ip_daily %}
-            <p>1 day: <a href="{{url_for('main.ipStats', ipAddr=top_ip_daily['remoteaddr'])}}" class="no-decoration">{{top_ip_daily['remoteaddr']}}</a> seen {{top_ip_daily['count']}} times.</p>
+            <p>1 day: <a href="{{url_for('main.ipStats', ipAddr=top_ip_daily['remoteaddr'])}}" class="no-decoration">{{top_ip_daily['remoteaddr']}}</a> seen {{top_ip_daily['count']}} times. <a href="{{ url_for('analysis.ip_per_day', ip=top_ip_daily['remoteaddr'], days=7) }}">Graph</a></p>
             {% endif %}
             <!-- analysis route image data -->
             {% if image_data %}
@@ -46,6 +46,7 @@
             <table>
                 <thead>
                     <tr>
+                        <!-- expects a list of column titles analys_titles -->
                         {% for title in analys_titles %}
                         <th>{{title}}</th>
                         {% endfor %}
@@ -53,8 +54,9 @@
                 </thead>
                 {% for row in analys_stats %}
                 <tr>
-                    <td>{{row[0]}}</td>
-                    <td>{{row[1]}}</td>
+                    {% for item in row %}
+                    <td>{{ item }}</td>
+                    {% endfor %}
                 </tr>
                 {% endfor %}
             </table>
@@ -180,6 +182,30 @@
                     </tr>
                 {% endfor %}
             </table>
+            <!-- pagination -->
+            {% if page %}
+            {% if total_pages > 1 %}
+            <div class="pagination"><p>
+                Page {{page}} of {{total_pages}}<br/>
+                {% if page > 1 %}
+                    <a href="?page={{ page - 1 }}" class="pagination">Previous</a>
+                {% endif %}
+                
+                
+                    {% for num in range(1, total_pages + 1) %}
+                        {% if num % 10 == 0 %}
+                        <a href="?page={{ num }}" class="pagination">{{ num }}</a>
+                        {% endif %}
+                    {% endfor %}
+
+                {% if page < total_pages %}
+                    <a href="?page={{ page + 1 }}" class="pagination">Next</a>
+                {% endif %}
+            </p></div>
+            {% endif %}
+            {% endif %}
+
+            <!-- end pagination -->
             {% endif %}
             <script type="text/javascript">
                 $(document).ready(function() {

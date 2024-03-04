@@ -249,7 +249,7 @@ def index(u_path):
                         logging.debug('Just use replacement chars if utf-8 or latin-1 dont work.')
                         req_body = request.get_data().decode('utf-8', errors = 'replace')
 
-                try: #After decoding, try to serialize again, if can't then leave it as-is
+                """try: #After decoding, try to serialize again, if can't then leave it as-is
                     logging.debug('Attempting to serialize decoded body...')
                     body_dict = parse_qs(req_body) #parse into a dict
                     logging.debug(f'parsed dict: {body_dict}') #testing
@@ -257,7 +257,7 @@ def index(u_path):
                         req_body = json.dumps(body_dict)
                 except Exception as e:
                     logging.debug(f'Serializing decoded form data failed (saving as-is): {str(e)}')
-                    pass
+                    pass"""
             else:
                 """ If not bytes, either serialize it if possible, or decode. """
                 try:
@@ -330,7 +330,7 @@ def index(u_path):
 @login_required
 def stats():
     """ Pull the most recent requests from bots.db and pass data to stats template to display. """
-    records_limit = request.args.get('limit') or '100' # Limit to certain # of records, default 100
+    records_limit = request.args.get('limit') or '100000' # Limit to certain # of records, default 100
 
     if records_limit.isnumeric():
         records_limit = int(records_limit)
@@ -393,10 +393,25 @@ def stats():
         c.close()
     conn.close()
 
+    #pagination
+    import math
+    page = int(request.args.get('page', 1))
+    items_per_page = 256
+    total_items = len(stats)
+    total_pages = math.ceil(total_items / items_per_page)
+    start_index = (page - 1) * items_per_page
+    end_index = min(start_index + items_per_page, total_items)
+
+    stats_on_page = stats[start_index:end_index]
+
     return render_template('stats.html',
-        stats = stats,
+        #stats = stats,
+        stats = stats_on_page, #pagination
+        page = page,#pagination
+        total_pages = total_pages,#pagination
         totalHits = totalHits,
-        statName = f'Most Recent {records_limit} HTTP Requests',
+        #statName = f'Most Recent {records_limit} HTTP Requests',
+        statName = 'Most recent HTTP requests',
         top_ip = top_ip,
         top_ip_weekly = top_ip_weekly,
         top_ip_daily = top_ip_daily,
@@ -505,9 +520,9 @@ def subnet_stats():
 @login_required
 def top_ten_ips():
     """ Return top ten most common IPs. """
-    _num_of_ips = request.args.get('limit', 10) # num of IPs to include, i.e. Top X IPs. default 10
-    if not isinstance(_num_of_ips, int):
-        flash('Bad request: `limit` must be type int', 'error')
+    _num_of_ips = request.args.get('limit', '10') # num of IPs to include, i.e. Top X IPs. default 10
+    if not _num_of_ips.isnumeric():
+        flash('Bad request: `limit` must be numeric', 'error')
         return render_template('index.html')
 
     with sqlite3.connect(requests_db) as conn:

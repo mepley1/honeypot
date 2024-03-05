@@ -665,6 +665,31 @@ def path_stats():
         statName = f"PATH: {path}"
         )
 
+@main.route('/stats/host', methods = ['GET'])
+@login_required
+def host_stats():
+    """ Get rows matching the Host. """
+    path = request.args.get('host', '')
+
+    with sqlite3.connect(requests_db) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        # Query for matching host
+        sql_query = """
+            SELECT * FROM bots WHERE (host LIKE ?) ORDER BY id DESC;
+            """
+        data_tuple = (path,)
+        c.execute(sql_query, data_tuple)
+        host_stats = c.fetchall()
+        c.close()
+    conn.close()
+
+    return render_template('stats.html',
+        stats = host_stats,
+        totalHits = len(host_stats),
+        statName = f"Host: {path}"
+        )
+
 @main.route('/stats/query', methods = ['GET'])
 @login_required
 def queriesStats():

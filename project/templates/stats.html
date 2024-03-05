@@ -157,7 +157,7 @@
                     <td class="dataIP ipToLink"><a href="{{url_for('main.ipStats', ipAddr=row['remoteaddr'])}}">{{row['remoteaddr']}}</a></td>
                     <td class="dataMethod dataToLink"><a href="{{url_for('main.methodStats', method=row['requestmethod'])}}">{{row['requestmethod']}}</a></td>
                     <td class="dataScheme hidden">{{ row['scheme'] }}</td>
-                    <td class="dataHost hidden">{{ row['host'] }}</td>
+                    <td class="dataHost hidden dataToLink"><a href="{{url_for('main.host_stats', host=row['host'])}}">{{ row['host'] }}</a></td>
                     <td class="dataPath dataToLink"><a href="{{url_for('main.path_stats', path=row['path'])}}">{{ row['path'] }}</a></td>
                     <td class="dataQueryString dataToLink mono smaller"><a href="{{url_for('main.queriesStats', query=row['querystring'])}}">{{row['querystring']|e}}</a></td>
                     <td class="dataURL dataToLink hidden"><a href="{{url_for('main.urlStats', url=row['url'])}}">{{row['url']}}</a></td>

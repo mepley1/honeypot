@@ -164,7 +164,7 @@
                     <td class="dataPostData dataToLink mono smaller"><a href="{{url_for('main.bodyStats', body=row['postjson'])}}">{{row['postjson']|e}}</a></td>
                     <td class="dataContentType hidden">{{row['contenttype']}}</td>
                     <td class="dataHostname dataToLink"><a href="{{url_for('main.hostname_stats', hostname=row['hostname'])}}">{{row['hostname']}}</a></td>
-                    <td class="dataTime">{{row['time']}}</td>
+                    <td class="dataTime dataToLink"><a href="{{url_for('main.date_stats', date=row['time'], accuracy=16)}}">{{row['time']}}</a></td>
                     <td class="dataUA dataToLink"><a href="{{url_for('main.uaStats', ua=row['useragent']|urlencode)}}">{{row['useragent']|e}}</a></td>
                     <td class="dataHeaders smallerer mono hidden">{{row['headers_json']|e}}</td>
                     <td class="dataReferer hidden">{{row['referer']}}</td>

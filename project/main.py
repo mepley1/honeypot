@@ -740,6 +740,50 @@ def bodyStats():
         statName = f"Request Body: {body}"
         )
 
+@main.route('/stats/date', methods = ['GET'])
+@login_required
+def date_stats():
+    """ Get records from the same day.
+    Usage: Slice the timestamp before querying this route; 10chars=date, 13chars=hour, 16chars=min """
+    date = request.args.get('date', '') #A timestamp matching the db timestamp format
+    accuracy: int = int(request.args.get('accuracy', 10)) #string index to slice the timestamp to before querying db
+
+    date_q_str = date[0:accuracy] #string to display on stats.html
+    date_q = date[0:accuracy] + '%'
+    #date_day = date[0:10] + '%' #First 10 chars of timestamp = date as yyyy-dd-mm; +wildcard = sql
+    #date_x = date + '%' #If date arg (timestamp) has already been sliced
+    #logging.debug(date_q) #testing
+
+    # Set UOM to display on stats page
+    if accuracy == 10:
+        u_of_m = 'day'
+    elif accuracy == 13:
+        u_of_m = 'hour'
+    elif accuracy == 16:
+        u_of_m = 'minute'
+    else:
+        u_of_m = 'custom'
+
+    with sqlite3.connect(requests_db) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        # Query where timestamp matches date_q
+        sql_query = """
+            SELECT * FROM bots WHERE (time LIKE ?) ORDER BY id DESC;
+            """
+        data_tuple = (date_q,)
+        c.execute(sql_query, data_tuple)
+        date_stats = c.fetchall()
+        c.close()
+    conn.close()
+
+    return render_template('stats.html',
+        stats = date_stats,
+        totalHits = len(date_stats),
+        statName = f"Time: {date}",
+        subtitle = f'Accuracy: {u_of_m} - {date_q}',
+        )
+
 @main.route('/stats/reported', methods = ['GET'])
 @login_required
 def reported_stats():

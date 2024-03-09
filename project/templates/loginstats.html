@@ -1,16 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Stats - Logins</title>
-	<link rel="stylesheet" href="{{url_for('static', filename='css/style.css')}}">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
-    <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script> <!-- to show/hide columns -->
-</head>
-<body>
-	{% include 'header.html' %}
-	<div class="everything"><center>
+{% extends 'base.html' %}
+{% block title %}Stats - Logins{% endblock %}
+{% block content %}
         <h1><span class="dim">Stats -></span> Logins</h1>
         <div class="content">
             {% with messages = get_flashed_messages(with_categories=true) %}
@@ -80,12 +70,8 @@
                 {% endfor %}
             </table>
             {% endif %}
-
-
         </div>
-    </center>
-	</div>
-</body>
+
 <script type="text/javascript">
     $(document).ready(function() {
         $('input[type="checkbox"]').click(function() {
@@ -94,4 +80,4 @@
         });
     });
 </script>
-</html>
+{% endblock %}

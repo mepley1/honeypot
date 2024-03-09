@@ -1,15 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Search</title>
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-    {% include 'header.html' %}
-    <div class="everything">
+{% extends 'base.html' %}
+{% block title %}Search{% endblock %}
+{% block content %}
         <h1>Search</h1>
         <div class="content contentSmall formDiv">
             <h2>Search for HTTP requests where:</h2>
@@ -45,7 +36,4 @@
         {% endwith %}
 
         </div>
-    </div>
-    
-</body>
-</html>
+{% endblock %}

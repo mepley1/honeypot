@@ -1,26 +1,15 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard</title>
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-    {% include 'header.html' %}
-    <div class="everything">
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
         <h1>Dashboard</h1>
-        <div class="content contentSmall">
+        <article class="content contentSmall">
             {% if message %}<p>{{message}}</p>{% endif %}
             {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        {% for category, msg in messages %}
-                            <p class="{{category}}">{{msg}}</p>
-                        {% endfor %}
-                    {% endif %}
+                {% if messages %}
+                    {% for category, msg in messages %}
+                        <p class="{{category}}">{{msg}}</p>
+                    {% endfor %}
+                {% endif %}
             {% endwith %}
-        </div>
-    </div>
-</body>
-</html>
+        </article>
+{% endblock %}

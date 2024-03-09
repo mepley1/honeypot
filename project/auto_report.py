@@ -291,6 +291,11 @@ MISC_SOFTWARE_PROBE_PATHS = [
     '/ecp/Current/exporttool/microsoft.exchange.ediscovery.exporttool.application',
     '/v2/_catalog', #Docker container registry
     'readme.', #readme.txt, .md, etc
+    '/ddnsmngr.cmd', #D-Link DSL-2640B Unauthenticated Remote DNS Change Exploit
+    '/userRpm/WanDynamicIpCfgRpm.htm', #TP-LINK Model No. TL-WR340G/TL-WR340GD - Multiple Vulnerabilities - https://www.exploit-db.com/exploits/34583
+    '/userRpm/LanDhcpServerRpm.htm', #see above
+    '/dnscfg.cgi', #D-Link ADSL DSL-2640U Unauthenticated Remote DNS Change Exploit https://www.exploit-db.com/exploits/42195
+    '/goform/setSysTools', #https://packetstormsecurity.com/files/162258/Multilaser-Router-RE018-AC1200-Cross-Site-Request-Forgery.html
 ]
 
 def is_misc_software_probe(request):

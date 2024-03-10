@@ -330,7 +330,7 @@ def index(u_path):
 @login_required
 def stats():
     """ Pull the most recent requests from bots.db and pass data to stats template to display. """
-    records_limit = request.args.get('limit') or '100000' # Limit to certain # of records, default 100
+    records_limit = request.args.get('limit') or '100000' # Limit to # of records to prevent DOS
 
     if records_limit.isnumeric():
         records_limit = int(records_limit)
@@ -349,7 +349,7 @@ def stats():
         stats = c.fetchall()
 
         # get total number of rows (= number of hits)
-        sql_query = "SELECT COUNT(*) FROM bots"
+        sql_query = "SELECT COUNT(*) FROM bots;"
         c.execute(sql_query)
         result = c.fetchone()
         totalHits = result[0]
@@ -734,10 +734,44 @@ def bodyStats():
         c.close()
     conn.close()
 
+    flash('Note: LIKE query- %25 for wildcard', 'info')
     return render_template('stats.html',
         stats = bodyStats,
         totalHits = len(bodyStats),
-        statName = f"Request Body: {body}"
+        statName = f"Request Body",
+        subtitle = f'{body}',
+        )
+
+@main.route('/stats/content-type', methods = ['GET'])
+@login_required
+def content_type_stats():
+    """ Get rows matching the Content-Type. """
+    ct = request.args.get('ct', '')
+    #ct_q = ct + '%'
+
+    with sqlite3.connect(requests_db) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        # Query for matching Content-Type
+        #sql_query = """SELECT * FROM bots WHERE (contenttype LIKE ?) ORDER BY id DESC;"""
+        '''Query content-type from the headers_json column, until I update the db;
+        anything before Feb. 17 will = None. '''
+        sql_query = """
+            SELECT *
+            FROM bots
+            WHERE JSON_EXTRACT(headers_json, '$.Content-Type') LIKE ?
+            ORDER BY id DESC;
+            """
+        data_tuple = (ct,)
+        c.execute(sql_query, data_tuple)
+        ct_stats = c.fetchall()
+        c.close()
+    conn.close()
+
+    return render_template('stats.html',
+        stats = ct_stats,
+        totalHits = len(ct_stats),
+        statName = f"Content-Type: {ct}",
         )
 
 @main.route('/stats/date', methods = ['GET'])
@@ -883,7 +917,7 @@ def header_string_search():
         sql_query = """SELECT * FROM bots
             WHERE (headers_json LIKE ?)
             ORDER BY id DESC
-            LIMIT 5000;"""
+            LIMIT 50000;"""
         data_tuple = (header_string_q,)
         c.execute(sql_query, data_tuple)
         headers_contains_stats = c.fetchall()
@@ -1158,6 +1192,13 @@ def parse_search_form():
     elif chosen_query == 'header_string':
         header_string = query_text
         return redirect(url_for('main.header_string_search', header_string = header_string))
+    elif chosen_query == 'header_key':
+        header_key = query_text.strip().title()
+        return redirect(url_for('main.headers_key_search', key = header_key))
+    elif chosen_query == 'content_type':
+        ct = query_text.strip()
+        ct = '%' + ct + '%'
+        return redirect(url_for('main.content_type_stats', ct = ct))
     elif chosen_query == 'ua_string':
         ua_string = query_text
         ua_string = '%25' + ua_string + '%25'
@@ -1167,7 +1208,7 @@ def parse_search_form():
         body_string = '%' + body_string + '%'
         return redirect(url_for('main.bodyStats', body = body_string))
     elif chosen_query == 'hostname_string':
-        hostname_string = query_text
+        hostname_string = query_text.strip()
         return redirect(url_for('main.hostname_stats', hostname = hostname_string))
 
 # Misc routes

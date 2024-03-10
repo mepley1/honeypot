@@ -222,7 +222,7 @@ input:focus:invalid{
 }
 
 /* You can't do much with option element, it's styled by the OS */
-select > option{
+select > option, optgroup, optgroup > option{
 	font-size: 16px;
 	font-family: var(--text-font);
 	color: var(--lightgray);
@@ -589,6 +589,10 @@ a.no-decoration:hover{
 	text-decoration: underline;
 }
 
+.left{
+	text-align: left;
+}
+
 /* for jQuery hiding columns */
 /* NOTE: Replaced this with .hidden - leaving this here for now, I'll delete it later. */
 .selectt {
@@ -638,14 +642,23 @@ a.pagination:hover{
 
 /* Footer */
 footer.footer{
+	display: inline-block;
 	position: fixed;
-	left: 0;
 	bottom: 0;
+	left: 0;
 	width: 100%;
 	text-align: center;
 	background-color: var(--content-bg-color);
 	border-top: 1px solid var(--midgray);
 }
+
+footer > p, footer > p > *{
+	margin: 0px;
+	padding-top: 0px;
+	padding-left: 8px;
+	padding-right: 8px;
+}
+
 /* End Footer */
 
 /* For low-resolution monitors 1080p or smaller, use smaller font-size */

@@ -609,6 +609,8 @@ def is_research(request):
         'Mozilla/5.0 (compatible; NetcraftSurveyAgent/1.0; +info@netcraft.com)', #Netcraft
         'Cloud mapping experiment. Contact research@pdrlabs.net',
         '(+http://code.google.com/appengine; appid: s~virustotalcloud)', #VirusTotal URL check
+        '(scanner.ducks.party)',#Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36 (scanner.ducks.party)
+        '+https://leakix.net)',#Mozilla/5.0 (l9scan/2.0.734313e20373e21323e2430313; +https://leakix.net)
     ]
     if user_agent is None:
         return False

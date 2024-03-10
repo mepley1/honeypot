@@ -16,6 +16,7 @@ from functools import wraps
 from dateutil.parser import parse
 from matplotlib.figure import Figure
 from matplotlib.pyplot import set_loglevel as set_pyplot_loglevel
+from matplotlib.pyplot import cycler
 
 analysis = Blueprint('analysis', __name__)
 requests_db = 'bots.db'
@@ -23,7 +24,13 @@ requests_db = 'bots.db'
 
 #Set autolayout for matplotlib plots
 from matplotlib import rcParams
-rcParams.update({'figure.autolayout': True})
+rcParams.update({'figure.autolayout': True,
+                'figure.facecolor': '#D2D4D3',
+                'axes.facecolor': '#D2D4D3',
+                'axes.titlecolor': '#111828',
+                'grid.color': '#b2b4b3',
+                'axes.prop_cycle': cycler(color=['#2563ea','#3bc14a','#ff7f02','slateblue','darkturquoise','#0f8a1e','#bb2020','indigo'])
+                })
 set_pyplot_loglevel(level = 'warning') #shut up matplotlib
 
 @analysis.context_processor
@@ -126,6 +133,7 @@ def total_per_day(num_of_days):
     conn.close()
 
     daily_avg = sum(hits_per_day) / num_of_days
+    results = list(zip(dates, hits_per_day)) #list of tuples to pass to analys_stats
 
     # Generate the figure **without using pyplot**.
     fig = Figure()
@@ -155,12 +163,14 @@ def total_per_day(num_of_days):
         statName = f'Total hits by date',
         subtitle = f'{date_labels[0]} - {date_labels[-1]}',
         image_data = plot_image,
+        analys_stats = results,
+        analys_titles = ['Date', 'Total hits'],
         )
 
 @analysis.route('/stats/ip/per_day')
 @login_required
 def ip_per_day():
-    """ Return total # of hits per day. """
+    """ Return total # of hits per day from given IP. """
     #note: List of hosts() in ipaddress.ip_network: https://docs.python.org/3/howto/ipaddress.html
     
     num_of_days = int(request.args.get('days', '7'))
@@ -205,6 +215,10 @@ def ip_per_day():
     daily_avg = sum(hits_per_day) / num_of_days #avg hits/day
     daily_avg = round(daily_avg, 1)
 
+    #list of tuples to pass to analys_stats in stats.html (imitate sqlite3 results object)
+    results = list(zip(date_labels, hits_per_day))
+    #logging.debug(results)
+
     # Generate the figure **without using pyplot**.
     fig = Figure()
     ax = fig.subplots()
@@ -216,7 +230,7 @@ def ip_per_day():
     ax.set_ylabel('Total hits')
 
     #ax.set_ylim(0, 500) #limit y-axis to soften outliers
-    ax.grid(True)
+    ax.grid(True, zorder=0)
 
     # rotate x-axis labels for readability
     for tick in ax.get_xticklabels():
@@ -230,10 +244,13 @@ def ip_per_day():
     plot_image = base64.b64encode(buf.getbuffer()).decode("ascii")
 
     flash(f'Daily avg: {daily_avg}', 'info')
+    flash('Note: Use * for wildcard i.e. 1.2.3.*', 'info')
     return render_template('stats.html',
-        statName = f'Total hits by date',
-        subtitle = f'IP: {ip}',
+        statName = f'Hits by IP per day',
+        subtitle = f'IP: {ip} over {num_of_days} days',
         image_data = plot_image,
+        analys_stats = results,
+        analys_titles = ['Date', 'Count'],
         )
 
 # Top Ten things
@@ -317,16 +334,14 @@ def top_ten_paths():
     # Generate the figure **without using pyplot**.
     fig = Figure()
     fig.set_facecolor('#D2D4D3')
-    #fig.set_figheight(6)
+    #fig.set_figheight(6) #use autolayout instead
     ax = fig.subplots()
     ax.grid(True, color='#b2b4b3', zorder=0)
     ax.bar(top_paths_list, top_paths_counts, color='#3BC14A', zorder=2)
     ax.set_title(f'Top {_num_of_paths} paths', color='#111828')
     ax.set_xlabel('Path', color='#111828')
     ax.set_ylabel('Total hits', color='#111828')
-    ax.set_facecolor('#D2D4D3')
-    #ax.set_ylim(0, 500) #limit y-axis to soften outliers
-    
+    ax.set_facecolor('#D2D4D3')    
 
     # rotate x-axis labels for readability
     for tick in ax.get_xticklabels():
@@ -342,9 +357,6 @@ def top_ten_paths():
     fig.savefig(buf, format="png")
     plot_image = base64.b64encode(buf.getbuffer()).decode("ascii")
 
-    # flash the results #testing
-    '''for row in top_paths:
-        flash(f'path: {row["path"]}, Count: {row["count"]}', 'info')'''
     return render_template('stats.html',
         #stats = results,
         analys_stats = top_paths,
@@ -353,3 +365,70 @@ def top_ten_paths():
         statName = f'Top {_num_of_paths} most common paths',
         image_data = plot_image,
         )
+
+@analysis.route('/analysis/ip/topten', methods = ['GET'])
+@login_required
+def top_ips():
+    """ Return most common IPs + counts. """
+    _num_of_ips = int(request.args.get('limit', 36)) # num of ips to include, i.e. Top X. default 36
+
+    with sqlite3.connect(requests_db) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        sql_query = "SELECT remoteaddr, COUNT(*) AS count FROM bots GROUP BY remoteaddr ORDER BY count DESC LIMIT ?;"
+        # get the 10 most common remoteaddr values
+        data_tuple = (_num_of_ips,)
+        c.execute(sql_query, data_tuple)
+        top_ips = c.fetchall()
+
+        top_ips_list = [row['remoteaddr'] for row in top_ips]
+        top_ips_counts = [row['count'] for row in top_ips]
+        #logging.debug(f'Top IPs: {top_ips_list}') #testing
+        #logging.debug(f'Top IPs counts: {top_ips_counts}')
+
+        #delete null item to avoid error (rows where there's no data, before I started saving paths)
+        """for i in reversed(range(len(top_ips_list))):
+            if top_ips_list[i] is None:
+                del top_ips_list[i]
+                del top_ips_counts[i]"""
+        #select all rows where remoteaddr is a top10 one
+        sql_query = f"SELECT * FROM bots WHERE remoteaddr IN ({ ','.join(['?']*len(top_ips_list)) }) ORDER BY id DESC;"
+        c.execute(sql_query, top_ips_list)
+        results = c.fetchall()
+
+        c.close()
+    conn.close()
+
+    # matplot stuff
+    # Generate the figure **without using pyplot**.
+    fig = Figure()
+    ax = fig.subplots()
+    ax.grid(True, zorder=0)
+    ax.bar(top_ips_list, top_ips_counts, color='#3BC14A', zorder=2)
+    ax.set_title(f'Top {_num_of_ips} IPs', color='#111828')
+    ax.set_xlabel('IP address', color='#111828')
+    ax.set_ylabel('Total hits', color='#111828')  
+
+    # rotate x-axis labels for readability
+    for tick in ax.get_xticklabels():
+        tick.set_rotation(270)
+        tick.set_fontsize(8)
+        tick.set_fontfamily('Noto Sans')
+        tick.set_color('#111828')
+    for tick in ax.get_yticklabels():
+        tick.set_color('#111828')
+
+    # Save it to a temporary buffer.
+    buf = BytesIO()
+    fig.savefig(buf, format="png")
+    plot_image = base64.b64encode(buf.getbuffer()).decode("ascii")
+
+    return render_template('stats.html',
+        #stats = results,
+        analys_stats = top_ips,
+        analys_titles = ['IP', 'Count'],
+        totalHits = len(results),
+        statName = f'Top {_num_of_ips} most common IPs',
+        image_data = plot_image,
+        )
+

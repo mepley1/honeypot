@@ -935,7 +935,7 @@ def header_string_search():
 def hostname_stats():
     """ Get records matching (or ending with) the hostname. """
     hostname = request.args.get('hostname', '')
-    hostname_q = '%' + hostname + '%'
+    hostname_q = '%' + hostname
 
     with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
@@ -1207,8 +1207,12 @@ def parse_search_form():
         body_string = query_text
         body_string = '%' + body_string + '%'
         return redirect(url_for('main.bodyStats', body = body_string))
-    elif chosen_query == 'hostname_string':
+    elif chosen_query == 'hostname_endswith':
         hostname_string = query_text.strip()
+        return redirect(url_for('main.hostname_stats', hostname = hostname_string))
+    elif chosen_query == 'hostname_contains':
+        hostname_string = query_text.strip()
+        hostname_string = hostname_string + '%'
         return redirect(url_for('main.hostname_stats', hostname = hostname_string))
 
 # Misc routes

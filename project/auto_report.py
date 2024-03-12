@@ -489,6 +489,18 @@ def is_datadog_trace(request):
             return True
     return False
 
+def is_tpl_exploit(request):
+    """ CVE-2023-1389 TP-Link AX21 router exploit. Usually seen downloading a Mirai loader 'tenda.sh' """
+    TPL_EXP_PATH = '/cgi-bin/luci/;stok=/locale'
+    TPL_EXP_PATTERN = r'^form=country&operation=write&country=.'
+    regex = re.compile(TPL_EXP_PATTERN, re.IGNORECASE)
+    if (
+        request.path == TPL_EXP_PATH
+        #or request.query_string.decode().startswith('form=country&operation=write&country=')
+        or regex.search(request.query_string.decode(errors='replace'))
+    ):
+        return True
+    return False
 
 # more generic rules
 
@@ -512,11 +524,13 @@ def is_misc_get_probe(request):
 def is_programmatic_ua(request):
     """ Default user agents of programming language modules + http clients, i.e. Python requests, etc.
     Include curl/wget etc, but don't include specific bot UAs, those will go into another rule."""
+    #TO-DO: Refactor this rule using regex.
     user_agent = request.headers.get('User-Agent', '')
     # Most of the UA's include a version #, i.e. Wget/1.21.3, we'll just search for the name
     PROGRAMMATIC_USER_AGENTS = [
         'aiohttp/', #i.e. Python/3.10 aiohttp/3.9.0
         'curl/',
+        'Custom-AsyncHttpClient',
         'fasthttp',
         'Go-http-client',
         'Hello World', #Not to be confused with Mirai botnet's 'Hello, world' ua with comma
@@ -729,6 +743,7 @@ def check_all_rules():
         (is_wsus_attack, 'Windows WSUS attack', ['21']),
         (is_rocketmq_probe, 'RocketMQ probe CVE-2023-33246', ['21']),
         (is_datadog_trace, 'Unauthorized probe/scan', ['21']),
+        (is_tpl_exploit, 'CVE-2023-1389', ['15','21','23']),
         (is_post_request, 'Suspicious POST request', ['21']),
         (no_host_header, 'No Host header', ['21']),
         (is_misc_get_probe, 'GET with unexpected args', ['21']),

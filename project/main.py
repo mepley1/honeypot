@@ -688,7 +688,7 @@ def host_stats():
     return render_template('stats.html',
         stats = host_stats,
         totalHits = len(host_stats),
-        statName = f"Host: {path}"
+        statName = f"Host: {host}"
         )
 
 @main.route('/stats/query', methods = ['GET'])
@@ -1276,7 +1276,7 @@ def is_already_reported():
     #Compare timestamp to current time
     if last_reported_hit:
         last_reported_time = last_reported_hit['time']
-        logging.debug(f'last reported time: {last_reported_time}')
+        logging.debug(f'Last reported time: {last_reported_time}')
         #logging.debug(f'Last reported request: {last_reported_hit["requestmethod"]} {last_reported_hit["url"]}')
         current_time_parsed = parse(current_time)
         last_reported_time_parsed = parse(last_reported_time)
@@ -1288,7 +1288,7 @@ def is_already_reported():
             return (['True', last_reported_time_parsed], 200)
         else:
             #logging.debug('False')
-            return (['False', last_reported_time_parsed], 200)
+            return (['False', f'Last reported {last_reported_time_parsed}'], 200)
     return (['False', 'IP never reported.'], 200)
 
 @main.route('/test/profile', methods = ['GET'])

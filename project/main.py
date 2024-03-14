@@ -196,7 +196,7 @@ def index(u_path):
 
     req_user_agent = request.headers.get('User-Agent', '')
     req_method = request.method
-    req_query = request.query_string.decode()
+    req_query = request.query_string.decode('utf-8', errors='replace')
     #Timestamp compatible with ApuseIPDB API
     req_time = datetime.datetime.now().astimezone().replace(microsecond=0).isoformat()
     req_headers = dict(request.headers) # go ahead and save the full headers
@@ -204,12 +204,13 @@ def index(u_path):
         req_headers['Cookie'] = '[REDACTED]' # Don't expose session cookies! Will be displayed later.
     headers_json = json.dumps(req_headers)
     req_country_code = request.headers.get('Cf-Ipcountry', '')
-    #Note: Add the following to the database schema later
     req_from_contact = request.headers.get('From', '')
     req_scheme = request.scheme
     req_host = request.host
     req_path = request.path
     req_referer = request.headers.get('Referer', '')
+    #add to db schema later
+    req_args_j = json.dumps(request.args)
 
     # NEW SECTION: Get the POST request body
     # Get the request body. Could be any content-type, format, encoding, etc, try to capture

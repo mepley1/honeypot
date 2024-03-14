@@ -38,7 +38,8 @@
                     <a href="{{url_for('analysis.ip_per_day', days=30, ip='*:*')}}">IPv6 total/day, 30 days</a>
                     <a href="{{url_for('analysis.top_ips', limit=36)}}">Top IPs</a>
                     <a href="{{url_for('analysis.ip_per_day', days=7, ip='*')}}">IP per day</a>
-                    <a href="{{url_for('analysis.top_ten_paths', limit=10)}}">Top n path</a>
+                    <a href="{{url_for('analysis.top_ten_paths', limit=20)}}">Top n path</a>
+                    <a href="{{url_for('analysis.top_uas', limit=25)}}">Top User-Agents</a>
                 </div>
             </li>
             {% endif %}

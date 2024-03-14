@@ -159,7 +159,7 @@
                     <td class="dataHeaders smallerer mono hidden">{{row['headers_json']|e}}</td>
                     <td class="dataReferer hidden">{{row['referer']}}</td>
                     <td class="dataCountry hidden">{{row['country']}}</td>
-                    <td class="dataLinks ipToLink"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> <span class="dim">|</span> <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a> <span class="dim">|</span> <a href="https://virustotal.com/gui/ip-address/{{row['remoteaddr']}}" target="_blank">VirusTotal</a></td>
+                    <td class="dataLinks ipToLink"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> <span class="dim">|</span> <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a> <span class="dim">|</span> <a href="https://virustotal.com/gui/ip-address/{{row['remoteaddr']}}" target="_blank">VirusTotal</a> <span class="dim">|</span> <a href="{{url_for('analysis.ip_per_day', ip=row['remoteaddr'])}}" target="_blank">Graph</a></td>
                     <td class="dataReported hidden">{{row['reported']}}</td>
                     {% if current_user.is_admin %}
                         <td class="dataDeleteRow dataToLink dim hidden">

@@ -1100,6 +1100,41 @@ def stats_by_id_multiple():
         totalHits = len(id_stats),
         statName = f'ID: {request_id}')
 
+@main.route('/search/all', methods = ['GET'])
+@login_required
+def full_search():
+    """ Search entire db (all fields) for given string. """
+    q = request.args.get('q', '')
+    q = '%' + q + '%'
+
+    with sqlite3.connect(requests_db) as conn:
+        conn.row_factory = sqlite3.Row
+        #conn.create_function("REGEXP", 2, regexp)
+        c = conn.cursor()
+        
+        sql_query = "PRAGMA table_info(bots)"
+        c.execute(sql_query)
+        columns = [column[1] for column in c.fetchall()]
+
+        sql_query = "SELECT * FROM bots WHERE "
+        conditions = [f"{column} LIKE ?" for column in columns]
+        #conditions = [f"{column} REGEXP ?" for column in columns] #If using regexp over LIKE
+        sql_query += ' OR '.join(conditions)
+        sql_query += ' ORDER BY id DESC;'
+        data_list = [q for i in range(len(columns))]
+        c.execute(sql_query, data_list)
+        results = c.fetchall()
+
+        c.close()
+    conn.close()
+
+    return render_template('stats.html',
+        stats = results,
+        totalHits = len(results),
+        statName = f'Full db search',
+        subtitle = q,
+        )
+
 @main.route('/admin/delete_single', methods = ['POST'])
 @login_required
 @admin_required
@@ -1215,6 +1250,9 @@ def parse_search_form():
         hostname_string = query_text.strip()
         hostname_string = hostname_string + '%'
         return redirect(url_for('main.hostname_stats', hostname = hostname_string))
+    elif chosen_query == 'any_field':
+        q = query_text
+        return redirect(url_for('main.full_search', q = q))
 
 # Misc routes
 

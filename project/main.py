@@ -1112,6 +1112,7 @@ def full_search():
         #conn.create_function("REGEXP", 2, regexp)
         c = conn.cursor()
         
+        #Get column names
         sql_query = "PRAGMA table_info(bots)"
         c.execute(sql_query)
         columns = [column[1] for column in c.fetchall()]
@@ -1121,7 +1122,8 @@ def full_search():
         #conditions = [f"{column} REGEXP ?" for column in columns] #If using regexp over LIKE
         sql_query += ' OR '.join(conditions)
         sql_query += ' ORDER BY id DESC;'
-        data_list = [q for i in range(len(columns))]
+        #data_list = [q for i in range(len(columns))]
+        data_list = [q for i in enumerate(columns)]
         c.execute(sql_query, data_list)
         results = c.fetchall()
 

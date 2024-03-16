@@ -333,7 +333,7 @@ def index(u_path):
 
 @main.route('/stats')
 @login_required
-@cache.cached(timeout=60)
+@cache.cached(query_string=True, timeout=30)
 def stats():
     """ Pull the most recent requests from bots.db and pass data to stats template to display. """
     records_limit = request.args.get('limit') or '100000' # Limit to # of records to prevent DOS
@@ -1342,8 +1342,8 @@ def is_already_reported():
 def set_pref_theme():
     """ Set cookie containing preferred color scheme. """
     theme = request.form['pref_theme']
-    #resp = make_response(redirect(request.referrer))
-    resp = make_response(redirect('#'))
+    cache.clear()
+    resp = make_response(redirect(request.referrer))
     resp.set_cookie('pref_theme', value = theme, path = '/', httponly = True)
     return resp
 
@@ -1373,6 +1373,7 @@ def admin_test():
 
 @main.route('/about', methods = ['GET'])
 @login_required
+@cache.cached(timeout=120)
 def about():
     logging.debug(request)
     return render_template('about.html')

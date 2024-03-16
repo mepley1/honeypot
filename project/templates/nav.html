@@ -16,7 +16,7 @@
             <li class="dropdown">
                 <a href="#" class="dropbtn">Stats</a>
                 <div class="dropdown-content">
-                    <a href="{{url_for('main.stats')}}">Recent Requests</a>
+                    <a href="{{url_for('main.stats', page=1)}}">Recent Requests</a>
                     <a href="{{url_for('main.loginStats')}}">Logins</a>
                     <a href="{{url_for('main.reported_stats', reported='1')}}">Reported</a>
                     <a href="{{url_for('main.methodStats', method='GET')}}">Method: GET</a>

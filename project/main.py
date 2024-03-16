@@ -10,11 +10,12 @@ import ipaddress
 import re
 from .auto_report import check_all_rules, get_real_ip #The new report module. Will check rules + report
 from socket import gethostbyaddr, herror
-from flask import request, redirect, url_for, render_template, jsonify, Response, send_from_directory, g, after_this_request, flash, Blueprint, current_app
+from flask import request, redirect, url_for, render_template, jsonify, Response, send_from_directory, g, after_this_request, flash, Blueprint, current_app, make_response
 from flask_login import login_required, current_user
 from urllib.parse import parse_qs, unquote
 from functools import wraps
 from dateutil.parser import parse
+from . import cache
 
 main = Blueprint('main', __name__)
 requests_db = 'bots.db'
@@ -321,6 +322,9 @@ def index(u_path):
             conn.commit()
         conn.close()
 
+        #Clear the cache so this request can be shown on main.stats
+        cache.clear()
+
         #logging.debug(response.status) #For testing
         return response
 
@@ -329,6 +333,7 @@ def index(u_path):
 
 @main.route('/stats')
 @login_required
+@cache.cached(timeout=60)
 def stats():
     """ Pull the most recent requests from bots.db and pass data to stats template to display. """
     records_limit = request.args.get('limit') or '100000' # Limit to # of records to prevent DOS
@@ -1330,6 +1335,27 @@ def is_already_reported():
             #logging.debug('False')
             return (['False', f'Last reported {last_reported_time_parsed}'], 200)
     return (['False', 'IP never reported.'], 200)
+
+#Test setting style preference
+@main.route('/profile/set_theme', methods = ['POST'])
+@login_required
+def set_pref_theme():
+    """ Set cookie containing preferred color scheme. """
+    theme = request.form['pref_theme']
+    #resp = make_response(redirect(request.referrer))
+    resp = make_response(redirect('#'))
+    resp.set_cookie('pref_theme', value = theme, path = '/', httponly = True)
+    return resp
+
+#Test getting style preference
+@main.route('/profile/get_theme', methods = ['GET'])
+@login_required
+def get_pref_theme():
+    """ Return user's preferred color theme; used by JS function to apply the
+    theme (class) to <body> element on cached pages that otherwise would still have
+    the previous theme attached. """
+    theme = request.cookies.get('pref_theme')
+    return theme
 
 @main.route('/test/profile', methods = ['GET'])
 @login_required

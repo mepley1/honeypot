@@ -1,5 +1,22 @@
 <footer class="footer">
+    <!--<p><button id="themeToggleButton" class="delete-button">Toggle theme</button></p>-->
+
+    <!-- style selection form -->
     <p>
-    <button id="themeToggleButton" class="delete-button">Toggle theme</button></p>
+        <form action="{{ url_for('main.set_pref_theme') }}" method="POST" id="theme_form">
+            <!--<label for="pref_theme">Style:</label>-->
+            <select name="pref_theme" id="pref_theme" class="form-box" onchange="this.form.submit()">
+                <!--<optgroup label="Styles">-->
+                <option disabled selected>- Styles -</option>
+                <option value="theme-darkgreen">Black/green{% if request.cookies.get('pref_theme')|e == 'theme-darkgreen' %} *{% endif %}</option>
+                <option value="theme-blue">Blue/orange{% if request.cookies.get('pref_theme')|e == 'theme-blue' %} *{% endif %}</option>
+                <!--</optgroup>-->
+            </select>
+            <!--<button type="submit" class="submit-button" id="pref_theme_btn">Submit</button>-->
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        </form>
+    </p>
+    <!-- end style selection-->
+    <!-- load js last -->
     <script src="{{ url_for('static', filename='js/js.js') }}"></script>
     </footer>

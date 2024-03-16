@@ -1,1 +1,3 @@
-<p>Logged in as: {{ name }}</p>
+<p>Logged in as: {{ current_user.username }}</p>
+<p>Admin user: {{ current_user.is_admin }}</p>
+<p>Preferred style: {{ request.cookies.get('pref_theme', 'none') }}</p>

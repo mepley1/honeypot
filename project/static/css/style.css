@@ -7,7 +7,7 @@
 It's too much data to display at once, I'm not going to bother making it very responsive.
 I'll just make a simpler stats page with less data that will be better for mobile devices. */
 
-:root, .theme-blue {
+body, .theme-blue {
 	--main-bg-color: #111828;
 	--main-accent-color: #2563ea;
 	--main-heading-color: #FFFFFF;
@@ -44,7 +44,7 @@ I'll just make a simpler stats page with less data that will be better for mobil
 	--size-notifications: 20px;
 }
 
-:root {
+:root, body, .theme-darkgreen {
 	/*--main-bg-color: #090a0c;*/
 	--main-bg-color: #0b0d0e;
 	--main-accent-color: #3BC14A;
@@ -192,6 +192,33 @@ label {
 
 .submit-button:Hover{
 	border: 2px solid var(--main-accent-color);
+	background-color: var(--form-bg-color);
+	color: var(--main-heading-color);
+}
+
+#pref_theme{
+	margin: 0;
+}
+
+#pref_theme_btn{
+	/*border: 2px solid var(--main-accent-color);*/
+	border: none;
+	/*border-radius: 8px;*/
+	border-radius: 0;
+	/*font-size: 20px;*/
+	background-color: var(--main-accent-color);
+	/* color: #FFFFFF;*/
+	color: var(--button-text-alternate);
+	/*padding: 10px 16px;*/
+	padding: 0px;
+	margin: 0px;
+	transition: all 0.4s;
+	font-family: var(--text-font), sans-serif;
+	cursor: pointer;
+}
+
+#pref_theme_btn:Hover{
+	/*border: 2px solid var(--main-accent-color);*/
 	background-color: var(--form-bg-color);
 	color: var(--main-heading-color);
 }
@@ -657,6 +684,11 @@ footer > p, footer > p > *{
 	padding-top: 0px;
 	padding-left: 8px;
 	padding-right: 8px;
+}
+
+footer > form{
+	width:fit-content;
+	margin: auto;
 }
 
 /* End Footer */

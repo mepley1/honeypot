@@ -1,5 +1,6 @@
 datetime
 flask
+flask-caching
 flask-login
 flask-sqlalchemy
 Flask-WTF

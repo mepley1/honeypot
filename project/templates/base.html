@@ -9,7 +9,7 @@
 	<script src="https://code.jquery.com/jquery-1.12.4.min.js"></script> <!-- to show/hide columns on stats.html -->
 </head>
 
-<body>
+<body class="{{ request.cookies.get('pref_theme')|e }}">
 	{% include 'nav.html' %}
 	<div class="everything">
 		{%block content %}{% endblock %}

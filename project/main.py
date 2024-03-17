@@ -725,7 +725,7 @@ def queriesStats():
 @login_required
 def bodyStats():
     """ Get records matching the POST request body. """
-    body = request.args.get('body', '')
+    body = unquote(request.args.get('body', ''))
 
     with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
@@ -745,7 +745,7 @@ def bodyStats():
         stats = bodyStats,
         totalHits = len(bodyStats),
         statName = f"Request Body",
-        subtitle = f'{body}',
+        #subtitle = f'{body}',
         )
 
 @main.route('/stats/content-type', methods = ['GET'])

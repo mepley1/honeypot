@@ -64,4 +64,9 @@ def create_app():
     app.config['CACHE_TYPE'] = 'SimpleCache'
     cache.init_app(app)
 
+    # Custom jinja filter using quote_plus, to solve my issue with encoding discrepancies
+    # when querying body column.
+    from urllib.parse import quote_plus
+    app.jinja_env.filters['quote_plus'] = lambda u: quote_plus(u)
+
     return app

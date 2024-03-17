@@ -147,18 +147,18 @@
                     <td class="dataIP ipToLink"><a href="{{url_for('main.ipStats', ipAddr=row['remoteaddr'])}}">{{row['remoteaddr']}}</a></td>
                     <td class="dataMethod dataToLink"><a href="{{url_for('main.methodStats', method=row['requestmethod'])}}">{{row['requestmethod']}}</a></td>
                     <td class="dataScheme hidden">{{ row['scheme'] }}</td>
-                    <td class="dataHost hidden dataToLink"><a href="{{url_for('main.host_stats', host=row['host'])}}">{{ row['host'] }}</a></td>
+                    <td class="dataHost hidden dataToLink"><a href="{{url_for('main.host_stats', host=row['host'])}}">{{ row['host']|e }}</a></td>
                     <td class="dataPath dataToLink"><a href="{{url_for('main.path_stats', path=row['path'])}}">{{ row['path'] }}</a></td>
                     <td class="dataQueryString dataToLink mono smaller"><a href="{{url_for('main.queriesStats', query=row['querystring']|urlencode)}}">{{row['querystring']|e}}</a></td>
-                    <td class="dataURL dataToLink hidden"><a href="{{url_for('main.urlStats', url=row['url'])}}">{{row['url']}}</a></td>
-                    <td class="dataPostData dataToLink mono smaller"><a href="{{url_for('main.bodyStats', body=row['postjson'])}}">{{row['postjson']|e}}</a></td>
-                    <td class="dataContentType dataToLink hidden"><a href="{{url_for('main.content_type_stats', ct=row['contenttype']) }}">{{row['contenttype']}}</a></td>
+                    <td class="dataURL dataToLink hidden"><a href="{{url_for('main.urlStats', url=row['url'])}}">{{row['url']|e}}</a></td>
+                    <td class="dataPostData dataToLink mono smaller"><a href="{{url_for('main.bodyStats', body=row['postjson']|quote_plus)}}">{{row['postjson']|e}}</a></td>
+                    <td class="dataContentType dataToLink hidden"><a href="{{url_for('main.content_type_stats', ct=row['contenttype']) }}">{{row['contenttype']|e}}</a></td>
                     <td class="dataHostname dataToLink"><a href="{{url_for('main.hostname_stats', hostname=row['hostname'])}}">{{row['hostname']}}</a></td>
                     <td class="dataTime dataToLink"><a href="{{url_for('main.date_stats', date=row['time'], accuracy=16)}}">{{row['time']}}</a></td>
                     <td class="dataUA dataToLink"><a href="{{url_for('main.uaStats', ua=row['useragent']|urlencode)}}">{{row['useragent']|e}}</a></td>
                     <td class="dataHeaders smallerer mono hidden">{{row['headers_json']|e}}</td>
-                    <td class="dataReferer hidden">{{row['referer']}}</td>
-                    <td class="dataCountry hidden">{{row['country']}}</td>
+                    <td class="dataReferer hidden">{{row['referer']|e}}</td>
+                    <td class="dataCountry hidden">{{row['country']|e}}</td>
                     <td class="dataLinks ipToLink"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> <span class="dim">|</span> <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a> <span class="dim">|</span> <a href="https://virustotal.com/gui/ip-address/{{row['remoteaddr']}}" target="_blank">VirusTotal</a> <span class="dim">|</span> <a href="{{url_for('analysis.ip_per_day', ip=row['remoteaddr'])}}" target="_blank">Graph</a></td>
                     <td class="dataReported hidden">{{row['reported']}}</td>
                     {% if current_user.is_admin %}

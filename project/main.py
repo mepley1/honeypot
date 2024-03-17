@@ -137,6 +137,14 @@ def validate_id_numeric(_id):
     else:
         return False
 
+def validate_header_key(_hk):
+    """ Letters + hyphen. """
+    pattern = r'^[a-zA-Z\-_]+$'
+    if re.match(pattern, _hk):
+        return True
+    else:
+        return False
+
 ### SQLite function callbacks
 
 #Callback for SQLite CIDR user function    
@@ -212,6 +220,7 @@ def index(u_path):
     req_referer = request.headers.get('Referer', '')
     #add to db schema later
     req_args_j = json.dumps(request.args)
+    req_version = request.environ.get('SERVER_PROTOCOL') #http version
 
     # NEW SECTION: Get the POST request body
     # Get the request body. Could be any content-type, format, encoding, etc, try to capture
@@ -1016,8 +1025,11 @@ def headers_single_json(request_id):
 @main.route('/stats/headers/key_search', methods = ['GET'])
 @login_required
 def headers_key_search():
-    """ Find requests with a given header. """
+    """ Find requests which include a given header. """
     header_name = request.args.get('key', 'no input')
+    if not validate_header_key(header_name):
+        return (['Bad Request', {'Error': 'Invalid characters'}], 400)
+
     #query db
     with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row
@@ -1026,7 +1038,7 @@ def headers_key_search():
                     FROM bots
                     WHERE (JSON_EXTRACT(headers_json, ?)) IS NOT NULL
                     ORDER BY id DESC
-                    LIMIT 10000;
+                    LIMIT 100000;
                     """
         data_tuple = (f'$.{header_name}',)
         c.execute(sql_query, data_tuple)
@@ -1044,11 +1056,11 @@ def headers_key_search():
         c.close()
     conn.close()
 
-    flash('Note: Limited to 10k results', 'info')
+    #flash('Note: Limited to 100k results', 'info')
     return render_template('stats.html',
         stats = results,
         statName = f'In header keys: {header_name}',
-        totalHits = len(results)
+        totalHits = len(results),
         )
 
 @main.route('/stats/id/<int:request_id>', methods = ['GET'])
@@ -1168,7 +1180,7 @@ def delete_record_by_id():
 
     # Log the action to systemd logs
     logging.info(f'Deleted request ID# {request_id} by user {current_user.username}')
-
+    cache.clear() #to ensure next page is fresh
     flash(f'Deleted request #{request_id}', 'successn')
     return redirect(request.referrer)
 

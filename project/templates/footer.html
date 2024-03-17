@@ -5,7 +5,8 @@
     <p>
         <form action="{{ url_for('main.set_pref_theme') }}" method="POST" id="theme_form">
             <!--<label for="pref_theme">Style:</label>-->
-            <select name="pref_theme" id="pref_theme" class="form-box" onchange="this.form.submit()">
+            <!--<select name="pref_theme" id="pref_theme" class="form-box" onchange="this.form.submit()">-->
+                <select name="pref_theme" id="pref_theme" class="form-box">
                 <!--<optgroup label="Styles">-->
                 <option disabled selected>- Styles -</option>
                 <option value="theme-darkgreen">Black/green{% if request.cookies.get('pref_theme')|e == 'theme-darkgreen' %} *{% endif %}</option>
@@ -14,6 +15,7 @@
             </select>
             <!--<button type="submit" class="submit-button" id="pref_theme_btn">Submit</button>-->
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <p id="footer_loading_note" class="successn">loading...</p>
         </form>
     </p>
     <!-- end style selection-->

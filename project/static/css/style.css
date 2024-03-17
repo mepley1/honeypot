@@ -691,6 +691,12 @@ footer > form{
 	margin: auto;
 }
 
+p#footer_loading_note{
+	display: none;
+	margin: 0px;
+	padding: 0px;
+}
+
 /* End Footer */
 
 /* For low-resolution monitors 1080p or smaller, use smaller font-size */

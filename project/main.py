@@ -1323,9 +1323,9 @@ def is_already_reported():
         last_reported_time = last_reported_hit['time']
         logging.debug(f'Last reported time: {last_reported_time}')
         #logging.debug(f'Last reported request: {last_reported_hit["requestmethod"]} {last_reported_hit["url"]}')
+
         current_time_parsed = parse(current_time)
         last_reported_time_parsed = parse(last_reported_time)
-
         time_difference = current_time_parsed - last_reported_time_parsed
         #logging.debug(f'Difference: {time_difference}')
         if abs(time_difference) < one_day_delta:
@@ -1340,7 +1340,7 @@ def is_already_reported():
 @main.route('/profile/set_theme', methods = ['POST'])
 @login_required
 def set_pref_theme():
-    """ Set cookie containing preferred color scheme. """
+    """ Set cookie containing preferred color scheme. Form action. """
     theme = request.form['pref_theme']
     cache.clear()
     resp = make_response(redirect(request.referrer))
@@ -1351,16 +1351,16 @@ def set_pref_theme():
 @main.route('/profile/get_theme', methods = ['GET'])
 @login_required
 def get_pref_theme():
-    """ Return user's preferred color theme; used by JS function to apply the
-    theme (class) to <body> element on cached pages that otherwise would still have
-    the previous theme attached. """
-    theme = request.cookies.get('pref_theme')
+    """ Return user's preferred color theme; called by javascript apply_pref_theme() function to
+    apply the theme (class) to <body> element on cached pages that otherwise would still have the
+    previous theme attached. """
+    theme = request.cookies.get('pref_theme') or 'None'
     return theme
 
-@main.route('/test/profile', methods = ['GET'])
+@main.route('/profile/profile', methods = ['GET'])
 @login_required
 def profile():
-    """ Profile route for testing login. """
+    """ Display some info about logged in user. """
     return render_template('profile.html', name=current_user.username)
 
 @main.route('/test/admin', methods = ['GET'])
@@ -1373,25 +1373,28 @@ def admin_test():
 
 @main.route('/about', methods = ['GET'])
 @login_required
-@cache.cached(timeout=120)
+@cache.cached(timeout=3600)
 def about():
     logging.debug(request)
     return render_template('about.html')
 
-# Routes for security.txt + robots.txt
-# Can also just serve them from Nginx
+# Routes for security.txt / robots.txt / favicon.
+# Preferably they'll be served by Nginx, but leaving these here in case.
 @main.route('/.well-known/security.txt')#Standard location
 @main.route('/security.txt')
+@cache.cached(timeout=3600)
 def securityTxt():
     """ Serve a security.txt in case Nginx isn't there to do it. """
     logging.debug(request)
     return send_from_directory('static/txt', path='security.txt')
 @main.route('/robots.txt')
+@cache.cached(timeout=3600)
 def robotsTxt():
     """ It's a honeypot, of course I want to allow bots. """
     logging.debug(request)
     return send_from_directory('static/txt', path='robots.txt')
 @main.route('/favicon.ico', methods = ['GET'])
+@cache.cached(timeout=3600)
 def serve_favicon():
     """ Serve the favicon (and stop saving requests for it). """
     logging.debug(request)

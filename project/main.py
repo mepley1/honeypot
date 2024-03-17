@@ -700,7 +700,7 @@ def host_stats():
 @login_required
 def queriesStats():
     """ Get records matching the Query String. """
-    query_params = request.args.get('query', '')
+    query_params = unquote(request.args.get('query', ''))
 
     with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row

@@ -149,7 +149,7 @@
                     <td class="dataScheme hidden">{{ row['scheme'] }}</td>
                     <td class="dataHost hidden dataToLink"><a href="{{url_for('main.host_stats', host=row['host'])}}">{{ row['host'] }}</a></td>
                     <td class="dataPath dataToLink"><a href="{{url_for('main.path_stats', path=row['path'])}}">{{ row['path'] }}</a></td>
-                    <td class="dataQueryString dataToLink mono smaller"><a href="{{url_for('main.queriesStats', query=row['querystring'])}}">{{row['querystring']|e}}</a></td>
+                    <td class="dataQueryString dataToLink mono smaller"><a href="{{url_for('main.queriesStats', query=row['querystring']|urlencode)}}">{{row['querystring']|e}}</a></td>
                     <td class="dataURL dataToLink hidden"><a href="{{url_for('main.urlStats', url=row['url'])}}">{{row['url']}}</a></td>
                     <td class="dataPostData dataToLink mono smaller"><a href="{{url_for('main.bodyStats', body=row['postjson'])}}">{{row['postjson']|e}}</a></td>
                     <td class="dataContentType dataToLink hidden"><a href="{{url_for('main.content_type_stats', ct=row['contenttype']) }}">{{row['contenttype']}}</a></td>

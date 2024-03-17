@@ -26,9 +26,19 @@ requests_db = 'bots.db'
 from matplotlib import rcParams
 rcParams.update({'figure.autolayout': True,
                 'figure.facecolor': '#D2D4D3',
+                #'figure.dpi': '120', #default: 100
+                #'figure.figsize': [6.4, 4.8], #default: 6.4, 4.8
+                'font.family': ['sans-serif'],
                 'axes.facecolor': '#D2D4D3',
+                'axes.labelcolor': '#111828',
                 'axes.titlecolor': '#111828',
                 'grid.color': '#b2b4b3',
+                'grid.alpha': '0.6',
+                'lines.marker': '.', #https://matplotlib.org/stable/api/markers_api.html
+                'xtick.color': '#111828',
+                'xtick.labelcolor': '#111828',
+                'ytick.color': '#111828',
+                'ytick.labelcolor': '#111828',
                 'axes.prop_cycle': cycler(color=['#2563ea','#3bc14a','#ff7f02','slateblue','darkturquoise','#0f8a1e','#bb2020','indigo'])
                 })
 set_pyplot_loglevel(level = 'warning') #shut up matplotlib
@@ -153,6 +163,10 @@ def total_per_day(num_of_days):
         tick.set_rotation(90)
         tick.set_fontsize(8)
         #tick.set_fontfamily('Hack')
+    # Smaller font size for large # of days. For readability
+    if num_of_days > 30:
+        for tick in ax.get_xticklabels():
+            tick.set_fontsize(6)
 
     # Save it to a temporary buffer.
     buf = BytesIO()
@@ -185,11 +199,12 @@ def ip_per_day():
     logging.debug(f'Totals since: {start_date} for IP {ip}') #testing
     end_date = start_date + datetime.timedelta(days=1)
 
+    # Dates to use in queries loop
     for i in range(0, num_of_days + 1):
         date_to_append = start_date + datetime.timedelta(days=i)
         date_to_append_str = date_to_append.strftime('%Y-%m-%d')
         dates.append(date_to_append_str)
-    logging.debug(f'Dates: {dates}')
+    #logging.debug(f'Dates: {dates}')
 
     # Query db
     with sqlite3.connect(requests_db) as conn:
@@ -236,7 +251,11 @@ def ip_per_day():
     for tick in ax.get_xticklabels():
         tick.set_rotation(90)
         tick.set_fontsize(8)
-        #tick.set_fontfamily('Hack')
+    
+    #Set font size slightly smaller for high # of days, for readability
+    if num_of_days > 30:
+        for tick in ax.get_xticklabels():
+            tick.set_fontsize(6)
 
     # Save it to a temporary buffer.
     buf = BytesIO()
@@ -273,7 +292,7 @@ def top_ten_urls():
         c.execute(sql_query, data_tuple)
         top_urls = c.fetchall()
 
-        # Now query for all requests received from top_ips
+        # Now query for all requests for top URLs
         top_urls_list = [row['url'] for row in top_urls]
         logging.debug(f'Top URLs: {top_urls_list}') #testing, delete this
 
@@ -386,11 +405,6 @@ def top_ips():
         #logging.debug(f'Top IPs: {top_ips_list}') #testing
         #logging.debug(f'Top IPs counts: {top_ips_counts}')
 
-        #delete null item to avoid error (rows where there's no data, before I started saving paths)
-        """for i in reversed(range(len(top_ips_list))):
-            if top_ips_list[i] is None:
-                del top_ips_list[i]
-                del top_ips_counts[i]"""
         #select all rows where remoteaddr is a top10 one
         sql_query = f"SELECT * FROM bots WHERE remoteaddr IN ({ ','.join(['?']*len(top_ips_list)) }) ORDER BY id DESC;"
         c.execute(sql_query, top_ips_list)
@@ -413,7 +427,7 @@ def top_ips():
     for tick in ax.get_xticklabels():
         tick.set_rotation(270)
         tick.set_fontsize(8)
-        tick.set_fontfamily('Noto Sans')
+        #tick.set_fontfamily('Noto Sans')
         tick.set_color('#111828')
     for tick in ax.get_yticklabels():
         tick.set_color('#111828')
@@ -432,3 +446,67 @@ def top_ips():
         image_data = plot_image,
         )
 
+@analysis.route('/analysis/ua/topten', methods = ['GET'])
+@login_required
+def top_uas():
+    """ Return most common UAs + counts. """
+    num_ua = int(request.args.get('limit', 25)) # num of UAs to include, i.e. Top X. default 25
+
+    with sqlite3.connect(requests_db) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        sql_query = "SELECT useragent, COUNT(*) AS count FROM bots GROUP BY useragent ORDER BY count DESC LIMIT ?;"
+        # get the most common user agent values
+        data_tuple = (num_ua,)
+        c.execute(sql_query, data_tuple)
+        top_uas = c.fetchall()
+
+        top_uas_list = [row['useragent'] for row in top_uas]
+        top_uas_counts = [row['count'] for row in top_uas]
+        #logging.debug(f'Top IPs: {top_uas_list}') #testing
+        #logging.debug(f'Top IPs counts: {top_uas_counts}')
+
+        #select all rows where useragent is in top_uas_list
+        sql_query = f"SELECT * FROM bots WHERE remoteaddr IN ({ ','.join(['?']*len(top_uas_list)) }) ORDER BY id DESC;"
+        c.execute(sql_query, top_uas_list)
+        results = c.fetchall()
+
+        c.close()
+    conn.close()
+
+    #Edit '' item to 'None' for display on the plot
+    for i in range(len(top_uas_list)):
+        if top_uas_list[i] == '':
+            top_uas_list[i] = 'None'
+
+    # matplot stuff
+    # Generate the figure **without using pyplot**.
+    fig = Figure()
+    ax = fig.subplots()
+    ax.grid(True, zorder=0)
+    ax.bar(top_uas_list, top_uas_counts, color='#3BC14A', zorder=2)
+    ax.set_title(f'Top {num_ua} User-Agents',)
+    ax.set_xlabel('User-Agent', color='#111828')
+    ax.set_ylabel('Total hits', color='#111828')  
+
+    # rotate x-axis labels for readability
+    for tick in ax.get_xticklabels():
+        tick.set_rotation(270)
+        tick.set_fontsize(6)
+        #tick.set_color('#111828')
+    #for tick in ax.get_yticklabels():
+        #tick.set_color('#111828')
+
+    # Save it to a temporary buffer.
+    buf = BytesIO()
+    fig.savefig(buf, format="png")
+    plot_image = base64.b64encode(buf.getbuffer()).decode("ascii")
+
+    return render_template('stats.html',
+        #stats = results,
+        analys_stats = top_uas,
+        analys_titles = ['User-Agent', 'Count'],
+        totalHits = len(results),
+        statName = f'Top {num_ua} most common User-Agents',
+        image_data = plot_image,
+        )

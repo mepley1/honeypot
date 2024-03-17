@@ -6,28 +6,25 @@
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, msg in messages %}
-                        <p class="{{category}}">{{msg}}</p>
+                        <p class="{{ category }}">{{ msg }}</p>
                     {% endfor %}
                 {% endif %}
             {% endwith %}
 
-            <h2>Headers sent in request #{{request_id}}</h2>
+            <h2>Headers sent in request #<a href="{{ url_for('main.stats_by_id', request_id=request_id) }}">{{ request_id }}</a></h2>
 
             <table class="header_single">
-
                 <tr class="dim">
                     <td>Header</td>
                     <td>Value</td>
                 </tr>
-
                 {% for header_name, header_value in stats.items(): %}
                 <tr>
                     <td>{{header_name}}</td>
-                    <td class="mono small">{{header_value}}</td>
+                    <td class="mono small">{{header_value|e}}</td>
                 </tr>
                 {% endfor %}
             </table>
-
             <p>
                 <a href="{{ url_for('main.headers_single_json', request_id=prev_request_id) }}" class="pagination">Previous</a>&nbsp;-&nbsp;<a href="{{ url_for('main.headers_single_json', request_id=next_request_id) }}" class="pagination">Next</a>
             </p>

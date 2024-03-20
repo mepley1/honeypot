@@ -30,7 +30,7 @@
             <p class="plot_image"><img src="data:image/png;base64,{{image_data}}"/></p>
             {% endif %}
             <!-- end image data -->
-            <!-- analysis results -->
+
             {% if analys_stats %}
             <!-- Results from analysis routes. analys_stats should be a list of tuples -->
             <table>
@@ -159,16 +159,36 @@
                     <td class="dataHeaders smallerer mono hidden">{{row['headers_json']|e}}</td>
                     <td class="dataReferer hidden">{{row['referer']|e}}</td>
                     <td class="dataCountry hidden">{{row['country']|e}}</td>
-                    <td class="dataLinks ipToLink"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> <span class="dim">|</span> <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a> <span class="dim">|</span> <a href="https://virustotal.com/gui/ip-address/{{row['remoteaddr']}}" target="_blank">VirusTotal</a> <span class="dim">|</span> <a href="{{url_for('analysis.ip_per_day', ip=row['remoteaddr'])}}" target="_blank">Graph</a></td>
+                    <td class="dataLinks ipToLink"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> <span class="dim">|</span> <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a> <span class="dim">|</span> <a href="https://virustotal.com/gui/ip-address/{{row['remoteaddr']}}" target="_blank">VirusTotal</a> <span class="dim">|</span> <a href="{{url_for('analysis.ip_per_day', ip=row['remoteaddr'], days=30)}}" target="_blank">Graph</a></td>
                     <td class="dataReported hidden">{{row['reported']}}</td>
-                    {% if current_user.is_admin %}
-                        <td class="dataDeleteRow dataToLink dim hidden">
-                            <form action="{{ url_for('main.delete_record_by_id', request_id=row['id']) }}" method="POST" id="delete_button">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="delete-button">&#10060; Delete</button>
+                    {% if current_user.is_admin %} {# Only show delete button+modal if user is admin #}
+                    <td class="dataDeleteRow dataToLink dim hidden">
+                        <!-- OLD delete-button, leave here until modal+JS are working fully -->
+                        <!--<form action="{{ url_for('main.delete_record_by_id', request_id=row['id']) }}" method="POST" id="delete_button_{{row['id']}}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="delete-button">&#10060; Delete</button>
+                        </form>-->
+
+                        <!-- delete button; opens delete confirmation modal -->
+                        <button class="delete-button" id="delete_button_{{row['id']}}" for_id="{{row['id']}}">&#10060;</button>
+                        <!-- delete confirmation modal -->
+                        <div id="delete_confirmation_modal_{{row['id']}}" class="modal">
+                            <form class="modal-content" action="{{ url_for('main.delete_record_by_id', request_id=row['id']) }}" method="POST" id="delete_form_{{row['id']}}" for_id="{{row['id']}}">
+                                <span class="close modal_close" id="modal_x_{{row['id']}}" title="Close Modal" for_id="{{row['id']}}">&times;</span>
+                                <div class="container">
+                                    <h1>Delete Row {{ row['id'] }}</h1>
+                                    <p>Are you sure you want to delete the row?</p>
+                                    <div class="clearfix">
+                                        <button type="button" class="modal_btn modal_greenbtn_b modal_close" id="modal_cancel_{{row['id']}}" for_id="{{row['id']}}">Cancel</button>
+                                        <button type="submit" class="modal_btn modal_redbtn">Delete</button>
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    </div>
+                                </div>
                             </form>
-                        </td>
-                    {% endif %}
+                        </div>
+                        <!-- end delete confirm modal -->
+                    </td>
+                    {% endif %} {# end is_admin check + delete-button/modal #}
                     </tr>
                 {% endfor %}
             </table>
@@ -189,8 +209,6 @@
             {% endif %}
             {% endif %}
             <!-- end pagination -->
-
             {% endif %}
         </article>
-
 {% endblock %}

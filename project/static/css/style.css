@@ -9,10 +9,11 @@ I'll just make a simpler stats page with less data that will be better for mobil
 
 body, .theme-blue {
 	--main-bg-color: #111828;
+	--main-bg-color-trans: #111828ee; /* for modal window */
 	--main-accent-color: #2563ea;
 	--main-heading-color: #FFFFFF;
 	--main-text-color: #D2D4D3;
-	/*--main-text-color: #D8D6C4;*/ /*more cream-y off-white */
+	/*--main-text-color: #D8D6C4;*/ /* more cream-y off-white */
 	/* --main-text-color: #f2f4f3; */
 	--content-bg-color: #202938;
 	--form-bg-color: #202938;
@@ -47,13 +48,14 @@ body, .theme-blue {
 :root, body, .theme-darkgreen {
 	/*--main-bg-color: #090a0c;*/
 	--main-bg-color: #0b0d0e;
+	--main-bg-color-trans: #0b0d0eee; /* for modal window*/
 	--main-accent-color: #3BC14A;
 	--main-heading-color: #e4e8eb;
 	--main-text-color: #d4dbde;
-	/*--main-text-color: #D8D6C4;*/ /*more cream-y off-white */
+	/*--main-text-color: #D8D6C4;*/ /* more cream-y off-white */
 	/* --main-text-color: #f2f4f3; */
-	--content-bg-color: #0e1012;
-	--form-bg-color: #0e1012;
+	--content-bg-color: #101214;
+	--form-bg-color: #101214;
 	--input-invalid: #2a2938;
 	--site-title-color: #e4e8eb;
 	--dotnet-color: #3BC14A;
@@ -62,7 +64,7 @@ body, .theme-blue {
 	--nav-link-color: #c3ccd1;
 	--nav-hover-color: #e4e8eb;
 	--nav-submenu-bg: #6b818c; /* Lynch */
-	--table-nth-child: #101214;
+	--table-nth-child: #0e1012;
 	--button-text-alternate: #0e1012; /* if need to change for contrast, depending on bg color. normally white, but do black if need. */
 	--header-font: "Gemunu Libre", sans-serif;
 	--text-font: "Abel", sans-serif;
@@ -70,8 +72,8 @@ body, .theme-blue {
 	--orange1: #3BC14A;
 	/*--orange1: #00bcb7;*/
 	--white1: #e4e8eb;
-	--darkblue: #111828;
-	--paleblue: #0e1012; /*content bg */
+	--darkblue: #0b0d0e;
+	--paleblue: #101214; /*content bg */
 	--altblue: #1B2433;
 	--blue1: #3BC14A;
 	--lightgray: #afbcc2; /*main text*/
@@ -81,7 +83,7 @@ body, .theme-blue {
 	--success-color: #22AA44;
 	--size-notifications: 20px;
 }
-
+/*0e1012 -> 101214*/
 /*
 *{
 	margin: 0;
@@ -104,9 +106,10 @@ body{
 }
 
 .everything{
-	max-width: 90vw;
+	/*max-width: 90vw;*/
 	margin: auto;
 	/* margin-top: 32px; */
+	width: fit-content;
 }
 
 div.content, article.content{
@@ -123,6 +126,7 @@ div.content, article.content{
 	text-align: center;
 	border-radius: 8px;
 	/* overflow: ; NEED TO SET OVERFLOW TO WRAP */
+	width: fit-content;
 }
 
 div.contentSmall, article.contentSmall{
@@ -147,10 +151,11 @@ div.contentSmall, article.contentSmall{
 	margin: auto;
 	text-align: center;
 	border-radius: 8px;
+	width: fit-content;
 }
 
 .formDiv .form-box{
-	width: 60%;
+	width: 80%;
 }
 
 label {
@@ -356,11 +361,11 @@ nav {
 }
 
 ul .navigation{
-  list-style-type: none;
-  position: fixed;
-  top: 0;
-  overflow: hidden;
-  margin: auto;
+	list-style-type: none;
+	position: fixed;
+	top: 0;
+	overflow: hidden;
+	margin: auto;
 }
 
 .navdiv{
@@ -521,6 +526,7 @@ table{
 	border-collapse: collapse;
 	/*font-size: 0.8em;*/
 	font-size: 14px;
+	text-align: left;
 }
 
 tr:nth-child(even) {
@@ -705,7 +711,8 @@ p#footer_loading_note{
 		font-size: 12px;
 	}
 	.everything {
-		max-width: 92vw;
+		/*max-width: 92vw;*/
+		max-width: none;
 	}
 	ul.navigation {
 		padding-left: 0;
@@ -716,5 +723,155 @@ p#footer_loading_note{
 	}
 	.site-title{
 		font-size: 16px;
+	}
+	.formDiv .form-box{
+		width: 100%;
+	}
+}
+
+/* testing mobile device media query */
+p.mobile_device_test{
+	display: none;
+}
+
+/* Phones/tablet */
+@media only screen and (orientation: portrait) and ((pointer: coarse) or (pointer: none)){
+	/* something */
+	p.mobile_device_test{
+		display: block;
+	}
+}
+
+/* DELETE CONFIRM MODAL  --------------------------------------------------- */
+/** {box-sizing: border-box}*/
+
+button.modal_btn {
+	/*border: 2px solid var(--main-accent-color);*/
+	border-radius: 8px;
+	font-size: 20px;
+	/*background-color: var(--main-accent-color);*/
+	color: #FFFFFF;
+	/*color: var(--main-heading-color);*/
+	padding: 10px 16px;
+	transition: all 0.4s;
+	font-family: var(--text-font), sans-serif;
+	cursor: pointer;
+}
+
+button.modal_btn:hover {
+	opacity:1;
+	/*border: 2px solid var(--main-accent-color);
+	background-color: var(--form-bg-color);*/
+	color: var(--white1);
+}
+
+/* Float cancel and delete buttons and add an equal width */
+.modal_greenbtn, .modal_redbtn {
+  /*float: left;*/
+  /*width: 25%;*/
+}
+
+/* Add a color to the cancel button */
+button.modal_greenbtn {
+	background-color: var(--orange1);
+	border: 2px solid var(--orange1);
+}
+
+button.modal_greenbtn:hover {
+	background-color: var(--form-bg-color);
+}
+
+button.modal_greenbtn_b{
+	background-color: var(--form-bg-color);
+	border: 2px solid var(--success-color);
+}
+
+button.modal_greenbtn_b:hover{
+	background-color: var(--success-color);
+}
+
+/* Add a color to the delete button */
+button.modal_redbtn {
+	background-color: var(--errorColor);
+	border: 2px solid var(--errorColor);
+}
+
+button.modal_redbtn:hover{
+	background-color: var(--form-bg-color);
+}
+
+/* Add padding and center-align text to the container */
+.container {
+	padding: 16px;
+	text-align: center;
+}
+
+
+/* The Modal (background) */
+div.modal {
+	display: none; /* Hidden by default */
+	position: fixed; /* Stay in place */
+	z-index: 1; /* Sit on top */
+	left: 0;
+	top: 0;
+	width: 100%; /* Full width */
+	height: 100%; /* Full height */
+	overflow: auto; /* Enable scroll if needed */
+	background-color: var(--main-bg-color-trans);
+	/*padding-top: 20px;*/
+	padding: 0px;
+	border-radius: 8px;
+	font-family: var(--text-font);
+	font-size: 20px;
+	/* test below*/
+	margin: 0px;
+}
+
+/* Modal Content/Box */
+.modal-content {
+	background-color: var(--form-bg-color);
+	/*margin: 5% auto 15% auto; /* 5% from the top, 15% from the bottom and centered */
+	margin: 10% auto 15% auto;
+	border: 2px solid var(--midgray);
+	border-radius: 8px;
+	width: 25%; /* Could be more or less, depending on screen size */
+	color: var(--main-text-color);
+}
+
+/* The Modal Close Button (x) */
+span.close {
+	/* position:fixed;
+	right: 0px;
+	top: 0px;*/
+	float: right;
+	font-size: 40px; /* was 40 */
+	font-weight: bold;
+	color: var(--main-text-color);
+	padding: 0px;
+	margin: 0px;
+}
+
+.close:hover,
+.close:focus {
+	color: var(--errorColor);
+	cursor: pointer;
+}
+
+/* Clear floats */
+.clearfix::after {
+	content: "";
+	clear: both;
+	display: table;
+}
+
+/* Change styles for cancel button and delete button on extra small screens */
+@media screen and (max-width: 1024px) {
+  
+	.modal-content {
+		width: 80vw;
+	}
+	.modal_greenbtn, .modal_redbtn, .modal_btn {
+		width: 85%;
+		margin: 32px;
 	}
 }

@@ -15,6 +15,8 @@
 		{%block content %}{% endblock %}
 	</div>
 	{% include 'footer.html' %}
+	<!-- load JS -->
+	<script src="{{ url_for('static', filename='js/js.js') }}" defer></script>
 </body>
 
 </html>

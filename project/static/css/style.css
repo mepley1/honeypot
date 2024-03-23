@@ -46,9 +46,9 @@ body, .theme-blue {
 }
 
 :root, body, .theme-darkgreen {
-	/*--main-bg-color: #090a0c;*/
-	--main-bg-color: #0b0d0e;
-	--main-bg-color-trans: #0b0d0eee; /* for modal window*/
+	--main-bg-color: #090a0c; /* Slightly darker version. */
+	/*--main-bg-color: #0b0d0e;*/ /* Slightly brighter version of above. */
+	--main-bg-color-trans: #090a0cee; /* for modal window; same as above, but transparent. */
 	--main-accent-color: #3BC14A;
 	--main-heading-color: #e4e8eb;
 	--main-text-color: #d4dbde;
@@ -98,10 +98,10 @@ html{
 
 body{
 	padding: 0;
+	padding-bottom: 64px;
 	color: var(--main-text-color);
 	margin: 0;
 	font-size: 0;
-	padding-bottom: 48px;
 	background-color: var(--main-bg-color);
 }
 
@@ -114,7 +114,7 @@ body{
 
 div.content, article.content{
 	display: block;
-	width: auto;
+	/*width: auto;*/
 	min-width: 380px;
 	/* max-width: 100%; */
 	padding-top: 32px;
@@ -360,6 +360,7 @@ nav {
 	border: none;
 }
 
+/* Unused
 ul .navigation{
 	list-style-type: none;
 	position: fixed;
@@ -373,6 +374,7 @@ ul .navigation{
 	top: 0;
 	width: 100%;
 }
+*/
 
 li{
 	display: inline-block;
@@ -391,16 +393,7 @@ li a, .dropbtn{
 	border-right: 1px solid var(--paleblue);
 }
 
-/*
-li p.loggedInUsername{
-	padding: 0px;
-	margin-left: 24px;
-	margin-right: 0px;
-	font-family: var(--text-font);
-	display: inline-block;
-}
-*/
-/* try this, fix the margin/padding to match the rest of the navbar: */
+/* Fix the margin/padding to match the rest of the navbar: */
 li p.loggedInUsername{
 	font-size: 16px;
 	padding: 16px;
@@ -441,8 +434,8 @@ li.dropdown{
 	border-bottom: 1px solid var(--lightergray);
 }
 
-/*  before text experimenting
-
+/* before text experimenting */
+/*
 .dropdown-content a::before{
 	content: '[ ';
 	color: var(--main-text-color);
@@ -451,9 +444,14 @@ li.dropdown{
 .dropdown-content a::after{
 	content: ' ]';
 	color: var(--main-text-color);
+	float: inline-end;
 }
 
- END  ::before text experiment */
+.dropdown-content a:hover::before, .dropdown-content a:hover::after {
+	color: var(--main-bg-color);
+}
+*/
+/* END ::before text experiment*/
 
 .dropdown:hover .dropdown-content{
 	display: block;
@@ -535,13 +533,14 @@ tr:nth-child(even) {
 
 thead{
 	font-family: var(--header-font);
+	font-size: 16px;
 }
 
 td{
 	padding-left: 8px;
 	padding-right: 8px;
 	resize: both;
-	max-width: 500px;
+	max-width: 400px;
 	/* width: 9%; */
 }
 
@@ -740,13 +739,17 @@ p.mobile_device_test{
 	p.mobile_device_test{
 		display: block;
 	}
+	thead{
+		font-size: 12px;;
+	}
+
 }
 
 /* DELETE CONFIRM MODAL  --------------------------------------------------- */
 /** {box-sizing: border-box}*/
 
 button.modal_btn {
-	/*border: 2px solid var(--main-accent-color);*/
+	border: 2px solid var(--main-accent-color); /* .greenbtn/.redbtn etc will override colors */
 	border-radius: 8px;
 	font-size: 20px;
 	/*background-color: var(--main-accent-color);*/
@@ -771,7 +774,7 @@ button.modal_btn:hover {
   /*width: 25%;*/
 }
 
-/* Add a color to the cancel button */
+/* Colors for some extended button classes */
 button.modal_greenbtn {
 	background-color: var(--orange1);
 	border: 2px solid var(--orange1);
@@ -783,14 +786,14 @@ button.modal_greenbtn:hover {
 
 button.modal_greenbtn_b{
 	background-color: var(--form-bg-color);
-	border: 2px solid var(--success-color);
+	border: 2px solid var(--orange1);
 }
 
 button.modal_greenbtn_b:hover{
-	background-color: var(--success-color);
+	background-color: var(--orange1);
 }
 
-/* Add a color to the delete button */
+/* Red button for delete/cancel etc. */
 button.modal_redbtn {
 	background-color: var(--errorColor);
 	border: 2px solid var(--errorColor);
@@ -800,12 +803,20 @@ button.modal_redbtn:hover{
 	background-color: var(--form-bg-color);
 }
 
+button.modal_redbtn_b {
+	background-color: var(--form-bg-color);
+	border: 2px solid var(--errorColor);
+}
+
+button.modal_redbtn_b:hover{
+	background-color: var(--errorColor);
+}
+
 /* Add padding and center-align text to the container */
-.container {
+div.modal div.container {
 	padding: 16px;
 	text-align: center;
 }
-
 
 /* The Modal (background) */
 div.modal {

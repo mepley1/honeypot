@@ -117,7 +117,7 @@ def validate_cidr(_cidr_net):
     else:
         return False
 
-def validate_id_query(_id):
+def validate_id_glob(_id):
     """ Validate queried ID # (for GLOB queries). """
     # Numbers + GLOB chars. Loose max length to account for glob queries.
     id_pattern = r'^[0-9*\[\]\-^?]{1,24}$'
@@ -221,6 +221,7 @@ def index(u_path):
     #add to db schema later
     req_args_j = json.dumps(request.args)
     req_version = request.environ.get('SERVER_PROTOCOL') #http version
+    logging.debug(req_version)
 
     # NEW SECTION: Get the POST request body
     # Get the request body. Could be any content-type, format, encoding, etc, try to capture
@@ -331,7 +332,7 @@ def index(u_path):
             conn.commit()
         conn.close()
 
-        #Clear the cache so this request can be shown on main.stats
+        #Clear the cache so this request can appear on main.stats
         cache.clear()
 
         #logging.debug(response.status) #For testing
@@ -342,10 +343,11 @@ def index(u_path):
 
 @main.route('/stats')
 @login_required
-@cache.cached(query_string=True, timeout=30)
+@cache.cached(query_string=True, timeout=60)
 def stats():
     """ Pull the most recent requests from bots.db and pass data to stats template to display. """
-    records_limit = request.args.get('limit') or '100000' # Limit to # of records to prevent DOS
+    # Limit to # of records to prevent accidental (or intentional) DOS
+    records_limit = request.args.get('limit') or '100000'
 
     if records_limit.isnumeric():
         records_limit = int(records_limit)
@@ -422,8 +424,8 @@ def stats():
     return render_template('stats.html',
         #stats = stats,
         stats = stats_on_page, #pagination
-        page = page,#pagination
-        total_pages = total_pages,#pagination
+        page = page, #pagination
+        total_pages = total_pages, #pagination
         totalHits = totalHits,
         #statName = f'Most Recent {records_limit} HTTP Requests',
         statName = 'Most recent HTTP requests',
@@ -727,7 +729,7 @@ def queriesStats():
     return render_template('stats.html',
         stats = queriesStats,
         totalHits = len(queriesStats),
-        statName = f"Query String: {query_params}"
+        statName = f"Query String like: {query_params}",
         )
 
 @main.route('/stats/body', methods = ['GET'])
@@ -749,12 +751,12 @@ def bodyStats():
         c.close()
     conn.close()
 
-    flash('Note: LIKE query- %25 for wildcard', 'info')
+    #flash('Note: LIKE query- %25 for wildcard', 'info')
     return render_template('stats.html',
         stats = bodyStats,
         totalHits = len(bodyStats),
-        statName = f"Request Body",
-        #subtitle = f'{body}',
+        statName = f"Request Body like:",
+        subtitle = f'{body}',
         )
 
 @main.route('/stats/content-type', methods = ['GET'])
@@ -1094,12 +1096,8 @@ def stats_by_id_multiple():
     Usage: For ID#'s 100-199, use request_id=1?? """
     request_id = request.args.get('request_id', '')
 
-    if not validate_id_query(request_id):
-        flash('Bad request', 'errorn')
-        try:
-            return redirect(request.referrer)
-        except:
-            return render_template('index.html')
+    if not validate_id_glob(request_id):
+        return ('bad request', 400)
 
     with sqlite3.connect(requests_db) as conn:
         conn.row_factory = sqlite3.Row

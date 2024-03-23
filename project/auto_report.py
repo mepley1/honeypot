@@ -296,6 +296,7 @@ MISC_SOFTWARE_PROBE_PATHS = [
     '/userRpm/LanDhcpServerRpm.htm', #see above
     '/dnscfg.cgi', #D-Link ADSL DSL-2640U Unauthenticated Remote DNS Change Exploit https://www.exploit-db.com/exploits/42195
     '/goform/setSysTools', #https://packetstormsecurity.com/files/162258/Multilaser-Router-RE018-AC1200-Cross-Site-Request-Forgery.html
+    '/securityRealm/user/admin/descriptorByName/org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition/checkScriptCompile', #CVE-2019-1003000 Jenkins Script Security Plugin
 ]
 
 def is_misc_software_probe(request):
@@ -729,7 +730,7 @@ def check_all_rules():
         (is_cgi_probe, 'CGI probe/attack', ['21']),
         (is_injection_attack, 'Command injection', ['21']),
         (is_path_traversal, 'Path traversal', ['21']),
-        (is_misc_software_probe, 'Misc software probe', ['21']),
+        (is_misc_software_probe, 'Misc software probe/exploit', ['21']),
         (is_wordpress_attack, 'Wordpress attack', ['21']),
         (is_nmap_http_scan, 'Nmap HTTP scan', ['21']),
         (is_nmap_vuln_probe, 'Nmap probe', ['21']),

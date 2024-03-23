@@ -28,6 +28,7 @@
                     <a href="{{url_for('main.headers_key_search', key='X-Requested-With')}}">Headers: X-Requested-With</a>
                     <a href="{{url_for('main.hostname_stats', hostname='.cn')}}">Hostname: *.cn</a>
                     <a href="{{url_for('main.uaStats', ua='%http%://%')}}">User-Agent: Contains URL</a>
+                    <a href="{{url_for('main.bodyStats', body='0x%255B%255D=%25') }}">Body: AndroxGh0st/variants</a>{# '0x%255B%255D=%25' #}
                 </div>
             </li>
             <li class="dropdown">

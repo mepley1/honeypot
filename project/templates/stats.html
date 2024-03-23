@@ -1,8 +1,8 @@
 {% extends 'base.html' %}
 {% block title %}Stats{% endblock %}
 {% block content %}
-        {% if statName %}<h1><span class="dim">Stats -></span> {{statName}}</h1>{% endif %}
-        {% if subtitle %}<h2>{{subtitle}}</h2>{% endif %}
+        {% if statName %}<h1><span class="dim">Stats -></span> {{ statName|e }}</h1>{% endif %}
+        {% if subtitle %}<h2>{{ subtitle|e }}</h2>{% endif %}
         <article class="content">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
@@ -12,7 +12,7 @@
                 {% endif %}
             {% endwith %}
             {% if totalHits %}
-            <p>Total hits in database: <span class="mono">{{totalHits}}</span></p>
+            <p>Total hits in database: <span class="mono">{{ totalHits }}</span></p>
             {% endif %}
 
             {% if top_ip %}
@@ -54,70 +54,72 @@
             <!-- end analysis results -->
 
             {% if stats %}
-            <h2>Most Recent Requests matching query</h2>
+            <h2>Most recent requests matching query</h2>
             <div id="dataToggles">
                 <label>Toggle data columns:</label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataID">#
+                    <input type="checkbox" name="dataCheckbox" value="dataID" id="cbID">#
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataIP" checked>IP
+                    <input type="checkbox" name="dataCheckbox" value="dataIP" id="cbIP" checked>IP
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataMethod" checked>Method
+                    <input type="checkbox" name="dataCheckbox" value="dataMethod" id="cbMethod" checked>Method
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataScheme">Scheme
+                    <input type="checkbox" name="dataCheckbox" value="dataScheme" id="cbScheme">Scheme
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataHost">Host
+                    <input type="checkbox" name="dataCheckbox" value="dataHost" id="cbHost">Host
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataPath" checked>Path
+                    <input type="checkbox" name="dataCheckbox" value="dataPath" id="cbPath" checked>Path
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataQueryString" checked>Query String
+                    <input type="checkbox" name="dataCheckbox" value="dataQueryString" id="cbQueryString" checked>Query String
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataURL">URL
+                    <input type="checkbox" name="dataCheckbox" value="dataURL" id="cbURL">URL
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataPostData" checked>Body
+                    <input type="checkbox" name="dataCheckbox" value="dataPostData" id="cbBody" checked>Body
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataContentType">Content-Type
+                    <input type="checkbox" name="dataCheckbox" value="dataContentType" id="cbContentType">Content-Type
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataHostname" checked>Hostname
+                    <input type="checkbox" name="dataCheckbox" value="dataHostname" id="cbHostname" checked>Hostname
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataTime" checked>Time
+                    <input type="checkbox" name="dataCheckbox" value="dataTime" id="cbTime" checked>Time
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataUA" checked>User Agent
+                    <input type="checkbox" name="dataCheckbox" value="dataUA" id="cbUA" checked>User Agent
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataHeaders">Headers
+                    <input type="checkbox" name="dataCheckbox" value="dataHeaders" id="cbHeaders">Headers
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataReferer">Referer
+                    <input type="checkbox" name="dataCheckbox" value="dataReferer" id="cbReferer">Referer
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataCountry">Country
+                    <input type="checkbox" name="dataCheckbox" value="dataCountry" id="cbCountry">Country
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataLinks" checked>Info Links
+                    <input type="checkbox" name="dataCheckbox" value="dataLinks" id="cbLinks" checked>Info Links
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataReported">Reported
+                    <input type="checkbox" name="dataCheckbox" value="dataReported" id="cbReported">Reported
                 </label>
-                {% if current_user.is_admin %}<label>
-                    <input type="checkbox" name="dataCheckbox" value="dataDeleteRow">Delete
-                </label>{% endif %}
+                {% if current_user.is_admin %}
+                <label>
+                    <input type="checkbox" name="dataCheckbox" value="dataDeleteRow" id="cbDeleteRow">Delete
+                </label>
+                {% endif %}
             </div>
             <br />
 
-            <table>
+            <table id="dataTable">
                 <thead>
                 <tr>
                     <th class="dataID hidden">#</th>
@@ -168,6 +170,7 @@
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="delete-button">&#10060; Delete</button>
                         </form>-->
+                        <!-- end OLD delete-button -->
 
                         <!-- delete button; opens delete confirmation modal -->
                         <button class="delete-button" id="delete_button_{{row['id']}}" for_id="{{row['id']}}">&#10060;</button>
@@ -179,8 +182,8 @@
                                     <h1>Delete Row {{ row['id'] }}</h1>
                                     <p>Are you sure you want to delete the row?</p>
                                     <div class="clearfix">
-                                        <button type="button" class="modal_btn modal_greenbtn_b modal_close" id="modal_cancel_{{row['id']}}" for_id="{{row['id']}}">Cancel</button>
-                                        <button type="submit" class="modal_btn modal_redbtn">Delete</button>
+                                        <button type="button" class="modal_btn modal_redbtn_b modal_close" id="modal_cancel_{{row['id']}}" for_id="{{row['id']}}">Cancel</button>
+                                        <button type="submit" class="modal_btn modal_greenbtn">Delete</button>
                                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     </div>
                                 </div>

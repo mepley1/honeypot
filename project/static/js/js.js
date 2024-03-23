@@ -6,6 +6,7 @@ $(document).ready(function() {
     });
 });
 
+
 // Fetch user's preferred color theme (via /profile/get_theme), and add theme class to <body> element.
 // Otherwise, if it's a cached route, the theme (class) won't take effect until cache expires.
 function apply_pref_theme() {
@@ -23,36 +24,65 @@ document.getElementById("pref_theme").addEventListener("change", function() {
     formElement.submit();
 });
 
-// Testing: show/hide sets of data for a more compact view. Will use later for a mobile view. (function checks a pre-made set of checkboxes)
-// document.querySelector("#simple_view_btn").addEventListener("click", function() {
+
+// Hide most data columns, only show the most important - to make it somewhat readable on mobiles.
+// To-do: Should save which columns are currently checked in a cookie so user's current set can persist across pages.
+
 function apply_simple_view() {
-    const inactiveData = document.querySelectorAll(".dataID, .dataScheme, .dataHost, .dataURL, .dataContentType, .dataHostname, .dataTime, .dataUA, .dataHeaders, .dataReferer, .dataCountry");
-    const activeData = document.querySelectorAll(".dataIP, .dataMethod, .dataPath, .dataQueryString, .dataPostData, .dataLinks, .dataReported");
-    // Uncheck inactiveData columns
+
+    // Columns to hide:
+    const inactiveData = document.querySelectorAll(".dataID, .dataScheme, .dataMethod, .dataHost, .dataURL, .dataContentType, .dataHostname, .dataTime, .dataUA, .dataQueryString, .dataPostData, .dataLinks, .dataReported, .dataHeaders, .dataReferer, .dataCountry");
+    const inactiveCheckboxes = document.querySelectorAll("#cbID, #cbScheme, #cbMethod, #cbHost, #cbURL, #cbContentType, #cbHostname, #cbTime, #cbUA, #cbQueryString, #cbBody, #cbLinks, #cbReported, #cbHeaders, #cbReferer, #cbCountry");
+    // Columns to display:
+    const activeData = document.querySelectorAll(".dataIP, .dataPath");
+    const activeCheckboxes = document.querySelectorAll("#cbIP, #cbPath");
+
+    // Hide inactiveData columns
     for (let i = 0; i < inactiveData.length; i++) {
         inactiveData[i].style.display = "none";
         inactiveData[i].classList.add("hidden");
     };
-    // Check activeData columns
+    // Uncheck inactiveData checkboxes
+    for (let i = 0; i < inactiveCheckboxes.length; i++) {
+        inactiveCheckboxes[i].checked = false;
+    };
+
+    // Display activeData columns
     for (let i = 0; i < activeData.length; i++) {
         activeData[i].style.display = "flexbox";
         activeData[i].classList.remove("hidden");
-        activeData[i].style.width = "10vw";
+        //activeData[i].style.width = "10vw";
+    };
+    // Check activeData checkboxes
+    for (let i = 0; i < activeCheckboxes.length; i++) {
+        activeCheckboxes[i].checked = true;
     };
 }
-// );
 
-// testing with jquery https://forum.jquery.com/portal/en/community/topic/how-to-pass-a-dynamic-div-id-to-a-function-in-jquery
-// Show modal dialog when a row's delete-button is clicked.
-// WORKING: use for_id="row['id']" in HTML element attr, then use $(this).attr("for_id") to getElementById
+// Media query for mobile devices; if mobile, call apply_simple_view()
+const mediaQuery = window.matchMedia('only screen and (orientation: portrait) and ((pointer: coarse) or (pointer: none))')
+function handleTabletChange(e) {
+    if (e.matches) {
+      console.log('Client appears to be a mobile device; applying simple data view.')
+      apply_simple_view()
+    }
+}
+mediaQuery.addListener(handleTabletChange)
+handleTabletChange(mediaQuery)
 
-/*$('.delete-button').click(function(e) {
+// ### MODALS ###
+
+// Show modal dialog when a row's delete-button is clicked. (jquery version) (reference: https://forum.jquery.com/portal/en/community/topic/how-to-pass-a-dynamic-div-id-to-a-function-in-jquery)
+// Usage: .delete-button element should have attr for_id="row['id']". Then use $(this).attr("for_id") to construct Id, then getElementById
+/*
+$('.delete-button').click(function(e) {
     var modal_id = $(this).attr("for_id");
     document.getElementById("delete_confirmation_modal_".concat(modal_id)).style.display='block';
-});*/
+});
+*/
 
 // Refactoring without jQuery: Show modal when a row's delete-button is clicked (event listener).
-// Get all elements with the class name "delete-button"
+// Get all elements with class "delete-button"
 var deleteButtons = document.querySelectorAll('.delete-button');
 // Add click event listener to each delete button
 deleteButtons.forEach(function(button) {
@@ -77,7 +107,7 @@ $('.modal_close').click(function(e) {
     document.getElementById("delete_confirmation_modal_".concat(modal_id)).style.display='none';
 });
 
-// Close modal when you click anywhere outside of it. (refactored without deprecated window.event)
+// Close modal when you click anywhere outside of it.
 var modals = document.querySelectorAll('.modal');
 $('.modal').click(function(e) {
     modals.forEach(function(modal) {
@@ -86,3 +116,5 @@ $('.modal').click(function(e) {
         }
     });
 });
+
+// ### END MODALS ###

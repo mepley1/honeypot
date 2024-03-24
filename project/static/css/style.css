@@ -101,7 +101,7 @@ body{
 	padding-bottom: 64px;
 	color: var(--main-text-color);
 	margin: 0;
-	font-size: 0;
+	font-size: 0; /* clear whitespace */
 	background-color: var(--main-bg-color);
 }
 
@@ -637,8 +637,13 @@ a.no-decoration:hover{
 	/* content-visibility: hidden; */ /* This is making it not display at all, even after toggling the checkbox */
 }
 
+div#dataToggles > label{
+	display: inline-block; /* to keep checkbox+text together */
+}
+
 div#dataToggles, div#dataToggles > label {
 	font-size: 16px;
+	margin-left: 0px;
 	margin-right: 8px;
 	padding-bottom: 1em;
 }
@@ -740,7 +745,19 @@ p.mobile_device_test{
 		display: block;
 	}
 	thead{
-		font-size: 12px;;
+		font-size: 12px;
+	}
+	/* Style pagination like buttons for mobiles */
+	.pagination{
+		font-size: 14px;
+	}
+	.pagination a{
+		border: 1px solid var(--main-accent-color);
+		border-radius: 6px;
+		padding: 4px 6px;
+		display: inline-block;
+		color: var(--main-text-color);
+		margin-top: 1px;
 	}
 
 }
@@ -836,6 +853,7 @@ div.modal {
 	font-size: 20px;
 	/* test below*/
 	margin: 0px;
+	/*backdrop-filter: invert(100%);*/
 }
 
 /* Modal Content/Box */

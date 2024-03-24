@@ -20,7 +20,7 @@
                 </tr>
                 {% for header_name, header_value in stats.items(): %}
                 <tr>
-                    <td>{{header_name}}</td>
+                    <td>{{header_name|e}}</td>
                     <td class="mono small">{{header_value|e}}</td>
                 </tr>
                 {% endfor %}

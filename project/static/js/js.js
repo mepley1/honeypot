@@ -1,3 +1,4 @@
+// ### COLUMN TOGGLING ###
 // Toggle hidden data columns when checkboxes checked/unchecked (event listener)
 $(document).ready(function() {
     $('input[type="checkbox"]').click(function() {
@@ -6,36 +7,21 @@ $(document).ready(function() {
     });
 });
 
-
-// Fetch user's preferred color theme (via /profile/get_theme), and add theme class to <body> element.
-// Otherwise, if it's a cached route, the theme (class) won't take effect until cache expires.
-function apply_pref_theme() {
-    fetch('/profile/get_theme')
-        .then(x => x.text())
-        .then(y => document.body.classList = y);
-}
-apply_pref_theme();
-
-// Event listener; Submit theme form on option change, + display loading note.
-document.getElementById("pref_theme").addEventListener("change", function() {
-	document.getElementById("footer_loading_note").style.display="block";
-    // Submit form.
-    const formElement = document.getElementById('theme_form');
-    formElement.submit();
-});
-
-
 // Hide most data columns, only show the most important - to make it somewhat readable on mobiles.
 // To-do: Should save which columns are currently checked in a cookie so user's current set can persist across pages.
 
 function apply_simple_view() {
 
     // Columns to hide:
-    const inactiveData = document.querySelectorAll(".dataID, .dataScheme, .dataMethod, .dataHost, .dataURL, .dataContentType, .dataHostname, .dataTime, .dataUA, .dataQueryString, .dataPostData, .dataLinks, .dataReported, .dataHeaders, .dataReferer, .dataCountry");
-    const inactiveCheckboxes = document.querySelectorAll("#cbID, #cbScheme, #cbMethod, #cbHost, #cbURL, #cbContentType, #cbHostname, #cbTime, #cbUA, #cbQueryString, #cbBody, #cbLinks, #cbReported, #cbHeaders, #cbReferer, #cbCountry");
+    //const inactiveData = document.querySelectorAll(".dataID, .dataScheme, .dataMethod, .dataHost, .dataURL, .dataContentType, .dataHostname, .dataTime, .dataUA, .dataQueryString, .dataPostData, .dataLinks, .dataReported, .dataHeaders, .dataReferer, .dataCountry");
+    const inactiveData = document.querySelectorAll("th.sv0, td.sv0"); // .sv0 = inactive for simple view
+    //const inactiveCheckboxes = document.querySelectorAll("#cbID, #cbScheme, #cbMethod, #cbHost, #cbURL, #cbContentType, #cbHostname, #cbTime, #cbUA, #cbQueryString, #cbBody, #cbLinks, #cbReported, #cbHeaders, #cbReferer, #cbCountry");
+    const inactiveCheckboxes = document.querySelectorAll("div#dataToggles input.sv0");
     // Columns to display:
-    const activeData = document.querySelectorAll(".dataIP, .dataPath");
-    const activeCheckboxes = document.querySelectorAll("#cbIP, #cbPath");
+    //const activeData = document.querySelectorAll(".dataIP, .dataPath");
+    const activeData = document.querySelectorAll("th.sv1, td.sv1"); // .sv1 = active for simple view
+    //const activeCheckboxes = document.querySelectorAll("#cbIP, #cbPath");
+    const activeCheckboxes = document.querySelectorAll("div#dataToggles input.sv1");
 
     // Hide inactiveData columns
     for (let i = 0; i < inactiveData.length; i++) {
@@ -57,6 +43,13 @@ function apply_simple_view() {
     for (let i = 0; i < activeCheckboxes.length; i++) {
         activeCheckboxes[i].checked = true;
     };
+
+    // refactoring - Check activeData checkboxes
+    /*
+    activeCheckboxes.forEach((el, i) => {
+        el[i].checked = true;
+    });
+    */
 }
 
 // Media query for mobile devices; if mobile, call apply_simple_view()
@@ -69,6 +62,27 @@ function handleTabletChange(e) {
 }
 mediaQuery.addListener(handleTabletChange)
 handleTabletChange(mediaQuery)
+
+
+// ### COLOR THEMES ###
+
+// Fetch user's preferred color theme (via /profile/get_theme), and add theme class to <body> element.
+// Otherwise, if it's a cached route, the theme (class) won't take effect until cache expires.
+function apply_pref_theme() {
+    fetch('/profile/get_theme')
+        .then(x => x.text())
+        .then(y => document.body.classList = y);
+}
+apply_pref_theme();
+
+// Event listener; Submit theme form on option change, + display loading note.
+document.getElementById("pref_theme").addEventListener("change", function() {
+	document.getElementById("footer_loading_note").style.display="block";
+    // Submit form.
+    const formElement = document.getElementById('theme_form');
+    formElement.submit();
+});
+
 
 // ### MODALS ###
 
@@ -112,6 +126,7 @@ var modals = document.querySelectorAll('.modal');
 $('.modal').click(function(e) {
     modals.forEach(function(modal) {
         if (e.target == modal && modal.contains(e.target)) {
+            console.log("Clicked outside modal; closing.");
             modal.style.display = "none";
         }
     });

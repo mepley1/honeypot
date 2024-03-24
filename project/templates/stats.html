@@ -58,58 +58,58 @@
             <div id="dataToggles">
                 <label>Toggle data columns:</label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataID" id="cbID">#
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataID" id="cbID">#
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataIP" id="cbIP" checked>IP
+                    <input type="checkbox" name="dataCheckbox" class="sv1" value="dataIP" id="cbIP" checked>IP
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataMethod" id="cbMethod" checked>Method
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataMethod" id="cbMethod" checked>Method
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataScheme" id="cbScheme">Scheme
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataScheme" id="cbScheme">Scheme
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataHost" id="cbHost">Host
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataHost" id="cbHost">Host
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataPath" id="cbPath" checked>Path
+                    <input type="checkbox" name="dataCheckbox" class="sv1" value="dataPath" id="cbPath" checked>Path
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataQueryString" id="cbQueryString" checked>Query String
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataQueryString" id="cbQueryString" checked>Query String
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataURL" id="cbURL">URL
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataURL" id="cbURL">URL
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataPostData" id="cbBody" checked>Body
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataPostData" id="cbBody" checked>Body
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataContentType" id="cbContentType">Content-Type
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataContentType" id="cbContentType">Content-Type
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataHostname" id="cbHostname" checked>Hostname
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataHostname" id="cbHostname" checked>Hostname
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataTime" id="cbTime" checked>Time
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataTime" id="cbTime" checked>Time
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataUA" id="cbUA" checked>User Agent
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataUA" id="cbUA" checked>User Agent
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataHeaders" id="cbHeaders">Headers
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataHeaders" id="cbHeaders">Headers
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataReferer" id="cbReferer">Referer
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataReferer" id="cbReferer">Referer
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataCountry" id="cbCountry">Country
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataCountry" id="cbCountry">Country
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataLinks" id="cbLinks" checked>Info Links
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataLinks" id="cbLinks" checked>Info Links
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataReported" id="cbReported">Reported
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataReported" id="cbReported">Reported
                 </label>
                 {% if current_user.is_admin %}
                 <label>
@@ -122,47 +122,47 @@
             <table id="dataTable">
                 <thead>
                 <tr>
-                    <th class="dataID hidden">#</th>
-                    <th class="dataIP">IP</th>
-                    <th class="dataMethod">Method</th>
-                    <th class="dataScheme hidden">Scheme</th>
-                    <th class="dataHost hidden">Host</th>
-                    <th class="dataPath">Path</th>
-                    <th class="dataQueryString">Query String</th>
-                    <th class="dataURL hidden">URL</th>
-                    <th class="dataPostData">Body</th>
-                    <th class="dataContentType hidden">Content-Type</th>
-                    <th class="dataHostname">Hostname</th>
-                    <th class="dataTime">Time</th>
-                    <th class="dataUA">User Agent</th>
-                    <th class="dataHeaders hidden">Headers</th>
-                    <th class="dataReferer hidden">Referer</th>
-                    <th class="dataCountry hidden">Country</th>
-                    <th class="dataLinks">Links</th>
-                    <th class="dataReported hidden">Reported</th>
+                    <th class="dataID hidden sv0">#</th>
+                    <th class="dataIP sv1">IP</th>
+                    <th class="dataMethod sv0">Method</th>
+                    <th class="dataScheme hidden sv0">Scheme</th>
+                    <th class="dataHost hidden sv0">Host</th>
+                    <th class="dataPath sv1">Path</th>
+                    <th class="dataQueryString sv0">Query String</th>
+                    <th class="dataURL hidden sv0">URL</th>
+                    <th class="dataPostData sv0">Body</th>
+                    <th class="dataContentType hidden sv0">Content-Type</th>
+                    <th class="dataHostname sv0">Hostname</th>
+                    <th class="dataTime sv0">Time</th>
+                    <th class="dataUA sv0">User Agent</th>
+                    <th class="dataHeaders hidden sv0">Headers</th>
+                    <th class="dataReferer hidden sv0">Referer</th>
+                    <th class="dataCountry hidden sv0">Country</th>
+                    <th class="dataLinks sv0">Links</th>
+                    <th class="dataReported hidden sv0">Reported</th>
                     {% if current_user.is_admin %}<th class="dataDeleteRow hidden">Delete</th>{% endif %}
                 </tr>
                 </thead>
                 {% for row in stats: %}
                 <tr>
-                    <td class="dataID dataToLink dim hidden"><a href="{{url_for('main.headers_single_json', request_id=row['id'])}}">{{row['id']}}</a></td>
-                    <td class="dataIP ipToLink"><a href="{{url_for('main.ipStats', ipAddr=row['remoteaddr'])}}">{{row['remoteaddr']}}</a></td>
-                    <td class="dataMethod dataToLink"><a href="{{url_for('main.methodStats', method=row['requestmethod'])}}">{{row['requestmethod']}}</a></td>
-                    <td class="dataScheme hidden">{{ row['scheme'] }}</td>
-                    <td class="dataHost hidden dataToLink"><a href="{{url_for('main.host_stats', host=row['host'])}}">{{ row['host']|e }}</a></td>
-                    <td class="dataPath dataToLink"><a href="{{url_for('main.path_stats', path=row['path'])}}">{{ row['path'] }}</a></td>
-                    <td class="dataQueryString dataToLink mono smaller"><a href="{{url_for('main.queriesStats', query=row['querystring']|urlencode)}}">{{row['querystring']|e}}</a></td>
-                    <td class="dataURL dataToLink hidden"><a href="{{url_for('main.urlStats', url=row['url'])}}">{{row['url']|e}}</a></td>
-                    <td class="dataPostData dataToLink mono smaller"><a href="{{url_for('main.bodyStats', body=row['postjson']|quote_plus)}}">{{row['postjson']|e}}</a></td>
-                    <td class="dataContentType dataToLink hidden"><a href="{{url_for('main.content_type_stats', ct=row['contenttype']) }}">{{row['contenttype']|e}}</a></td>
-                    <td class="dataHostname dataToLink"><a href="{{url_for('main.hostname_stats', hostname=row['hostname'])}}">{{row['hostname']}}</a></td>
-                    <td class="dataTime dataToLink"><a href="{{url_for('main.date_stats', date=row['time'], accuracy=16)}}">{{row['time']}}</a></td>
-                    <td class="dataUA dataToLink"><a href="{{url_for('main.uaStats', ua=row['useragent']|urlencode)}}">{{row['useragent']|e}}</a></td>
-                    <td class="dataHeaders smallerer mono hidden">{{row['headers_json']|e}}</td>
-                    <td class="dataReferer hidden">{{row['referer']|e}}</td>
-                    <td class="dataCountry hidden">{{row['country']|e}}</td>
-                    <td class="dataLinks ipToLink"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> <span class="dim">|</span> <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a> <span class="dim">|</span> <a href="https://virustotal.com/gui/ip-address/{{row['remoteaddr']}}" target="_blank">VirusTotal</a> <span class="dim">|</span> <a href="{{url_for('analysis.ip_per_day', ip=row['remoteaddr'], days=30)}}" target="_blank">Graph</a></td>
-                    <td class="dataReported hidden">{{row['reported']}}</td>
+                    <td class="dataID dataToLink dim hidden sv0"><a href="{{url_for('main.headers_single_json', request_id=row['id'])}}">{{row['id']}}</a></td>
+                    <td class="dataIP ipToLink sv1"><a href="{{url_for('main.ipStats', ipAddr=row['remoteaddr'])}}">{{row['remoteaddr']}}</a></td>
+                    <td class="dataMethod dataToLink sv0"><a href="{{url_for('main.methodStats', method=row['requestmethod'])}}">{{row['requestmethod']}}</a></td>
+                    <td class="dataScheme hidden sv0">{{ row['scheme'] }}</td>
+                    <td class="dataHost hidden dataToLink sv0"><a href="{{url_for('main.host_stats', host=row['host'])}}">{{ row['host']|e }}</a></td>
+                    <td class="dataPath dataToLink sv1"><a href="{{url_for('main.path_stats', path=row['path'])}}">{{ row['path'] }}</a></td>
+                    <td class="dataQueryString dataToLink mono smaller sv0"><a href="{{url_for('main.queriesStats', query=row['querystring']|urlencode)}}">{{row['querystring']|e}}</a></td>
+                    <td class="dataURL dataToLink hidden sv0"><a href="{{url_for('main.urlStats', url=row['url'])}}">{{row['url']|e}}</a></td>
+                    <td class="dataPostData dataToLink mono smaller sv0"><a href="{{url_for('main.bodyStats', body=row['postjson']|quote_plus)}}">{{row['postjson']|e}}</a></td>
+                    <td class="dataContentType dataToLink hidden sv0"><a href="{{url_for('main.content_type_stats', ct=row['contenttype']) }}">{{row['contenttype']|e}}</a></td>
+                    <td class="dataHostname dataToLink sv0"><a href="{{url_for('main.hostname_stats', hostname=row['hostname'])}}">{{row['hostname']}}</a></td>
+                    <td class="dataTime dataToLink sv0"><a href="{{url_for('main.date_stats', date=row['time'], accuracy=16)}}">{{row['time']}}</a></td>
+                    <td class="dataUA dataToLink sv0"><a href="{{url_for('main.uaStats', ua=row['useragent']|urlencode)}}">{{row['useragent']|e}}</a></td>
+                    <td class="dataHeaders smallerer mono hidden sv0">{{row['headers_json']|e}}</td>
+                    <td class="dataReferer hidden sv0">{{row['referer']|e}}</td>
+                    <td class="dataCountry hidden sv0">{{row['country']|e}}</td>
+                    <td class="dataLinks ipToLink sv0"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> <span class="dim">|</span> <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a> <span class="dim">|</span> <a href="https://virustotal.com/gui/ip-address/{{row['remoteaddr']}}" target="_blank">VirusTotal</a> <span class="dim">|</span> <a href="{{url_for('analysis.ip_per_day', ip=row['remoteaddr'], days=30)}}" target="_blank">Graph</a></td>
+                    <td class="dataReported hidden sv0">{{row['reported']}}</td>
                     {% if current_user.is_admin %} {# Only show delete button+modal if user is admin #}
                     <td class="dataDeleteRow dataToLink dim hidden">
                         <!-- OLD delete-button, leave here until modal+JS are working fully -->

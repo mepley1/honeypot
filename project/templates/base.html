@@ -6,7 +6,7 @@
     <title>{% block title %}Dashboard{% endblock %}</title>
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-	<script src="https://code.jquery.com/jquery-1.12.4.min.js"></script> <!-- to show/hide columns on stats.html -->
+	<script src="https://code.jquery.com/jquery-1.12.4.min.js"></script>
 </head>
 
 <body class="{{ request.cookies.get('pref_theme')|e }}">

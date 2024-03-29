@@ -94,6 +94,7 @@ body, .theme-blue {
 html{
 	font-family: var(--text-font), sans-serif;
 	/*background-color: var(--main-bg-color);*/
+	/*filter: invert(100%);*/
 }
 
 body{
@@ -117,6 +118,7 @@ div.content, article.content{
 	/*width: auto;*/
 	min-width: 380px;
 	/* max-width: 100%; */
+	width: fit-content;
 	padding-top: 32px;
 	padding-bottom: 32px;
 	padding-left: 16px;
@@ -126,7 +128,6 @@ div.content, article.content{
 	text-align: center;
 	border-radius: 8px;
 	/* overflow: ; NEED TO SET OVERFLOW TO WRAP */
-	width: fit-content;
 }
 
 div.contentSmall, article.contentSmall{
@@ -527,6 +528,11 @@ table{
 	text-align: left;
 }
 
+tr{
+	padding-left: 8px;
+	padding-right: 8px;
+}
+
 tr:nth-child(even) {
 	background-color: var(--table-nth-child);
 }
@@ -534,6 +540,11 @@ tr:nth-child(even) {
 thead{
 	font-family: var(--header-font);
 	font-size: 16px;
+}
+
+th{
+	padding-left: 8px;
+	padding-right: 8px;
 }
 
 td{
@@ -733,12 +744,13 @@ p#footer_loading_note{
 	}
 }
 
-/* testing mobile device media query */
+/* testing mobile device media query. This p should only be displayed for mobiles/tiny screens. */
 p.mobile_device_test{
 	display: none;
+	font-size: 10px;
 }
 
-/* Phones/tablet */
+/* Phones/tablets */
 @media only screen and (orientation: portrait) and ((pointer: coarse) or (pointer: none)){
 	/* something */
 	p.mobile_device_test{
@@ -758,6 +770,16 @@ p.mobile_device_test{
 		display: inline-block;
 		color: var(--main-text-color);
 		margin-top: 1px;
+	}
+	div.contentSmall, article.contentSmall{
+		width: fit-content;
+	}
+	p.plot_image{
+		/*max-width: 1vw;*/
+	}
+	p.plot_image > img{
+/*		width: 75%;*/
+		max-width: 100%;
 	}
 
 }
@@ -877,6 +899,8 @@ span.close {
 	font-weight: bold;
 	color: var(--main-text-color);
 	padding: 0px;
+	padding-left: 0px;
+	padding-right: 16px;
 	margin: 0px;
 }
 

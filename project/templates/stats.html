@@ -27,7 +27,9 @@
             {% endif %}
             <!-- analysis route image data -->
             {% if image_data %}
-            <p class="plot_image"><img src="data:image/png;base64,{{image_data}}"/></p>
+            <p class="plot_image">
+                <img src="data:image/png;base64,{{image_data}}"/>
+            </p>
             {% endif %}
             <!-- end image data -->
 
@@ -106,10 +108,10 @@
                     <input type="checkbox" name="dataCheckbox" class="sv0" value="dataCountry" id="cbCountry">Country
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataLinks" id="cbLinks" checked>Info Links
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataReported" id="cbReported">Reported
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataReported" id="cbReported">Reported
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataLinks" id="cbLinks" checked>Info Links
                 </label>
                 {% if current_user.is_admin %}
                 <label>
@@ -138,8 +140,8 @@
                     <th class="dataHeaders hidden sv0">Headers</th>
                     <th class="dataReferer hidden sv0">Referer</th>
                     <th class="dataCountry hidden sv0">Country</th>
-                    <th class="dataLinks sv0">Links</th>
                     <th class="dataReported hidden sv0">Reported</th>
+                    <th class="dataLinks sv0">Links</th>
                     {% if current_user.is_admin %}<th class="dataDeleteRow hidden">Delete</th>{% endif %}
                 </tr>
                 </thead>
@@ -161,8 +163,8 @@
                     <td class="dataHeaders smallerer mono hidden sv0">{{row['headers_json']|e}}</td>
                     <td class="dataReferer hidden sv0">{{row['referer']|e}}</td>
                     <td class="dataCountry hidden sv0">{{row['country']|e}}</td>
-                    <td class="dataLinks ipToLink sv0"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> <span class="dim">|</span> <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a> <span class="dim">|</span> <a href="https://virustotal.com/gui/ip-address/{{row['remoteaddr']}}" target="_blank">VirusTotal</a> <span class="dim">|</span> <a href="{{url_for('analysis.ip_per_day', ip=row['remoteaddr'], days=30)}}" target="_blank">Graph</a></td>
                     <td class="dataReported hidden sv0">{{row['reported']}}</td>
+                    <td class="dataLinks ipToLink sv0"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> <span class="dim">|</span> <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a> <span class="dim">|</span> <a href="https://virustotal.com/gui/ip-address/{{row['remoteaddr']}}" target="_blank">VirusTotal</a> <span class="dim">|</span> <a href="{{url_for('analysis.ip_per_day', ip=row['remoteaddr'], days=30)}}" target="_blank">Graph</a></td>
                     {% if current_user.is_admin %} {# Only show delete button+modal if user is admin #}
                     <td class="dataDeleteRow dataToLink dim hidden">
                         <!-- OLD delete-button, leave here until modal+JS are working fully -->
@@ -204,7 +206,7 @@
                 {% if page < total_pages %}<a href="?page={{ page + 1 }}" class="pagination">[ Next ]</a>{% endif %}
                 <br/>
                 {% for num in range(1, total_pages + 1) %}
-                    {% if num <= 10 or num % 10 == 0 or num == total_pages %}
+                    {% if num <= 10 or (num <= 100 and num % 10 == 0) or num % 100 == 0 or num == total_pages %}
                     <a href="?page={{ num }}" class="pagination">{{ num }}</a>
                     {% endif %}
                 {% endfor %}

@@ -25,9 +25,11 @@
                 </tr>
                 {% endfor %}
             </table>
-            <p>
-                <a href="{{ url_for('main.headers_single_json', request_id=prev_request_id) }}" class="pagination">Previous</a>&nbsp;-&nbsp;<a href="{{ url_for('main.headers_single_json', request_id=next_request_id) }}" class="pagination">Next</a>
-            </p>
+            <div class="pagination">
+                <p>
+                    <a href="{{ url_for('main.headers_single_json', request_id=prev_request_id) }}" class="pagination">Previous</a>&nbsp;-&nbsp;<a href="{{ url_for('main.headers_single_json', request_id=next_request_id) }}" class="pagination">Next</a>
+                </p>
+            </div>
 
         </article>
 {% endblock %}

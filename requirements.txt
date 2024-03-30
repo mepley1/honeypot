@@ -4,6 +4,7 @@ flask-caching
 flask-login
 flask-sqlalchemy
 Flask-WTF
+matplotlib
 python-dateutil
 requests
 Werkzeug

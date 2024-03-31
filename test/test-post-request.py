@@ -4,14 +4,19 @@ import sys
 
 if len(sys.argv) == 2:
     myobj = {sys.argv[1]:sys.argv[1]}
+    myobj_string = sys.argv[1].encode(errors='replace')
 elif len(sys.argv) > 2:
     myobj = {sys.argv[1]:sys.argv[2]}
+    myobj_string = sys.argv[1].encode(errors='replace')
 else:
     myobj = {'key 1': 'value 1', 'key 2': 'value 2'}
+    myobj_string = 'lorem ipsum'
 
-url = 'http://localhost:5000/'
+url = 'http://localhost:5000/' + myobj_string.decode()
 headers = {
-    'User-Agent': 'test',
+    #'Host': myobj_string.decode('latin-1', errors='replace'),
+    'User-Agent': myobj_string,
+    'test-1': myobj_string,
 }
 
 x = requests.post(url, json = myobj, headers = headers)

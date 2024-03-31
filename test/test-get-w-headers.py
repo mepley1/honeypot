@@ -18,11 +18,12 @@ url = 'http://localhost:5000/test/get/headers'
 
 headers = {
     'User-Agent': 'test',
-    #'Proxy-Connection': 'keep-alive', #Proxy header detection
-    #'proxy-authorization': 'test',
-    'host': 'example.com:80', #request smuggling
-    'test1': myobj1,
-    'test2': myobj2,
+    'host': 'example.com',
+    'test-1': myobj1,
+    'test-2': myobj2,
+    'test-bytes': b'\xa8\xc8\xa9\xff',
+    'test-header-inject': "};print('test');quit();",
+    't5': "<img src='aaa' onerror=alert(1)>",
 }
 
 if __name__ == '__main__':

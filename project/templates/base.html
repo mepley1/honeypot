@@ -1,25 +1,25 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Dashboard{% endblock %}</title>
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-	<link rel="stylesheet" href="{{ url_for('static', filename='css/nav-mobile.css') }}">
-	<!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>-->
-	<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-</head>
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>{% block title %}Dashboard{% endblock %}</title>
+		<link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+		<link rel="stylesheet" href="{{ url_for('static', filename='css/nav-mobile.css') }}">
+		<!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js"></script>-->
+		<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+	</head>
 
-<body class="{{ request.cookies.get('pref_theme')|e }}">
-	{% include 'nav.html' %}
-	{% include 'nav-mobile.html' %}
-	<div class="everything">
-		{%block content %}{% endblock %}
-	</div>
-	{% include 'footer.html' %}
-	<!-- load JS -->
-	<script src="{{ url_for('static', filename='js/js.js') }}"></script>
-</body>
+	<body class="{{ request.cookies.get('pref_theme')|e }}">
+		{% include 'nav.html' %}
+		{% include 'nav-mobile.html' %}
+		<div class="everything">
+			{%block content %}{% endblock %}
+		</div>
+		{% include 'footer.html' %}
+		<!-- load JS -->
+		<script src="{{ url_for('static', filename='js/js.js') }}"></script>
+	</body>
 
 </html>

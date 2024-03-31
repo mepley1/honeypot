@@ -1,16 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Stats - Logins</title>
-	<link rel="stylesheet" href="{{url_for('static', filename='css/style.css')}}">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
-    <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script> <!-- to show/hide columns -->
-</head>
-<body>
-	{% include 'header.html' %}
-	<div class="everything"><center>
+{% extends 'base.html' %}
+{% block title %}Stats - Logins{% endblock %}
+{% block content %}
         <h1><span class="dim">Stats -></span> Logins</h1>
         <div class="content">
             {% with messages = get_flashed_messages(with_categories=true) %}
@@ -26,72 +16,80 @@
             <div id="dataToggles">
                 Toggle data columns:
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataID">ID
+                    <input type="checkbox" name="dataCheckbox" value="dataID" class="sv0">#
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataIP" checked>IP
+                    <input type="checkbox" name="dataCheckbox" value="dataIP" class="sv1" checked>IP
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataUsername" checked>Username
+                    <input type="checkbox" name="dataCheckbox" value="dataUsername" class="sv1" checked>Username
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataPassword" checked>Password
+                    <input type="checkbox" name="dataCheckbox" value="dataPassword" class="sv1" checked>Password
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataTime" checked>Time
+                    <input type="checkbox" name="dataCheckbox" value="dataTime" class="sv0" checked>Time
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataLinks" checked>Info Links
+                    <input type="checkbox" name="dataCheckbox" value="dataLinks" class="sv0" checked>Info Links
                 </label>
-                {% if current_user.is_admin %}<label>
+                {% if current_user.is_admin %}
+                <label>
                     <input type="checkbox" name="dataCheckbox" value="dataDeleteRow">Delete
-                </label>{% endif %}
+                </label>
+                {% endif %}
             </div>
             <br />
             <table>
                 <thead>
                 <tr>
-                    <th class="dataID hidden selectt">#</th>
-                    <th class="dataIP selectt">IP</th>
-                    <th class="dataUsername selectt">Username</th>
-                    <th class="dataPassword selectt">Password</th>
-                    <th class="dataTime selectt">Time</th>
-                    <th class="dataLinks selectt">Links</th>
+                    <th class="dataID sv0 hidden selectt">#</th>
+                    <th class="dataIP sv1 selectt">IP</th>
+                    <th class="dataUsername sv1 selectt">Username</th>
+                    <th class="dataPassword sv1 selectt">Password</th>
+                    <th class="dataTime sv0 selectt">Time</th>
+                    <th class="dataLinks sv0 selectt">Links</th>
                     {% if current_user.is_admin %}<th class="dataDeleteRow hidden">Delete</th>{% endif %}
                 </tr>
                 </thead>
                 {% for row in stats: %}
                 <tr>
-                    <td class="dataID hidden dim">{{row['id']}}</td>
-                    <td class="dataIP selectt ipToLink"><a href="{{url_for('main.ipStats', ipAddr=row['remoteaddr'])}}">{{row['remoteaddr']}}</a></td>
-                    <td class="dataUsername selectt">{{row['username']}}</td>
-                    <td class="dataPassword selectt">{{row['password']}}</td>
-                    <td class="dataTime selectt">{{row['time']}}</td>
-                    <td class="dataLinks ipToLink selectt"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> <span class="dim">|</span> <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a></td>
+                    <td class="dataID sv0 hidden dim">{{row['id']}}</td>
+                    <td class="dataIP sv1 selectt ipToLink"><a href="{{url_for('main.ipStats', ipAddr=row['remoteaddr'])}}">{{row['remoteaddr']}}</a></td>
+                    <td class="dataUsername sv1 selectt">{{row['username']}}</td>
+                    <td class="dataPassword sv1 selectt">{{row['password']}}</td>
+                    <td class="dataTime sv0 selectt">{{row['time']}}</td>
+                    <td class="dataLinks sv0 ipToLink selectt"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> <span class="dim">|</span> <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a></td>
                     {% if current_user.is_admin %}
                         <td class="dataDeleteRow dataToLink dim hidden">
-                            <form action="{{ url_for('main.delete_login_record', login_id=row['id']) }}" method="POST" id="delete_button">
+                            <!--<form action="{{ url_for('main.delete_login_record', login_id=row['id']) }}" method="POST" id="delete_button">
                                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="delete-button">&#10060; Delete</button>
-                            </form>
+                            </form> -->
+
+                            <!-- delete button; opens delete confirmation modal -->
+                            <button class="delete-button" id="delete_button_{{row['id']}}" for_id="{{row['id']}}">&#10060;</button>
+                            <!-- delete confirmation modal -->
+                            <div id="delete_confirmation_modal_{{row['id']}}" class="modal">
+                                <form class="modal-content" action="{{ url_for('main.delete_login_record', login_id=row['id']) }}" method="POST" id="delete_form_{{row['id']}}" for_id="{{row['id']}}">
+                                    <span class="close modal_close" id="modal_x_{{row['id']}}" title="Close Modal" for_id="{{row['id']}}">&times;</span>
+                                    <div class="container">
+                                        <h1>Delete Login Record #{{ row['id'] }}</h1>
+                                        <p>Are you sure you want to delete the row?</p>
+                                        <div class="clearfix">
+                                            <button type="button" class="modal_btn modal_redbtn_b modal_close" id="modal_cancel_{{row['id']}}" for_id="{{row['id']}}">Cancel</button>
+                                            <button type="submit" class="modal_btn modal_greenbtn">Delete</button>
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                            <!-- end delete confirm modal -->
                         </td>
-                    {% endif %}
+                    {% endif %} {# end admin check + modal #}
                 </tr>
                 {% endfor %}
             </table>
             {% endif %}
-
-
         </div>
-    </center>
-	</div>
-</body>
-<script type="text/javascript">
-    $(document).ready(function() {
-        $('input[type="checkbox"]').click(function() {
-            var inputValue = $(this).attr("value");
-            $("." + inputValue).toggle();
-        });
-    });
-</script>
-</html>
+{% endblock %}

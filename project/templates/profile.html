@@ -1,1 +1,10 @@
-<p>Logged in as: {{ name }}</p>
+{% extends 'base.html' %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+<h1>Profile</h1>
+<article class="content contentSmall">
+    <p>Username: {{ current_user.username }}</p>
+    <p>Admin user: {{ current_user.is_admin }}</p>
+    <p>Preferred style: {{ request.cookies.get('pref_theme', 'none') }}</p>
+</article>
+{% endblock %}

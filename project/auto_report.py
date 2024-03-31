@@ -124,9 +124,10 @@ ENV_PROBE_PATHS = [
     '/laravel',
     '/storage', '/protected', # seen as /storage/protected - Redlion RAS
     '/library',
-    '/auth',
+    '/auth', #will also catch /authn
     '/login',
     '/logon',
+    '/session',
     '/database',
     '/scripts',
     '/99vt', '/99vu', '/gate.php', '/aaaaaaaaaaaaaaaaaaaaaaaaaqr', #some misc malware
@@ -135,6 +136,8 @@ ENV_PROBE_PATHS = [
     '/log/',
     '/jquery.js',
     '/jquery-3.3.1.min.js', #seen this a bunch of times now
+    '/jquery-1.12.4.min.js', #Lots of this too, probing for vulnerable versions.
+    'jquery',
     '.json',
     '/server-status',
     '/.DS_Store',
@@ -201,6 +204,7 @@ def is_injection_attack(request):
         'wget+',
         '&wget',
         'wget http', #may be http or https
+        '`', '%60', #Everything containing ` has been injection
         ';chmod',
         'cd+',
         ';rm -rf', #formatted with spaces in headers injection
@@ -291,6 +295,12 @@ MISC_SOFTWARE_PROBE_PATHS = [
     '/ecp/Current/exporttool/microsoft.exchange.ediscovery.exporttool.application',
     '/v2/_catalog', #Docker container registry
     'readme.', #readme.txt, .md, etc
+    '/ddnsmngr.cmd', #D-Link DSL-2640B Unauthenticated Remote DNS Change Exploit
+    '/userRpm/WanDynamicIpCfgRpm.htm', #TP-LINK Model No. TL-WR340G/TL-WR340GD - Multiple Vulnerabilities - https://www.exploit-db.com/exploits/34583
+    '/userRpm/LanDhcpServerRpm.htm', #see above
+    '/dnscfg.cgi', #D-Link ADSL DSL-2640U Unauthenticated Remote DNS Change Exploit https://www.exploit-db.com/exploits/42195
+    '/goform/setSysTools', #https://packetstormsecurity.com/files/162258/Multilaser-Router-RE018-AC1200-Cross-Site-Request-Forgery.html
+    '/securityRealm/user/admin/descriptorByName/org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition/checkScriptCompile', #CVE-2019-1003000 Jenkins Script Security Plugin
 ]
 
 def is_misc_software_probe(request):
@@ -484,6 +494,26 @@ def is_datadog_trace(request):
             return True
     return False
 
+def is_tpl_exploit(request):
+    """ CVE-2023-1389 TP-Link AX21 router exploit. Usually seen downloading a Mirai loader 'tenda.sh' """
+    TPL_EXP_PATH = '/cgi-bin/luci/;stok=/locale'
+    TPL_EXP_PATTERN = r'^form=country&operation=write&country=.'
+    regex = re.compile(TPL_EXP_PATTERN, re.IGNORECASE)
+    if (
+        request.path == TPL_EXP_PATH
+        #or request.query_string.decode().startswith('form=country&operation=write&country=')
+        or regex.search(request.query_string.decode(errors='replace'))
+    ):
+        return True
+    return False
+
+def is_zyxel_rci(request):
+    """ CVE-2022-30525 Zyxel Firewall Unauthenticated Remote Command Injection """
+    ZYXEL_PATH = '/ztp/cgi-bin/handler'
+    if request.method != 'POST':
+        return False
+    else:
+        return ZYXEL_PATH.lower() in request.path.lower()
 
 # more generic rules
 
@@ -507,11 +537,13 @@ def is_misc_get_probe(request):
 def is_programmatic_ua(request):
     """ Default user agents of programming language modules + http clients, i.e. Python requests, etc.
     Include curl/wget etc, but don't include specific bot UAs, those will go into another rule."""
+    #TO-DO: Refactor this rule using regex.
     user_agent = request.headers.get('User-Agent', '')
     # Most of the UA's include a version #, i.e. Wget/1.21.3, we'll just search for the name
     PROGRAMMATIC_USER_AGENTS = [
         'aiohttp/', #i.e. Python/3.10 aiohttp/3.9.0
         'curl/',
+        'Custom-AsyncHttpClient',
         'fasthttp',
         'Go-http-client',
         'Hello World', #Not to be confused with Mirai botnet's 'Hello, world' ua with comma
@@ -604,6 +636,8 @@ def is_research(request):
         'Mozilla/5.0 (compatible; NetcraftSurveyAgent/1.0; +info@netcraft.com)', #Netcraft
         'Cloud mapping experiment. Contact research@pdrlabs.net',
         '(+http://code.google.com/appengine; appid: s~virustotalcloud)', #VirusTotal URL check
+        '(scanner.ducks.party)',#Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36 (scanner.ducks.party)
+        '+https://leakix.net)',#Mozilla/5.0 (l9scan/2.0.734313e20373e21323e2430313; +https://leakix.net)
     ]
     if user_agent is None:
         return False
@@ -708,7 +742,7 @@ def check_all_rules():
         (is_cgi_probe, 'CGI probe/attack', ['21']),
         (is_injection_attack, 'Command injection', ['21']),
         (is_path_traversal, 'Path traversal', ['21']),
-        (is_misc_software_probe, 'Misc software probe', ['21']),
+        (is_misc_software_probe, 'Misc software probe/exploit', ['21']),
         (is_wordpress_attack, 'Wordpress attack', ['21']),
         (is_nmap_http_scan, 'Nmap HTTP scan', ['21']),
         (is_nmap_vuln_probe, 'Nmap probe', ['21']),
@@ -722,6 +756,8 @@ def check_all_rules():
         (is_wsus_attack, 'Windows WSUS attack', ['21']),
         (is_rocketmq_probe, 'RocketMQ probe CVE-2023-33246', ['21']),
         (is_datadog_trace, 'Unauthorized probe/scan', ['21']),
+        (is_tpl_exploit, 'CVE-2023-1389', ['15','21','23']),
+        (is_zyxel_rci, 'Zyxel CVE-2022-30525', ['15','21','23']),
         (is_post_request, 'Suspicious POST request', ['21']),
         (no_host_header, 'No Host header', ['21']),
         (is_misc_get_probe, 'GET with unexpected args', ['21']),

@@ -1,0 +1,20 @@
+<footer class="footer">
+    <!-- style selection form -->
+    <p>
+        <form action="{{ url_for('main.set_pref_theme') }}" method="POST" id="theme_form">
+            <select name="pref_theme" id="pref_theme" class="form-box">
+                <option disabled selected>- Styles -</option>
+                <option value="theme-darkgreen">Dark: Black/green{% if request.cookies.get('pref_theme')|e == 'theme-darkgreen' %} *{% endif %}</option>
+                <option value="theme-blue">Light: Blue/orange{% if request.cookies.get('pref_theme')|e == 'theme-blue' %} *{% endif %}</option>
+                <option value="theme-darkice">Dark: Black/ice{% if request.cookies.get('pref_theme')|e == 'theme-darkice' %} *{% endif %}</option>
+            </select>
+            <!--<button type="submit" class="submit-button" id="pref_theme_btn">Submit</button>-->
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+            <p id="footer_loading_note" class="successn">Loading...</p>
+        </form>
+    </p>
+    <!-- end style selection-->
+    <!-- testing media query for mobiles -->
+    <p class="mobile_device_test">Mobile device</p>
+    <span id="toTop" title="Back to Top">&#8593;</span>
+</footer>

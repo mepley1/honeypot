@@ -6,9 +6,12 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 from flask_wtf.csrf import CSRFProtect
+from flask_caching import Cache
 
 # init SQLAlchemy so we can use it later in our models
 db = SQLAlchemy()
+
+cache = Cache()
 
 def create_app():
     """ Create the app and register blueprints + loginmanager.  """
@@ -56,5 +59,14 @@ def create_app():
 
     # Logging config
     logging.basicConfig(encoding='utf-8', level=logging.DEBUG)
+
+    # initialize cache
+    app.config['CACHE_TYPE'] = 'SimpleCache'
+    cache.init_app(app)
+
+    # Custom jinja filter using quote_plus, to solve my issue with encoding discrepancies
+    # when querying body column.
+    from urllib.parse import quote_plus
+    app.jinja_env.filters['quote_plus'] = lambda u: quote_plus(u)
 
     return app

@@ -2,12 +2,11 @@
 import requests
 url = 'http://localhost:5000/test/get'
 params = {
-    #"&^$#=-+_":":;'",
     "query1":"value1",
     "query2":"value2",
 }
 headers = {
-    "User-Agent":"!@#$%^&*()-_=+/?<>",
+    "User-Agent":"<script>javascript:alert(1)</script>",
 }
 
 if __name__ == '__main__':

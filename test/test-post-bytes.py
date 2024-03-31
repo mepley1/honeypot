@@ -5,7 +5,7 @@ import requests
 import random
 import string
 
-url = 'http://localhost:5000/testing/post?test'
+url = 'http://localhost:5000/testing/post?bad_bytes_test'
 
 def get_random_string(length):
     #letters = string.ascii_letters + string.punctuation + string.digits + string.punctuation + string.whitespace
@@ -13,29 +13,16 @@ def get_random_string(length):
     result_str = ''.join(random.choice(letters) for i in range(length))
     return result_str
 
-bad_data = get_random_string(16)
+bad_data = b'\xc8\xc9\xf5'
+#bad_data = b'\x21\x31\x28'
 
-headers = {'Content-Type': 'application/json'}
+headers = {
+            #'Content-Type': 'application/json',
+            'Content-Type': 'application/x-www-form-urlencoded',
+}
 
 #x = requests.post(url, data = bad_data, headers = headers)
-x = requests.post(url = url, data = bad_data)
+x = requests.post(url = url, data = bad_data, headers = headers)
 
 # Print response
 print(x.status_code)
-#print(x.text)
-#print(x.content)
-#print(x.encoding)
-#print(x.close())
-#print(x.cookies)
-#print(x.is_permanent_redirect)
-#print(x.elapsed)
-#print(x.history)
-#print(x.is_redirect)
-#x.iter_content()
-#x.json()
-#x.url
-#x.request
-#x.reason
-#x.raise_for_status()
-#x.ok
-#x.links

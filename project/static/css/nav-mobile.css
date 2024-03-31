@@ -1,0 +1,127 @@
+ /* Add a black background color to the top navigation */
+ .topnav {
+  background-color: var(--content-bg-color);
+  overflow: hidden;
+  border-bottom: 1px solid var(--midgray);
+}
+
+/* Style the links inside the navigation bar */
+.topnav a, .topnav p {
+  float: left;
+  display: block;
+  color: var(--white1);
+  text-align: center;
+  padding: 12px 16px;
+  text-decoration: none;
+  font-size: 12px;
+  /*font-weight: bold;*/
+  border-bottom: 1px solid #0b0d0e;
+}
+
+/* Change the color of links on hover */
+.topnav a:hover {
+  /*background-color: #0b0d0e;*/
+  /*color: var(--main-bg-color);*/
+}
+
+/* Add an active class to highlight the current page */
+.topnav a.active {
+  background-color: var(--main-bg-color);
+  color: var(--lightgray);
+  /*border-right: 1px solid var(--midgray);*/
+}
+
+/* Hide the link that should open and close the topnav on small screens */
+.topnav .icon {
+  display: none;
+} 
+
+ /* Hide all links, except one with class .active. Show the link that contains should open and close the topnav (.icon) */
+@media screen and (max-width: 8000px) {
+  /*.topnav a:not(:first-child) {display: none;}*/
+  .topnav a:not(.active) {display: none;}
+  .topnav a.icon {
+    float: right;
+    display: block;
+  }
+}
+
+/* The "responsive" class is added to the topnav with JavaScript when the user clicks on the icon. This class makes the topnav look good on small screens (display the links vertically instead of horizontally) */
+@media screen and (max-width: 8000px) {
+  .topnav.responsive {
+    position: relative;
+  }
+  .topnav.responsive a.icon {
+    position: absolute;
+    right: 0;
+    top: 0;
+  }
+  .topnav.responsive a {
+    float: none;
+    display: block;
+    text-align: left;
+  }
+}
+
+/* Dropdown menus */
+.drop_btn_1, .drop_btn_2, .drop_btn_3 {
+  background-color: var(--content-bg-color);
+}
+
+.drop_btn_1::before, .drop_btn_2::before, .drop_btn_3::before {
+  content: '+ ';
+}
+/*
+.drop_btn_1:hover::before, .drop_btn_2:hover::before, .drop_btn_3:hover::before {
+content: '- ';
+}
+.drop_btn_1::after, .drop_btn_2::after, .drop_btn_3::after {
+content: ' ->';
+}
+.drop_btn_1:hover::after, .drop_btn_2:hover::after, .drop_btn_3:hover::after {
+content: ' -->';
+}
+*/
+
+span.drop_hidden_1, span.drop_hidden_2, span.drop_hidden_3 {
+  display: none;
+}
+
+span.drop_hidden_1 > *, span.drop_hidden_2 > *, span.drop_hidden_3 > *{
+  background-color: var(--main-bg-color);
+  /*padding-left: 36px;*/
+}
+
+/* End dropdowns */
+
+/* ### Media queries: Show mobile nav for mobile devices, desktop nav for others ### */
+
+/* Phones/tablets */
+/* Default: Hide mobile nav unless surely a mobile device. */
+nav.mobile {
+  content-visibility: hidden;
+}
+
+/* Mobiles - show mobile nav */
+/*@media only screen and (orientation: portrait) and ((pointer: coarse) or (pointer: none)){*/
+@media only screen and ((pointer: coarse) or (pointer: none)){
+nav.mobile {
+  content-visibility: visible;
+}
+nav.desktop {
+  content-visibility: hidden;
+  display: none;
+}
+}
+
+/* Desktop - show desktop nav */
+@media only screen and (pointer: fine){
+nav.mobile {
+  display: none;
+  content-visibility: hidden;
+}
+nav.desktop {
+  content-visibility: visible;
+  display: block;
+}
+}

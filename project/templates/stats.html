@@ -1,19 +1,9 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Stats</title>
-	<link rel="stylesheet" href="{{url_for('static', filename='css/style.css')}}">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
-    <script src="https://code.jquery.com/jquery-1.12.4.min.js"></script> <!-- to show/hide columns -->
-</head>
-<body>
-	{% include 'header.html' %}
-	<div class="everything"><center>
-        {% if statName %}<h1><span class="dim">Stats -></span> {{statName}}</h1>{% endif %}
-        {% if subtitle %}<h2>{{subtitle}}</h2>{% endif %}
-        <div class="content">
+{% extends 'base.html' %}
+{% block title %}Stats{% endblock %}
+{% block content %}
+        {% if statName %}<h1><span class="dim">Stats -></span> {{ statName|e }}</h1>{% endif %}
+        {% if subtitle %}<h2>{{ subtitle|e }}</h2>{% endif %}
+        <article class="content">
             {% with messages = get_flashed_messages(with_categories=true) %}
                 {% if messages %}
                     {% for category, msg in messages %}
@@ -22,157 +12,234 @@
                 {% endif %}
             {% endwith %}
             {% if totalHits %}
-            <p>Total hits in database: <span class="mono">{{totalHits}}</span></p>
+            <p>Total hits in database: <span class="mono">{{ totalHits }}</span></p>
             {% endif %}
 
+            {#
             {% if top_ip %}
             <p>Most common IP:<br/>
-            All time: <a href="{{url_for('main.ipStats', ipAddr=top_ip['remoteaddr'])}}" class="no-decoration">{{top_ip['remoteaddr']}}</a> Count: {{top_ip['count']}}</p>
+                <span class="bold">All time:</span> <a href="{{url_for('main.ipStats', ipAddr=top_ip['remoteaddr'])}}" class="no-decoration">{{top_ip['remoteaddr']}}</a> Count: {{top_ip['count']}}
+            </p>
             {% endif %}
             {% if top_ip_weekly %}
-            <p>7 days: <a href="{{url_for('main.ipStats', ipAddr=top_ip_weekly['remoteaddr'])}}" class="no-decoration">{{top_ip_weekly['remoteaddr']}}</a> seen {{top_ip_weekly['count']}} times.</p>
+                <p>7 days: <a href="{{url_for('main.ipStats', ipAddr=top_ip_weekly['remoteaddr'])}}" class="no-decoration">{{top_ip_weekly['remoteaddr']}}</a> seen {{top_ip_weekly['count']}} times. <a href="{{ url_for('analysis.ip_per_day', ip=top_ip_weekly['remoteaddr'], days=7) }}">Graph</a></p>
+                {% endif %}
+                {% if top_ip_daily %}
+                <p>1 day: <a href="{{url_for('main.ipStats', ipAddr=top_ip_daily['remoteaddr'])}}" class="no-decoration">{{top_ip_daily['remoteaddr']}}</a> seen {{top_ip_daily['count']}} times. <a href="{{ url_for('analysis.ip_per_day', ip=top_ip_daily['remoteaddr'], days=7) }}">Graph</a></p>
             {% endif %}
-            {% if top_ip_daily %}
-            <p>1 day: <a href="{{url_for('main.ipStats', ipAddr=top_ip_daily['remoteaddr'])}}" class="no-decoration">{{top_ip_daily['remoteaddr']}}</a> seen {{top_ip_daily['count']}} times.</p>
-            {% endif %}
+            #}
 
-            {% if image_data %}
-            <p class="plot_image"><img src="data:image/png;base64,{{image_data}}"/></p>
+            <!-- Tops, fill in with JS -->
+            {% if top_ip %}
+            <aside>
+                <div id="tops">
+                    <p><h4>Most common IPs:</h4></p>
+                    <p>
+                        1 day: <a href="#" class="no-decoration" id="top_daily">%ip</a> seen <span id="top_daily_count">$count</span> times. <a href="#" id="graph_daily">Graph</a>
+                    </p>
+                    <p>
+                        7 days: <a href="#" class="no-decoration" id="top_weekly">$ip</a> seen <span id="top_weekly_count">$count</span> times. <a href="#" id="graph_weekly">Graph</a>
+                    </p>
+                    <p>
+                        30 days: <a href="#" class="no-decoration" id="top_monthly">$ip</a> seen <span id="top_monthly_count">$count</span> times. <a href="#" id="graph_monthly">Graph</a>
+                    </p>
+                    <p>
+                        All time: <a href="{{url_for('main.ipStats', ipAddr=top_ip['remoteaddr'])}}" class="no-decoration">{{top_ip['remoteaddr']}}</a> Count: {{top_ip['count']}}
+                    </p>
+                </div>
+            </aside>
             {% endif %}
+            <!-- END Tops -->
+
+            <!-- analysis route image data -->
+            {% if image_data %}
+            <p class="plot_image">
+                    <img src="data:image/png;base64,{{image_data}}" alt="Graph"/>
+            </p>
+            {% endif %}
+            <!-- end image data -->
+
+            {% if analys_stats %}
+            <!-- Results from analysis routes. analys_stats should be a list of tuples -->
+            <table id="analysis_results">
+                <thead>
+                    <tr>
+                        <!-- expects a list of column titles analys_titles -->
+                        {% for title in analys_titles %}
+                        <th>{{title}}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                {% for row in analys_stats %}
+                <tr>
+                    {% for item in row %}
+                    <td>{{ item|e }}</td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </table>
+            {% endif %}
+            <!-- end analysis results -->
 
             {% if stats %}
-            <h2>Most Recent Requests matching query</h2>
-
+            <h2>Most recent requests matching query</h2>
             <div id="dataToggles">
                 <label>Toggle data columns:</label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataID">#
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataID" id="cbID">#
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataIP" checked>IP
+                    <input type="checkbox" name="dataCheckbox" class="sv1" value="dataIP" id="cbIP" checked>IP
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataMethod" checked>Method
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataMethod" id="cbMethod" checked>Method
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataScheme">Scheme
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataScheme" id="cbScheme">Scheme
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataHost">Host
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataHost" id="cbHost">Host
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataPath" checked>Path
+                    <input type="checkbox" name="dataCheckbox" class="sv1" value="dataPath" id="cbPath" checked>Path
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataQueryString" checked>Query String
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataQueryString" id="cbQueryString" checked>Query String
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataURL">URL
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataURL" id="cbURL">URL
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataPostData" checked>Body
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataPostData" id="cbBody" checked>Body
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataContentType">Content-Type
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataContentType" id="cbContentType">Content-Type
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataHostname" checked>Hostname
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataHostname" id="cbHostname" checked>Hostname
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataTime" checked>Time
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataTime" id="cbTime" checked>Time
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataUA" checked>User Agent
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataUA" id="cbUA" checked>User Agent
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataHeaders">Headers
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataHeaders" id="cbHeaders">Headers
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataReferer">Referer
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataReferer" id="cbReferer">Referer
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataCountry">Country
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataCountry" id="cbCountry">Country
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataLinks" checked>Info Links
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataReported" id="cbReported">Reported
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" value="dataReported">Reported
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataLinks" id="cbLinks" checked>Info Links
                 </label>
-                {% if current_user.is_admin %}<label>
-                    <input type="checkbox" name="dataCheckbox" value="dataDeleteRow">Delete
-                </label>{% endif %}
+                {% if current_user.is_admin %}
+                <label>
+                    <input type="checkbox" name="dataCheckbox" value="dataDeleteRow" id="cbDeleteRow">Delete
+                </label>
+                {% endif %}
             </div>
             <br />
 
-            <table>
+            <table id="dataTable">
                 <thead>
                 <tr>
-                    <th class="dataID hidden">#</th>
-                    <th class="dataIP">IP</th>
-                    <th class="dataMethod">Method</th>
-                    <th class="dataScheme hidden">Scheme</th>
-                    <th class="dataHost hidden">Host</th>
-                    <th class="dataPath">Path</th>
-                    <th class="dataQueryString">Query String</th>
-                    <th class="dataURL hidden">URL</th>
-                    <th class="dataPostData">Body</th>
-                    <th class="dataContentType hidden">Content-Type</th>
-                    <th class="dataHostname">Hostname</th>
-                    <th class="dataTime">Time</th>
-                    <th class="dataUA">User Agent</th>
-                    <th class="dataHeaders hidden">Headers</th>
-                    <th class="dataReferer hidden">Referer</th>
-                    <th class="dataCountry hidden">Country</th>
-                    <th class="dataLinks">Links</th>
-                    <th class="dataReported hidden">Reported</th>
+                    <th class="dataID hidden sv0">#</th>
+                    <th class="dataIP sv1">IP</th>
+                    <th class="dataMethod sv0">Method</th>
+                    <th class="dataScheme hidden sv0">Scheme</th>
+                    <th class="dataHost hidden sv0">Host</th>
+                    <th class="dataPath sv1">Path</th>
+                    <th class="dataQueryString sv0">Query String</th>
+                    <th class="dataURL hidden sv0">URL</th>
+                    <th class="dataPostData sv0">Body</th>
+                    <th class="dataContentType hidden sv0">Content-Type</th>
+                    <th class="dataHostname sv0">Hostname</th>
+                    <th class="dataTime sv0">Time</th>
+                    <th class="dataUA sv0">User Agent</th>
+                    <th class="dataHeaders hidden sv0">Headers</th>
+                    <th class="dataReferer hidden sv0">Referer</th>
+                    <th class="dataCountry hidden sv0">Country</th>
+                    <th class="dataReported hidden sv0">Reported</th>
+                    <th class="dataLinks sv0">Links</th>
                     {% if current_user.is_admin %}<th class="dataDeleteRow hidden">Delete</th>{% endif %}
                 </tr>
                 </thead>
                 {% for row in stats: %}
                 <tr>
-                    <td class="dataID dataToLink dim hidden"><a href="{{url_for('main.headers_single_json', request_id=row['id'])}}">{{row['id']}}</a></td>
-                    <td class="dataIP ipToLink"><a href="{{url_for('main.ipStats', ipAddr=row['remoteaddr'])}}">{{row['remoteaddr']}}</a></td>
-                    <td class="dataMethod dataToLink"><a href="{{url_for('main.methodStats', method=row['requestmethod'])}}">{{row['requestmethod']}}</a></td>
-                    <td class="dataScheme hidden">{{ row['scheme'] }}</td>
-                    <td class="dataHost hidden">{{ row['host'] }}</td>
-                    <td class="dataPath dataToLink"><a href="{{url_for('main.path_stats', path=row['path'])}}">{{ row['path'] }}</a></td>
-                    <td class="dataQueryString dataToLink mono smaller"><a href="{{url_for('main.queriesStats', query=row['querystring'])}}">{{row['querystring']|e}}</a></td>
-                    <td class="dataURL dataToLink hidden"><a href="{{url_for('main.urlStats', url=row['url'])}}">{{row['url']}}</a></td>
-                    <td class="dataPostData dataToLink mono smaller"><a href="{{url_for('main.bodyStats', body=row['postjson'])}}">{{row['postjson']|e}}</a></td>
-                    <td class="dataContentType hidden">{{row['contenttype']}}</td>
-                    <td class="dataHostname dataToLink"><a href="{{url_for('main.hostname_stats', hostname=row['hostname'])}}">{{row['hostname']}}</a></td>
-                    <td class="dataTime">{{row['time']}}</td>
-                    <td class="dataUA dataToLink"><a href="{{url_for('main.uaStats', ua=row['useragent']|urlencode)}}">{{row['useragent']|e}}</a></td>
-                    <td class="dataHeaders smallerer mono hidden">{{row['headers_json']|e}}</td>
-                    <td class="dataReferer hidden">{{row['referer']}}</td>
-                    <td class="dataCountry hidden">{{row['country']}}</td>
-                    <td class="dataLinks ipToLink"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> <span class="dim">|</span> <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a> <span class="dim">|</span> <a href="https://virustotal.com/gui/ip-address/{{row['remoteaddr']}}" target="_blank">VirusTotal</a></td>
-                    <td class="dataReported hidden">{{row['reported']}}</td>
-                    {% if current_user.is_admin %}
-                        <td class="dataDeleteRow dataToLink dim hidden">
-                            <form action="{{ url_for('main.delete_record_by_id', request_id=row['id']) }}" method="POST" id="delete_button">
-                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                <button type="submit" class="delete-button">&#10060; Delete</button>
+                    <td class="dataID dataToLink dim hidden sv0"><a href="{{url_for('main.headers_single_json', request_id=row['id'])}}">{{row['id']}}</a></td>
+                    <td class="dataIP ipToLink sv1"><a href="{{url_for('main.ipStats', ipAddr=row['remoteaddr'])}}">{{row['remoteaddr']}}</a></td>
+                    <td class="dataMethod dataToLink sv0"><a href="{{url_for('main.methodStats', method=row['requestmethod'])}}">{{row['requestmethod']}}</a></td>
+                    <td class="dataScheme hidden sv0">{{ row['scheme'] }}</td>
+                    <td class="dataHost hidden dataToLink sv0"><a href="{{url_for('main.host_stats', host=row['host'])}}">{{ row['host']|e }}</a></td>
+                    <td class="dataPath dataToLink sv1"><a href="{{url_for('main.path_stats', path=row['path'])}}">{{ row['path'] }}</a></td>
+                    <td class="dataQueryString dataToLink mono smaller sv0"><a href="{{url_for('main.queriesStats', query=row['querystring']|urlencode)}}">{{row['querystring']|e}}</a></td>
+                    <td class="dataURL dataToLink hidden sv0"><a href="{{url_for('main.urlStats', url=row['url'])}}">{{row['url']|e}}</a></td>
+                    <td class="dataPostData dataToLink mono smaller sv0"><a href="{{url_for('main.bodyStats', body=row['postjson']|quote_plus)}}">{{row['postjson']|e}}</a></td>
+                    <td class="dataContentType dataToLink hidden sv0"><a href="{{url_for('main.content_type_stats', ct=row['contenttype']) }}">{{row['contenttype']|e}}</a></td>
+                    <td class="dataHostname dataToLink sv0"><a href="{{url_for('main.hostname_stats', hostname=row['hostname'])}}">{{row['hostname']}}</a></td>
+                    <td class="dataTime dataToLink sv0"><a href="{{url_for('main.date_stats', date=row['time'], accuracy=16)}}">{{row['time']}}</a></td>
+                    <td class="dataUA dataToLink sv0"><a href="{{url_for('main.uaStats', ua=row['useragent']|urlencode)}}">{{row['useragent']|e}}</a></td>
+                    <td class="dataHeaders smallerer mono hidden sv0">{{row['headers_json']|e}}</td>
+                    <td class="dataReferer hidden sv0">{{row['referer']|e}}</td>
+                    <td class="dataCountry hidden sv0">{{row['country']|e}}</td>
+                    <td class="dataReported hidden sv0">{{row['reported']}}</td>
+                    <td class="dataLinks ipToLink sv0"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> <span class="dim">|</span> <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a> <span class="dim">|</span> <a href="https://virustotal.com/gui/ip-address/{{row['remoteaddr']}}" target="_blank">VirusTotal</a> <span class="dim">|</span> <a href="{{url_for('analysis.ip_per_day', ip=row['remoteaddr'], days=30)}}" target="_blank">Graph</a></td>
+                    {% if current_user.is_admin %} {# Only show delete button+modal if user is admin #}
+                    <td class="dataDeleteRow dataToLink dim hidden">
+                        <!-- OLD delete-button, leave here until modal+JS are working fully -->
+                        <!--<form action="{{ url_for('main.delete_record_by_id', request_id=row['id']) }}" method="POST" id="delete_button_{{row['id']}}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="delete-button">&#10060; Delete</button>
+                        </form>-->
+                        <!-- end OLD delete-button -->
+
+                        <!-- delete button; opens delete confirmation modal -->
+                        <button class="delete-button" id="delete_button_{{row['id']}}" for_id="{{row['id']}}">&#10060;</button>
+                        <!-- delete confirmation modal -->
+                        <div id="delete_confirmation_modal_{{row['id']}}" class="modal">
+                            <form class="modal-content" action="{{ url_for('main.delete_record_by_id', request_id=row['id']) }}" method="POST" id="delete_form_{{row['id']}}" for_id="{{row['id']}}">
+                                <span class="close modal_close" id="modal_x_{{row['id']}}" title="Close Modal" for_id="{{row['id']}}">&times;</span>
+                                <div class="container">
+                                    <h1>Delete Row {{ row['id'] }}</h1>
+                                    <p>Are you sure you want to delete the row?</p>
+                                    <div class="clearfix">
+                                        <button type="button" class="modal_btn modal_redbtn_b modal_close" id="modal_cancel_{{row['id']}}" for_id="{{row['id']}}">Cancel</button>
+                                        <button type="submit" class="modal_btn modal_greenbtn">Delete</button>
+                                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    </div>
+                                </div>
                             </form>
-                        </td>
-                    {% endif %}
+                        </div>
+                        <!-- end delete confirm modal -->
+                    </td>
+                    {% endif %} {# end is_admin check + delete-button/modal #}
                     </tr>
                 {% endfor %}
             </table>
-            
-            <script type="text/javascript">
-                $(document).ready(function() {
-                    $('input[type="checkbox"]').click(function() {
-                        var inputValue = $(this).attr("value");
-                        $("." + inputValue).toggle();
-      
-                    });
-                });
-            </script>
+            <!-- pagination -->
+            {% if page %}
+            {% if total_pages > 1 %}
+            <div class="pagination"><p>
+                {% if page > 1 %}<a href="?page={{ page - 1 }}" class="pagination">[ Previous ]</a>{% endif %}
+                &nbsp;Page {{page}} of {{total_pages}}&nbsp;
+                {% if page < total_pages %}<a href="?page={{ page + 1 }}" class="pagination">[ Next ]</a>{% endif %}
+                <br/>
+                {% for num in range(1, total_pages + 1) %}
+                    {% if num <= 10 or (num <= 100 and num % 10 == 0) or num % 100 == 0 or num == total_pages %}
+                    <a href="?page={{ num }}" class="pagination">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+            </p></div>
             {% endif %}
-        </div>
-    </center>
-	</div>
-</body>
-</html>
+            {% endif %}
+            <!-- end pagination -->
+            {% endif %}
+        </article>
+{% endblock %}

@@ -22,7 +22,7 @@
 				<a href="{{url_for('main.methodStats', method='POST')}}">Method: POST</a>
 				<a href="{{url_for('main.reported_stats', reported='1')}}">Reported</a>
 				<a href="{{url_for('main.ipStats', ipAddr='*:*')}}">All IPv6</a>
-				<a href="{{url_for('main.proxy_connection_header_stats')}}">Sent Proxy Headers</a>
+				<a href="{{url_for('main.proxy_connection_header_stats')}}">Headers: Proxy-Auth</a>
 				<a href="{{url_for('main.headers_key_search', key='Authorization')}}">Headers: Authorization</a>
 				<a href="{{url_for('main.headers_key_search', key='Via')}}">Headers: Via</a>
 				<a href="{{url_for('main.headers_key_search', key='X-Requested-With')}}">Headers: X-Requested-With</a>
@@ -33,6 +33,8 @@
 			<div class="dropdown-content">
 				<a href="{{url_for('analysis.total_per_day', num_of_days=7)}}">Total hits/day, 7 days</a>
 				<a href="{{url_for('analysis.total_per_day', num_of_days=30)}}">Total hits/day, 30 days</a>
+				<a href="{{url_for('analysis.ip_per_day', days=30, ip='*:*')}}">IPv6 total/day, 30 days</a>
+				<a href="{{url_for('analysis.top_ips', limit=36)}}">Top IPs</a>
 				<a href="{{url_for('analysis.ip_per_day', days=7, ip='*')}}">IP per day</a>
 				<a href="{{url_for('analysis.top_ten_paths', limit=10)}}">Top n path</a>
 			</div>

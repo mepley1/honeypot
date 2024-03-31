@@ -1,15 +1,6 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login</title>
-    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
-</head>
-<body>
-    {% include 'header.html' %}
-    <div class="everything">
+{% extends 'base.html' %}
+{% block title %}Login{% endblock %}
+{% block content %}
         <h1>Login</h1>
         <div id="form-div">
             <h2>Log In</h2>
@@ -27,7 +18,7 @@
                     <input type="checkbox" name="remember">Remember me
                 </p>
                 {% if HCAPTCHA_SITE_KEY %}
-                <!-- hCaptcha -->
+                <!-- hCaptcha widget -->
                 <div class="h-captcha" data-sitekey="{{ HCAPTCHA_SITE_KEY }}" data-theme="dark"></div>
                 <!-- end hCaptcha -->
                 {% endif %}
@@ -46,11 +37,10 @@
         {% endwith %}
 
         </div>
-    </div>
+
     {% if HCAPTCHA_SITE_KEY %}
-    <!-- hCaptcha -->
+    <!-- hCaptcha script -->
     <script src="https://js.hcaptcha.com/1/api.js" async defer></script>
     <!-- end hCaptcha -->
     {% endif %}
-</body>
-</html>
+{% endblock %}

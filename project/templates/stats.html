@@ -15,27 +15,53 @@
             <p>Total hits in database: <span class="mono">{{ totalHits }}</span></p>
             {% endif %}
 
+            {#
             {% if top_ip %}
             <p>Most common IP:<br/>
-            All time: <a href="{{url_for('main.ipStats', ipAddr=top_ip['remoteaddr'])}}" class="no-decoration">{{top_ip['remoteaddr']}}</a> Count: {{top_ip['count']}}</p>
+                <span class="bold">All time:</span> <a href="{{url_for('main.ipStats', ipAddr=top_ip['remoteaddr'])}}" class="no-decoration">{{top_ip['remoteaddr']}}</a> Count: {{top_ip['count']}}
+            </p>
             {% endif %}
             {% if top_ip_weekly %}
-            <p>7 days: <a href="{{url_for('main.ipStats', ipAddr=top_ip_weekly['remoteaddr'])}}" class="no-decoration">{{top_ip_weekly['remoteaddr']}}</a> seen {{top_ip_weekly['count']}} times. <a href="{{ url_for('analysis.ip_per_day', ip=top_ip_weekly['remoteaddr'], days=7) }}">Graph</a></p>
+                <p>7 days: <a href="{{url_for('main.ipStats', ipAddr=top_ip_weekly['remoteaddr'])}}" class="no-decoration">{{top_ip_weekly['remoteaddr']}}</a> seen {{top_ip_weekly['count']}} times. <a href="{{ url_for('analysis.ip_per_day', ip=top_ip_weekly['remoteaddr'], days=7) }}">Graph</a></p>
+                {% endif %}
+                {% if top_ip_daily %}
+                <p>1 day: <a href="{{url_for('main.ipStats', ipAddr=top_ip_daily['remoteaddr'])}}" class="no-decoration">{{top_ip_daily['remoteaddr']}}</a> seen {{top_ip_daily['count']}} times. <a href="{{ url_for('analysis.ip_per_day', ip=top_ip_daily['remoteaddr'], days=7) }}">Graph</a></p>
             {% endif %}
-            {% if top_ip_daily %}
-            <p>1 day: <a href="{{url_for('main.ipStats', ipAddr=top_ip_daily['remoteaddr'])}}" class="no-decoration">{{top_ip_daily['remoteaddr']}}</a> seen {{top_ip_daily['count']}} times. <a href="{{ url_for('analysis.ip_per_day', ip=top_ip_daily['remoteaddr'], days=7) }}">Graph</a></p>
+            #}
+
+            <!-- Tops, fill in with JS -->
+            {% if top_ip %}
+            <aside>
+                <div id="tops">
+                    <p><h4>Most common IPs:</h4></p>
+                    <p>
+                        1 day: <a href="#" class="no-decoration" id="top_daily">%ip</a> seen <span id="top_daily_count">$count</span> times. <a href="#" id="graph_daily">Graph</a>
+                    </p>
+                    <p>
+                        7 days: <a href="#" class="no-decoration" id="top_weekly">$ip</a> seen <span id="top_weekly_count">$count</span> times. <a href="#" id="graph_weekly">Graph</a>
+                    </p>
+                    <p>
+                        30 days: <a href="#" class="no-decoration" id="top_monthly">$ip</a> seen <span id="top_monthly_count">$count</span> times. <a href="#" id="graph_monthly">Graph</a>
+                    </p>
+                    <p>
+                        All time: <a href="{{url_for('main.ipStats', ipAddr=top_ip['remoteaddr'])}}" class="no-decoration">{{top_ip['remoteaddr']}}</a> Count: {{top_ip['count']}}
+                    </p>
+                </div>
+            </aside>
             {% endif %}
+            <!-- END Tops -->
+
             <!-- analysis route image data -->
             {% if image_data %}
             <p class="plot_image">
-                <img src="data:image/png;base64,{{image_data}}"/>
+                    <img src="data:image/png;base64,{{image_data}}" alt="Graph"/>
             </p>
             {% endif %}
             <!-- end image data -->
 
             {% if analys_stats %}
             <!-- Results from analysis routes. analys_stats should be a list of tuples -->
-            <table>
+            <table id="analysis_results">
                 <thead>
                     <tr>
                         <!-- expects a list of column titles analys_titles -->

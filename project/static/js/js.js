@@ -13,14 +13,10 @@ $(document).ready(function() {
 function apply_simple_view() {
 
     // Columns to hide:
-    //const inactiveData = document.querySelectorAll(".dataID, .dataScheme, .dataMethod, .dataHost, .dataURL, .dataContentType, .dataHostname, .dataTime, .dataUA, .dataQueryString, .dataPostData, .dataLinks, .dataReported, .dataHeaders, .dataReferer, .dataCountry");
     const inactiveData = document.querySelectorAll("th.sv0, td.sv0"); // .sv0 = inactive for simple view
-    //const inactiveCheckboxes = document.querySelectorAll("#cbID, #cbScheme, #cbMethod, #cbHost, #cbURL, #cbContentType, #cbHostname, #cbTime, #cbUA, #cbQueryString, #cbBody, #cbLinks, #cbReported, #cbHeaders, #cbReferer, #cbCountry");
     const inactiveCheckboxes = document.querySelectorAll("div#dataToggles input.sv0");
     // Columns to display:
-    //const activeData = document.querySelectorAll(".dataIP, .dataPath");
     const activeData = document.querySelectorAll("th.sv1, td.sv1"); // .sv1 = active for simple view
-    //const activeCheckboxes = document.querySelectorAll("#cbIP, #cbPath");
     const activeCheckboxes = document.querySelectorAll("div#dataToggles input.sv1");
 
     // Hide inactiveData columns
@@ -60,9 +56,9 @@ function handleTabletChange(e) {
       apply_simple_view()
     }
 }
-mediaQuery.addListener(handleTabletChange)
+//mediaQuery.addListener(handleTabletChange) //addListener deprecated
+mediaQuery.addEventListener('change', handleTabletChange)
 handleTabletChange(mediaQuery)
-
 
 // ### COLOR THEMES ###
 
@@ -115,7 +111,7 @@ deleteButtons.forEach(function(button) {
     });
 });
 
-// close modal (click close button OR x button with class=modal_close)
+// Close modal when click cancel button OR x button (any with class=modal_close)
 $('.modal_close').click(function(e) {
     var modal_id = $(this).attr("for_id");
     document.getElementById("delete_confirmation_modal_".concat(modal_id)).style.display='none';
@@ -133,3 +129,70 @@ $('.modal').click(function(e) {
 });
 
 // ### END MODALS ###
+
+// ### Get 7 days + 1 day top IPs from /analysis/aj/tops
+// Make 3 separate requests; past 1 day, past 7 days, and past 30 days,
+// and update the info in the aside element.
+
+async function getAllTops_b() {
+    try {
+        if (document.querySelector('div#tops')) {
+            // Fetch endpoint (1 day)
+            const responseD = await fetch('/analysis/api/tops/1');
+            const dataD = await responseD.json();
+            const topIpDay = dataD;
+            // Update DOM (day)
+            document.querySelector("a#top_daily").innerHTML = topIpDay.remoteaddr;
+            document.querySelector("a#top_daily").setAttribute("href", "/stats/ip/" + topIpDay.remoteaddr);
+            document.querySelector("a#graph_daily").setAttribute("href", "/stats/ip/per_day?ip=" + topIpDay.remoteaddr + "&days=7");
+            document.querySelector("span#top_daily_count").innerHTML = topIpDay.count;
+            // Fetch endpoint (7 days)
+            const responseW = await fetch('/analysis/api/tops/7');
+            const dataW = await responseW.json();
+            const topIpWeek = dataW;
+            // Update DOM (week)
+            document.querySelector("a#top_weekly").innerHTML = topIpWeek.remoteaddr;
+            document.querySelector("a#top_weekly").setAttribute("href", "/stats/ip/" + topIpWeek.remoteaddr);
+            document.querySelector("a#graph_weekly").setAttribute("href", "/stats/ip/per_day?ip=" + topIpWeek.remoteaddr + "&days=7");
+            document.querySelector("span#top_weekly_count").innerHTML = topIpWeek.count;
+            // Fetch endpoint (30 days)
+            const responseM = await fetch('/analysis/api/tops/30');
+            const dataM = await responseM.json();
+            const topIpMonth = dataM;
+            // Update DOM (month)
+            document.querySelector("a#top_monthly").innerHTML = topIpMonth.remoteaddr;
+            document.querySelector("a#top_monthly").setAttribute("href", "/stats/ip/" + topIpMonth.remoteaddr);
+            document.querySelector("a#graph_monthly").setAttribute("href", "/stats/ip/per_day?ip=" + topIpMonth.remoteaddr + "&days=31");
+            document.querySelector("span#top_monthly_count").innerHTML = topIpMonth.count;
+        } else {
+            console.log("Didn't find a div#tops - not fetching tops.");
+        }
+    }
+    catch (error) {
+        console.error('Error fetching data: ', error);
+    }
+}
+getAllTops_b();
+
+// ### "Scroll-to-top" button
+let toTopBtn = document.getElementById("toTop");
+// When the user scrolls down 20px from the top of the document, show the button
+window.onscroll = function() {scrollFunction()};
+function scrollFunction() {
+  if (document.body.scrollTop > 500 || document.documentElement.scrollTop > 500) {
+    toTopBtn.style.display = "block";
+  } else {
+    toTopBtn.style.display = "none";
+  }
+}
+// When the user clicks on the button, scroll to the top of the document
+function topFunction() {
+  document.body.scrollTop = 0; // For Safari
+  document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
+} 
+// Event listener for the "Back to top" button
+$(document).ready(function() {
+    $('#toTop').click(function() {
+        topFunction();
+    });
+});

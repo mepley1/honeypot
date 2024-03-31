@@ -17,6 +17,7 @@ from dateutil.parser import parse
 from matplotlib.figure import Figure
 from matplotlib.pyplot import set_loglevel as set_pyplot_loglevel
 from matplotlib.pyplot import cycler
+from . import cache
 
 analysis = Blueprint('analysis', __name__)
 requests_db = 'bots.db'
@@ -42,6 +43,9 @@ rcParams.update({'figure.autolayout': True,
                 'axes.prop_cycle': cycler(color=['#2563ea','#3bc14a','#ff7f02','slateblue','darkturquoise','#0f8a1e','#bb2020','indigo'])
                 })
 set_pyplot_loglevel(level = 'warning') #shut up matplotlib
+
+#bar_color = '#2563EA'
+bar_color = '#3BC14A'
 
 @analysis.context_processor
 def inject_title():
@@ -356,7 +360,7 @@ def top_ten_paths():
     #fig.set_figheight(6) #use autolayout instead
     ax = fig.subplots()
     ax.grid(True, color='#b2b4b3', zorder=0)
-    ax.bar(top_paths_list, top_paths_counts, color='#3BC14A', zorder=2)
+    ax.bar(top_paths_list, top_paths_counts, color=bar_color, zorder=2)
     ax.set_title(f'Top {_num_of_paths} paths', color='#111828')
     ax.set_xlabel('Path', color='#111828')
     ax.set_ylabel('Total hits', color='#111828')
@@ -418,7 +422,7 @@ def top_ips():
     fig = Figure()
     ax = fig.subplots()
     ax.grid(True, zorder=0)
-    ax.bar(top_ips_list, top_ips_counts, color='#3BC14A', zorder=2)
+    ax.bar(top_ips_list, top_ips_counts, color=bar_color, zorder=2)
     ax.set_title(f'Top {_num_of_ips} IPs', color='#111828')
     ax.set_xlabel('IP address', color='#111828')
     ax.set_ylabel('Total hits', color='#111828')  
@@ -467,7 +471,7 @@ def top_uas():
         #logging.debug(f'Top IPs counts: {top_uas_counts}')
 
         #select all rows where useragent is in top_uas_list
-        sql_query = f"SELECT * FROM bots WHERE remoteaddr IN ({ ','.join(['?']*len(top_uas_list)) }) ORDER BY id DESC;"
+        sql_query = f"SELECT * FROM bots WHERE useragent IN ({ ','.join(['?']*len(top_uas_list)) }) ORDER BY id DESC;"
         c.execute(sql_query, top_uas_list)
         results = c.fetchall()
 
@@ -484,7 +488,7 @@ def top_uas():
     fig = Figure()
     ax = fig.subplots()
     ax.grid(True, zorder=0)
-    ax.bar(top_uas_list, top_uas_counts, color='#3BC14A', zorder=2)
+    ax.bar(top_uas_list, top_uas_counts, color=bar_color, zorder=2)
     ax.set_title(f'Top {num_ua} User-Agents',)
     ax.set_xlabel('User-Agent', color='#111828')
     ax.set_ylabel('Total hits', color='#111828')  
@@ -507,6 +511,177 @@ def top_uas():
         analys_stats = top_uas,
         analys_titles = ['User-Agent', 'Count'],
         totalHits = len(results),
-        statName = f'Top {num_ua} most common User-Agents',
+        statName = f'Top {num_ua} User-Agents',
         image_data = plot_image,
         )
+
+@analysis.route('/analysis/ct/topten', methods = ['GET'])
+@login_required
+def top_cts():
+    """ Return most common UAs + counts. """
+    num_ct = int(request.args.get('limit', 20)) # num of UAs to include, i.e. Top X. default 25
+
+    with sqlite3.connect(requests_db) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        sql_query = "SELECT contenttype, COUNT(*) AS count FROM bots GROUP BY contenttype ORDER BY count DESC LIMIT ?;"
+        # get the most common user agent values
+        data_tuple = (num_ct,)
+        c.execute(sql_query, data_tuple)
+        top_cts = c.fetchall()
+
+        top_cts_list = [row['contenttype'] for row in top_cts]
+        top_cts_counts = [row['count'] for row in top_cts]
+        #logging.debug(f'Top IPs: {top_cts_list}') #testing
+        #logging.debug(f'Top IPs counts: {top_cts_counts}')
+
+        '''
+        #select all rows where content-type is in top_cts_list
+        sql_query = f"SELECT * FROM bots WHERE contenttype IN ({ ','.join(['?']*len(top_cts_list)) }) ORDER BY id DESC;"
+        c.execute(sql_query, top_cts_list)
+        results = c.fetchall()
+        '''
+
+        c.close()
+    conn.close()
+
+    '''
+    #Edit '' item to 'None' for display on the plot
+    for i in range(len(top_cts_list)):
+        if top_cts_list[i] == '':
+            top_cts_list[i] = 'None'
+    '''
+    # Delete the 'none' item from top_cts_list so it's not plotted on image (makes the above redundant).
+    for i in range(len(top_cts_list)):
+        if top_cts_list[i] == '':
+            del(top_cts_list[i])
+            del(top_cts_counts[i])
+            break
+
+    '''
+    # Delete '' item from top_cts (no longer needed, but leaving this here.)
+    # Can use this to replace top_cts, if you don't want the blank Content-Type in the table.
+    list_dictrows = [dict(row) for row in top_cts]
+    list_dictrows = [d for d in list_dictrows if d.get('contenttype') != '']
+    ct_list_of_tuples = [tuple(d.values()) for d in list_dictrows]
+    '''
+
+    # matplot stuff
+    # Generate the figure **without using pyplot**.
+    fig = Figure()
+    ax = fig.subplots()
+    ax.grid(True, zorder=0)
+    ax.bar(top_cts_list, top_cts_counts, color=bar_color, zorder=2)
+    ax.set_title(f'Top {num_ct} Content-type',)
+    ax.set_xlabel('Content-type', color='#111828')
+    ax.set_ylabel('Total hits', color='#111828')  
+
+    # rotate x-axis labels for readability
+    for tick in ax.get_xticklabels():
+        tick.set_rotation(270)
+        tick.set_fontsize(6)
+
+    # Save it to a temporary buffer.
+    buf = BytesIO()
+    fig.savefig(buf, format="png")
+    plot_image = base64.b64encode(buf.getbuffer()).decode("ascii")
+
+    return render_template('stats.html',
+        #stats = results,
+        analys_stats = top_cts,
+        analys_titles = ['Content-type', 'Count'],
+        #totalHits = len(results),
+        statName = f'Top {num_ct} Content-type',
+        image_data = plot_image,
+        )
+
+### For AJAX/fetch requests, to display top IP stats on stats.html
+
+#SQLite callback for custom function
+def compare_time_b(timestamp, num_days):
+    """True if timestamp is within the past <num_days> days. """
+    current_time = datetime.datetime.now(datetime.timezone.utc)
+    cutoff = current_time - datetime.timedelta(days=num_days)
+    timestamp_p = parse(timestamp).astimezone(datetime.timezone.utc)
+    return timestamp_p > cutoff
+
+@analysis.route('/analysis/api/tops/<int:days>', methods = ['GET'])
+@login_required
+@cache.cached(query_string=True, timeout=600)
+def fetch_tops_ndays(days: int) -> dict:
+    """ Return top IPs past $n days. Fetched by Javascript function for div#tops on stats.html. """
+
+    with sqlite3.connect(requests_db) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        conn.create_function("COMPARETIME", 2, compare_time_b)
+
+        #Get top IP of past 24 hours
+        sql_query = """
+            SELECT remoteaddr, COUNT(*) AS count
+            FROM bots
+            WHERE COMPARETIME(time, ?)
+            GROUP BY remoteaddr
+            ORDER BY count DESC, MAX(id) DESC
+            LIMIT 1;
+            """
+        data_tuple = (days,)
+        c.execute(sql_query, data_tuple)
+        top_ip = dict(c.fetchone())
+
+        c.close()
+    conn.close()
+
+    return top_ip
+
+@analysis.route('/analysis/api/tops', methods = ['GET'])
+@login_required
+@cache.cached(query_string=True, timeout=600)
+def fetch_tops_mult() -> dict:
+    """ Return top IPs of past day+week+month. """
+
+    with sqlite3.connect(requests_db) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        conn.create_function("COMPARETIME", 2, compare_time_b)
+
+        #Get top IP of past 24 hours
+        sql_query = """
+            SELECT remoteaddr, COUNT(*) AS count
+            FROM bots
+            WHERE COMPARETIME(time, 1)
+            GROUP BY remoteaddr
+            ORDER BY count DESC, MAX(id) DESC
+            LIMIT 1;
+            """
+        c.execute(sql_query)
+        top_ip_daily = dict(c.fetchone())
+
+        #Get most common IP of past 7 days
+        sql_query = """
+            SELECT remoteaddr, COUNT(*) AS count
+            FROM bots
+            WHERE COMPARETIME(time, 7)
+            GROUP BY remoteaddr
+            ORDER BY count DESC, MAX(id) DESC
+            LIMIT 1;
+            """
+        c.execute(sql_query)
+        top_ip_weekly = dict(c.fetchone())
+
+        #Get most common IP of past 30 days
+        sql_query = """
+            SELECT remoteaddr, COUNT(*) AS count
+            FROM bots
+            WHERE COMPARETIME(time, 31)
+            GROUP BY remoteaddr
+            ORDER BY count DESC, MAX(id) DESC
+            LIMIT 1;
+            """
+        c.execute(sql_query)
+        top_ip_monthly = dict(c.fetchone())
+
+        c.close()
+    conn.close()
+
+    return {'day': top_ip_daily, 'week': top_ip_weekly, 'month': top_ip_monthly}

@@ -1,4 +1,4 @@
-<nav>
+<nav class="desktop">
         <ul class="navigation">
             <li>
                 <a class="site-title" href="{{url_for('main.index')}}">{{SUBDOMAIN}}<span class="dotnet">{{TLD}}</span></a>
@@ -28,6 +28,7 @@
                     <a href="{{url_for('main.headers_key_search', key='X-Requested-With')}}">Headers: X-Requested-With</a>
                     <a href="{{url_for('main.hostname_stats', hostname='.cn')}}">Hostname: *.cn</a>
                     <a href="{{url_for('main.uaStats', ua='%http%://%')}}">User-Agent: Contains URL</a>
+                    <a href="{{url_for('main.bodyStats', body='%25_%25') }}">Body: Any included</a>
                     <a href="{{url_for('main.bodyStats', body='%25%255B%255D=%25') }}">Body: AndroxGh0st/variants</a>{# '0x%255B%255D=%25' #}
                 </div>
             </li>
@@ -37,10 +38,11 @@
                     <a href="{{url_for('analysis.total_per_day', num_of_days=7)}}">Total hits/day, 7 days</a>
                     <a href="{{url_for('analysis.total_per_day', num_of_days=30)}}">Total hits/day, 30 days</a>
                     <a href="{{url_for('analysis.ip_per_day', days=30, ip='*:*')}}">IPv6 total/day, 30 days</a>
-                    <a href="{{url_for('analysis.top_ips', limit=36)}}">Top IPs</a>
                     <a href="{{url_for('analysis.ip_per_day', days=7, ip='*')}}">IP per day</a>
-                    <a href="{{url_for('analysis.top_ten_paths', limit=20)}}">Top n path</a>
+                    <a href="{{url_for('analysis.top_ips', limit=36)}}">Top IPs</a>
+                    <a href="{{url_for('analysis.top_ten_paths', limit=25)}}">Top Paths</a>
                     <a href="{{url_for('analysis.top_uas', limit=25)}}">Top User-Agents</a>
+                    <a href="{{url_for('analysis.top_cts', limit=25)}}">Top Content-Type</a>
                 </div>
             </li>
             {% endif %}

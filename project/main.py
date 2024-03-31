@@ -1,6 +1,6 @@
 """ Main blueprint for stats pages, home, etc. Anything not related to auth can go in here. """
 
-import ast
+#import ast
 import sqlite3
 import requests #for reporting
 import json
@@ -163,6 +163,7 @@ def regexp(expr, item):
     return reg.search(str(item)) is not None
 
 #Callback for SQLite compare_time custom function
+'''
 def compare_time(timestamp, num_days):
     """True if timestamp is within the past <num_days> days. """
     current_time = datetime.datetime.now(datetime.timezone.utc)
@@ -172,7 +173,7 @@ def compare_time(timestamp, num_days):
     difference = current_time - timestamp_p
     #logging.debug(difference)
     return abs(difference) < datetime.timedelta(days=num_days)
-
+'''
 def compare_time_b(timestamp, num_days):
     """True if timestamp is within the past <num_days> days. """
     current_time = datetime.datetime.now(datetime.timezone.utc)
@@ -183,13 +184,14 @@ def compare_time_b(timestamp, num_days):
 ### Define Flask app routes
 
 # Will use this in a couple places so I don't have to list them all out
-HTTP_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'TRACE', 'PATCH']
+HTTP_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'TRACE', 'PATCH', 'BIND', 'CHECKOUT', 'UPDATE', 'PRI', 'SEARCH', 'MKCALENDAR', 'ORDERPATCH', 'PROPFIND', 'UNLINK']
 
 @main.route('/', methods = HTTP_METHODS, defaults = {'u_path': ''})
 @main.route('/<path:u_path>', methods = HTTP_METHODS)
 def index(u_path):
-    """ Catch-all route. Get and save all the request data into the database. """
-    logging.info(f'{request}')
+    """ Catch-all route. Grab and save all the request data into the database. """
+    req_version = request.environ.get('SERVER_PROTOCOL') #http version
+    logging.info(f'{request} {req_version}')
 
     ## note: I *really* need to change these variable names to match the database/headers better
     
@@ -219,9 +221,8 @@ def index(u_path):
     req_path = request.path
     req_referer = request.headers.get('Referer', '')
     #add to db schema later
-    req_args_j = json.dumps(request.args)
-    req_version = request.environ.get('SERVER_PROTOCOL') #http version
-    logging.debug(req_version)
+    req_args_j = json.dumps(request.args) #So I can have a jsonified version as well
+
 
     # NEW SECTION: Get the POST request body
     # Get the request body. Could be any content-type, format, encoding, etc, try to capture
@@ -233,71 +234,62 @@ def index(u_path):
     ### The fact is that any sequence of bytes can be decoded as latin1 because there the latin1 encoding is a bijection between the 256 possible bytes and the unicode characters with code point in the [0;256[ range.
     # So for now I *think* my tactic of trying decode as utf-8 and then latin-1 second is right, and should produce minimal mojibake, unless the data is neither utf-8 nor latin-1.
 
-    #req_content_type = request.content_type #This returns a None if no content-type declared, so use headers.get() with a default instead
+    #request.content_type returns a None if no content-type declared, so use headers.get() with a default instead
     req_content_type = request.headers.get('Content-Type', '')
 
     try:
-        # JSON: Serialize the body data, if that doesn't work just use get_data().
+
+        # If mimetype JSON: Serialize the body data, if that doesn't work just use get_data().
         if 'application/json' in req_content_type:
+            logging.debug('Mimetype: JSON')
             try:
                 #req_body = json.dumps(request.json)
                 req_body = json.dumps(request.get_json(force=True))
             except:
                 logging.debug('Serializing failed, attempting to decode as utf-8...')
                 req_body = request.get_data().decode('utf-8', errors = 'replace')
-        elif 'application/x-www-form-urlencoded' in req_content_type:
-            # If content-type is Form data. 
-            if isinstance(request.get_data(), bytes):
-                """If body is bytes: try utf-8 first, if that doesn't work then latin-1.
-                Should add database column later for blob of original body, + which codec worked. """
-                try:
-                    logging.debug('Form data is bytes. Attempting to decode as utf-8...')
-                    req_body = request.get_data().decode('utf-8')
-                except UnicodeDecodeError:
-                    try:
-                        logging.debug('Attempting to decode as latin-1...')
-                        req_body = request.get_data().decode('latin-1')
-                    except UnicodeDecodeError:
-                        logging.debug('Just use replacement chars if utf-8 or latin-1 dont work.')
-                        req_body = request.get_data().decode('utf-8', errors = 'replace')
 
-                """try: #After decoding, try to serialize again, if can't then leave it as-is
-                    logging.debug('Attempting to serialize decoded body...')
-                    body_dict = parse_qs(req_body) #parse into a dict
-                    logging.debug(f'parsed dict: {body_dict}') #testing
-                    if len(body_dict) > 0:
-                        req_body = json.dumps(body_dict)
-                except Exception as e:
-                    logging.debug(f'Serializing decoded form data failed (saving as-is): {str(e)}')
-                    pass"""
-            else:
-                """ If not bytes, either serialize it if possible, or decode. """
-                try:
-                    logging.debug('Serialize form data...')
-                    req_body = json.dumps(dict(request.form)) #This is resulting in an empty string if it can't parse it
-                except TypeError as e:
-                    logging.debug('Form data not serializable, trying get_data()...')
-                    req_body = request.get_data().decode('utf-8', errors = 'replace')
-        elif 'text/html' in req_content_type or 'text/plain' in req_content_type:
-            logging.debug('content-type: text/html or text/plain')
-            req_body = request.get_data().decode('utf-8', errors = 'replace')
-        else: #Any other content-type, or if no content-type declared
+        elif 'application/x-www-form-urlencoded' in req_content_type:
+            logging.debug('Mimetype: FORM')
+            """ Form data; serialize if possible, else just decode and save the resulting str. """
             try:
-                req_body = request.get_data().decode('utf-8')
-            except UnicodeDecodeError:
+                logging.debug('Serialize form data...')
+                req_body = json.dumps(dict(request.form)) #This is resulting in an empty string if it can't parse it
+            except TypeError as e:
+                logging.debug('Form data not serializable, trying get_data()...')
                 req_body = request.get_data().decode('utf-8', errors = 'replace')
+
+        elif 'text/html' in req_content_type or 'text/xml' in req_content_type or 'text/plain' in req_content_type:
+            logging.debug('Mimetype: text/html, text/xml, or text/plain')
+            req_body = request.get_data().decode('utf-8', errors = 'replace')
+
+        else: #Any other content-type, or if no content-type declared
+            logging.debug('Unhandled content-type, or no content-type declared.')
+            if len(request.get_data()) == 0: #If no data, set to an empty string.
+                req_body = ''
+            else: # Serialize if possible.
+                logging.debug('attempt serializing...')
+                try:
+                    req_body = json.dumps(request.get_json(force=True))
+                except Exception as e:
+                    logging.debug(f'Body not serializable: {str(e)}')
+                    req_body = request.get_data().decode('utf-8', errors = 'replace')
+
     except Exception as e:
         #If any other exceptions
-        logging.error(f'Uncaught exception while trying to parse body. Saving with replacement chars. : {str(e)}')
-        #req_body = str(e) #See if anything is still failing
-        req_body = request.get_data().decode('utf-8', errors='replace')
+        logging.error(f'Uncaught exception while trying to parse body. Saving with fallback method. : {str(e)}')
+        try:
+            req_body = request.get_data().decode('utf-8', errors='replace')
+        except Exception as e:
+            logging.error(str(e))
+            req_body = str(e)
 
     # Check request against detection rules, and submit report
     # Adding try/except temporarily while I test some things
     try:
         reported = check_all_rules() #see auto_report.py
     except Exception as e:
-        logging.error(f'Error while executing detections: {str(e)}')
+        logging.error(f'Exception while executing detections: {str(e)}')
         reported = 0
 
     # Request data to insert into the database
@@ -341,9 +333,11 @@ def index(u_path):
     flash(f'IP: {req_ip}', 'info')
     return render_template('index.html')
 
+### STATS ROUTES
+
 @main.route('/stats')
 @login_required
-@cache.cached(query_string=True, timeout=60)
+@cache.cached(query_string=True, timeout=120)
 def stats():
     """ Pull the most recent requests from bots.db and pass data to stats template to display. """
     # Limit to # of records to prevent accidental (or intentional) DOS
@@ -382,6 +376,7 @@ def stats():
         c.execute(sql_query)
         top_ip = c.fetchone()
 
+        '''
         #Get most common IP of past 7 days
         conn.create_function("COMPARETIME", 2, compare_time_b)
         sql_query = """
@@ -406,6 +401,10 @@ def stats():
             """
         c.execute(sql_query)
         top_ip_daily = c.fetchone()
+        '''
+
+        top_ip_weekly = '<placeholder>'
+        top_ip_daily = '<placeholder>'
 
         c.close()
     conn.close()
@@ -413,7 +412,7 @@ def stats():
     #pagination
     import math
     page = int(request.args.get('page', 1))
-    items_per_page = 256
+    items_per_page = int(request.args.get('per_page', 100))
     total_items = len(stats)
     total_pages = math.ceil(total_items / items_per_page)
     start_index = (page - 1) * items_per_page
@@ -444,6 +443,7 @@ def stats():
 @main.route('/stats/logins')
 @login_required
 @admin_required
+@cache.cached(query_string=True, timeout=60)
 def loginStats():
     """ Query db for login attempts. """
     with sqlite3.connect(requests_db) as conn:
@@ -1203,7 +1203,7 @@ def delete_login_record():
 
     # Log the action to systemd logs
     logging.info(f'Deleted login record {_id} by user {current_user.username}')
-
+    cache.clear() #to ensure next page is fresh
     flash(f'Deleted login record #{_id}', 'successn')
     return redirect(request.referrer)
 
@@ -1365,7 +1365,9 @@ def get_pref_theme():
     apply the theme (class) to <body> element on cached pages that otherwise would still have the
     previous theme attached. """
     theme = request.cookies.get('pref_theme') or 'None'
-    return theme
+    resp = make_response(theme)
+    resp.headers['Content-Type'] = 'text/plain'
+    return resp
 
 @main.route('/profile/profile', methods = ['GET'])
 @login_required

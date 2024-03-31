@@ -124,9 +124,10 @@ ENV_PROBE_PATHS = [
     '/laravel',
     '/storage', '/protected', # seen as /storage/protected - Redlion RAS
     '/library',
-    '/auth',
+    '/auth', #will also catch /authn
     '/login',
     '/logon',
+    '/session',
     '/database',
     '/scripts',
     '/99vt', '/99vu', '/gate.php', '/aaaaaaaaaaaaaaaaaaaaaaaaaqr', #some misc malware
@@ -135,6 +136,8 @@ ENV_PROBE_PATHS = [
     '/log/',
     '/jquery.js',
     '/jquery-3.3.1.min.js', #seen this a bunch of times now
+    '/jquery-1.12.4.min.js', #Lots of this too, probing for vulnerable versions.
+    'jquery',
     '.json',
     '/server-status',
     '/.DS_Store',
@@ -201,6 +204,7 @@ def is_injection_attack(request):
         'wget+',
         '&wget',
         'wget http', #may be http or https
+        '`', '%60', #Everything containing ` has been injection
         ';chmod',
         'cd+',
         ';rm -rf', #formatted with spaces in headers injection
@@ -503,6 +507,14 @@ def is_tpl_exploit(request):
         return True
     return False
 
+def is_zyxel_rci(request):
+    """ CVE-2022-30525 Zyxel Firewall Unauthenticated Remote Command Injection """
+    ZYXEL_PATH = '/ztp/cgi-bin/handler'
+    if request.method != 'POST':
+        return False
+    else:
+        return ZYXEL_PATH.lower() in request.path.lower()
+
 # more generic rules
 
 def is_post_request(request):
@@ -745,6 +757,7 @@ def check_all_rules():
         (is_rocketmq_probe, 'RocketMQ probe CVE-2023-33246', ['21']),
         (is_datadog_trace, 'Unauthorized probe/scan', ['21']),
         (is_tpl_exploit, 'CVE-2023-1389', ['15','21','23']),
+        (is_zyxel_rci, 'Zyxel CVE-2022-30525', ['15','21','23']),
         (is_post_request, 'Suspicious POST request', ['21']),
         (no_host_header, 'No Host header', ['21']),
         (is_misc_get_probe, 'GET with unexpected args', ['21']),

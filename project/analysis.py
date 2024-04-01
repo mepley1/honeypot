@@ -605,10 +605,10 @@ def compare_time_b(timestamp, num_days):
     timestamp_p = parse(timestamp).astimezone(datetime.timezone.utc)
     return timestamp_p > cutoff
 
-@analysis.route('/analysis/api/tops/<int:days>', methods = ['GET'])
+@analysis.route('/analysis/api/tops/<int:num_days>', methods = ['GET'])
 @login_required
 @cache.cached(query_string=True, timeout=600)
-def fetch_tops_ndays(days: int) -> dict:
+def fetch_tops_ndays(num_days: int) -> dict:
     """ Return top IPs past $n days. Fetched by Javascript function for div#tops on stats.html. """
 
     with sqlite3.connect(requests_db) as conn:
@@ -625,9 +625,14 @@ def fetch_tops_ndays(days: int) -> dict:
             ORDER BY count DESC, MAX(id) DESC
             LIMIT 1;
             """
-        data_tuple = (days,)
+        data_tuple = (num_days,)
         c.execute(sql_query, data_tuple)
-        top_ip = dict(c.fetchone())
+        # If no hits found (query returns None), give some placeholder data to prevent TypeError.
+        try:
+            top_ip = dict(c.fetchone())
+        except TypeError as e:
+            logging.error(f'No hits found in {num_days} days.')
+            top_ip = {'remoteaddr': 'none', 'count': '0'}
 
         c.close()
     conn.close()
@@ -684,4 +689,7 @@ def fetch_tops_mult() -> dict:
         c.close()
     conn.close()
 
-    return {'day': top_ip_daily, 'week': top_ip_weekly, 'month': top_ip_monthly}
+    return {'day': top_ip_daily,
+        'week': top_ip_weekly,
+        'month': top_ip_monthly
+        }

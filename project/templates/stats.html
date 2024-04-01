@@ -193,13 +193,6 @@
                     <td class="dataLinks ipToLink sv0"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> <span class="dim">|</span> <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a> <span class="dim">|</span> <a href="https://virustotal.com/gui/ip-address/{{row['remoteaddr']}}" target="_blank">VirusTotal</a> <span class="dim">|</span> <a href="{{url_for('analysis.ip_per_day', ip=row['remoteaddr'], days=30)}}" target="_blank">Graph</a></td>
                     {% if current_user.is_admin %} {# Only show delete button+modal if user is admin #}
                     <td class="dataDeleteRow dataToLink dim hidden">
-                        <!-- OLD delete-button, leave here until modal+JS are working fully -->
-                        <!--<form action="{{ url_for('main.delete_record_by_id', request_id=row['id']) }}" method="POST" id="delete_button_{{row['id']}}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="delete-button">&#10060; Delete</button>
-                        </form>-->
-                        <!-- end OLD delete-button -->
-
                         <!-- delete button; opens delete confirmation modal -->
                         <button class="delete-button" id="delete_button_{{row['id']}}" for_id="{{row['id']}}">&#10060;</button>
                         <!-- delete confirmation modal -->

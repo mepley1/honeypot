@@ -136,7 +136,7 @@ F55D3E peach ish
 */
 
 html{
-	font-family: var(--text-font), sans-serif;
+	font-family: var(--text-font);
 	/*background-color: var(--main-bg-color);*/
 	/*filter: invert(100%);*/
 }
@@ -236,7 +236,7 @@ label {
 	color: var(--button-text-alternate);
 	padding: 10px 16px;
 	transition: all 0.4s;
-	font-family: var(--text-font), sans-serif;
+	font-family: var(--text-font);
 	cursor: pointer;
 }
 
@@ -263,7 +263,7 @@ label {
 	padding: 0px;
 	margin: 0px;
 	transition: all 0.4s;
-	font-family: var(--text-font), sans-serif;
+	font-family: var(--text-font);
 	cursor: pointer;
 }
 
@@ -277,7 +277,7 @@ label {
 	width: 90%;
 	border: none;
 	border-radius: 8px;
-	font-family: var(--text-font), sans-serif;
+	font-family: var(--text-font);
 	font-size: 20px;
 	background-color: var(--main-bg-color);
 	color: var(--lightergray);
@@ -311,7 +311,7 @@ select > option, optgroup, optgroup > option{
 }
 
 h1, h2, h3, h4{
-	font-family: var(--header-font), sans-serif;
+	font-family: var(--header-font);
 	color: var(--main-heading-color);
 	text-align: center;
 	font-weight: 300;
@@ -336,7 +336,7 @@ h4{
 }
 
 p{
-	font-family: var(--text-font), sans-serif;
+	font-family: var(--text-font);
 	font-size: 14px;
 }
 
@@ -581,6 +581,7 @@ table{
 	/*font-size: 0.8em;*/
 	font-size: 14px;
 	text-align: left;
+	font-family: var(--text-font);
 }
 
 tr{
@@ -606,6 +607,7 @@ td{
 	padding-left: 8px;
 	padding-right: 8px;
 	resize: both;
+	min-width: 5ch;
 	max-width: 400px;
 	/* width: 9%; */
 }
@@ -893,7 +895,7 @@ button.modal_btn {
 	/*color: var(--main-heading-color);*/
 	padding: 10px 16px;
 	transition: all 0.4s;
-	font-family: var(--text-font), sans-serif;
+	font-family: var(--text-font);
 	cursor: pointer;
 }
 

@@ -34,6 +34,8 @@
 /* Hide the link that should open and close the topnav on small screens */
 .topnav .icon {
   display: none;
+  padding-left: 36px; /* A little extra thumb room */
+  padding-right: 24px;
 } 
 
  /* Hide all links, except one with class .active. Show the link that contains should open and close the topnav (.icon) */
@@ -100,6 +102,8 @@ span.drop_hidden_1 > *, span.drop_hidden_2 > *, span.drop_hidden_3 > *{
 /* Default: Hide mobile nav unless surely a mobile device. */
 nav.mobile {
   content-visibility: hidden;
+  position: sticky;
+  top: 0;
 }
 
 /* Mobiles - show mobile nav */

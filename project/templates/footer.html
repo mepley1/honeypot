@@ -1,20 +1,25 @@
 <footer class="footer">
-    <!-- style selection form -->
-    <p>
+    <div class="flex-container">
+        <a href="{{url_for('main.return_search_page')}}" title="Search"><i class="fa-solid fa-magnifying-glass fa_icon"></i></a>
+
+        <!-- style selection form -->
         <form action="{{ url_for('main.set_pref_theme') }}" method="POST" id="theme_form">
-            <select name="pref_theme" id="pref_theme" class="form-box">
+            <select id="pref_theme" name="pref_theme" class="form-box">
                 <option disabled selected>- Styles -</option>
-                <option value="theme-darkgreen">Dark: Black/green{% if request.cookies.get('pref_theme')|e == 'theme-darkgreen' %} *{% endif %}</option>
-                <option value="theme-blue">Light: Blue/orange{% if request.cookies.get('pref_theme')|e == 'theme-blue' %} *{% endif %}</option>
-                <option value="theme-darkice">Dark: Black/ice{% if request.cookies.get('pref_theme')|e == 'theme-darkice' %} *{% endif %}</option>
+                <option value="theme-blue">Light: Blue/Orange{% if request.cookies.get('pref_theme')|e == 'theme-blue' %} *{% endif %}</option>
+                <option value="theme-darkgreen">Dark: Black/Green{% if request.cookies.get('pref_theme')|e == 'theme-darkgreen' %} *{% endif %}</option>
+                <option value="theme-darkice">Dark: Black/Ice{% if request.cookies.get('pref_theme')|e == 'theme-darkice' %} *{% endif %}</option>
             </select>
-            <!--<button type="submit" class="submit-button" id="pref_theme_btn">Submit</button>-->
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
             <p id="footer_loading_note" class="successn">Loading...</p>
         </form>
-    </p>
-    <!-- end style selection-->
-    <!-- testing media query for mobiles -->
-    <p class="mobile_device_test">Mobile device</p>
-    <span id="toTop" title="Back to Top">&#8593;</span>
+        <!-- end style selection-->
+
+        <!-- "Back to top" button, uses JS event listener -->
+        <!--<span id="toTop" title="Back to Top">&#8593;</span>-->
+        <i class="fa-solid fa-circle-up fa_icon" id="toTop" title="Back to Top"></i>
+
+        <!-- testing media query for mobiles -->
+        <!-- <p class="mobile_device_test">Mobile device</p> -->
+    </div>
 </footer>

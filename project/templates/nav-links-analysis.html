@@ -1,0 +1,8 @@
+<a href="{{url_for('analysis.total_per_day', num_of_days=7)}}">Total hits/day, 7 days</a>
+<a href="{{url_for('analysis.total_per_day', num_of_days=30)}}">Total hits/day, 30 days</a>
+<a href="{{url_for('analysis.ip_per_day', days=30, ip='*:*')}}">IPv6 total/day, 30 days</a>
+<a href="{{url_for('analysis.ip_per_day', days=7, ip='*')}}">IP per day</a>
+<a href="{{url_for('analysis.top_ips', limit=36)}}">Top IPs</a>
+<a href="{{url_for('analysis.top_ten_paths', limit=25)}}">Top Paths</a>
+<a href="{{url_for('analysis.top_uas', limit=25)}}">Top User-Agents</a>
+<a href="{{url_for('analysis.top_cts', limit=25)}}">Top Content-Type</a>

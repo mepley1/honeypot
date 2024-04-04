@@ -7,7 +7,7 @@
 It's too much data to display at once, I'm not going to bother making it very responsive.
 I'll just make a simpler stats page with less data that will be better for mobile devices. */
 
-body, .theme-blue {
+:root, body, .theme-blue {
 	--main-bg-color: #111828;
 	--main-bg-color-trans: #111828ee; /* for modal window */
 	--main-accent-color: #2563ea;
@@ -88,7 +88,7 @@ F55D3E peach ish
 	--size-notifications: 20px;
 }
 
-:root, body, .theme-darkgreen {
+.theme-darkgreen {
 	--main-bg-color: #090a0c; /* Slightly darker version. */
 	/*--main-bg-color: #0b0d0e;*/ /* Slightly brighter version of above. */
 	--main-bg-color-trans: #090a0cee; /* for modal window; same as above, but transparent. */
@@ -246,32 +246,6 @@ label {
 	color: var(--main-heading-color);
 }
 
-#pref_theme{
-	margin: 0;
-}
-
-#pref_theme_btn{
-	/*border: 2px solid var(--main-accent-color);*/
-	border: none;
-	/*border-radius: 8px;*/
-	border-radius: 0;
-	/*font-size: 20px;*/
-	background-color: var(--main-accent-color);
-	/* color: #FFFFFF;*/
-	color: var(--button-text-alternate);
-	/*padding: 10px 16px;*/
-	padding: 0px;
-	margin: 0px;
-	transition: all 0.4s;
-	font-family: var(--text-font);
-	cursor: pointer;
-}
-
-#pref_theme_btn:Hover{
-	/*border: 2px solid var(--main-accent-color);*/
-	background-color: var(--form-bg-color);
-	color: var(--main-heading-color);
-}
 
 .form-box{
 	width: 90%;
@@ -296,14 +270,6 @@ label {
 input:focus:invalid{
 	/* color: var(--errorColor); */
 	/* background-color: var(--input-invalid); */
-}
-
-/* You can't do much with option element, it's styled by the OS */
-select > option, optgroup, optgroup > option{
-	font-size: 16px;
-	font-family: var(--text-font);
-	color: var(--lightgray);
-	background-color: var(--main-bg-color);
 }
 
 .h-captcha{
@@ -750,54 +716,66 @@ a.pagination:hover{
 
 /* end pagination */
 
-/* Footer */
+footer > .flex-container {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+/* ### Footer */
 footer.footer{
-	display: inline-block;
+	/*display: inline-block;*/
 	position: fixed;
 	bottom: 0;
 	left: 0;
+	right: 0;
 	width: 100%;
 	text-align: center;
 	background-color: var(--content-bg-color);
 	border-top: 1px solid var(--midgray);
+	font-size: 16px;
 }
 
-footer > p, footer > p > *{
-	margin: 0px;
-	padding-top: 0px;
-	padding-left: 8px;
-	padding-right: 8px;
+footer.footer *, footer.footer > * {
+	margin: 0;
+	padding: 0;
 }
 
 footer > form{
 	width:fit-content;
-	margin: auto;
 }
 
-p#footer_loading_note{
+/* You can't do much with option element, it's styled by the OS */
+/*select#pref_theme, select#pref_theme * { */
+select#pref_theme *{
+	font-size: 16px;
+	font-family: var(--text-font);
+	color: var(--lightgray);
+	background-color: var(--main-bg-color);
+}
+
+#footer_loading_note{
 	display: none;
 	margin: 0px;
 	padding: 0px;
 }
 
-#toTop {
-	font-size: 20px;
-	color: var(--blue1);
-	position: fixed;
-	bottom: 20px;
-	right: 20px;
-	z-index: 1;
-	display: none;
+/* Add class fa_icon to Font Awesome icons. */
+footer i.fa_icon {
+	color: var(--main-accent-color);
+	/*display: none;*/
 	cursor: pointer;
-	/* add round button style */
-	background-color: var(--content-bg-color);
-	border-radius: 128px;
-	width: 32px;
+	margin: 0px;
+	font-size: 20px;
+}
+
+footer i.fa_icon:hover {
+	opacity: 0.6;
 }
 
 /* End Footer */
 
-/* Tops */
+/* Tops (top IP stats on /stats route */
 div#tops{
 	display: block;
 	border: 1px solid var(--main-bg-color);
@@ -819,10 +797,6 @@ picture.plot_image, picture *{
 @media only screen and (max-width: 1920px) {
 	table {
 		font-size: 12px;
-	}
-	.everything {
-		/*max-width: 92vw;*/
-		/*max-width: none;*/
 	}
 	ul.navigation {
 		padding-left: 0;
@@ -878,6 +852,9 @@ p.mobile_device_test{
 	p.plot_image > img{
 		/*width: 75%;*/
 		max-width: 100%;
+	}
+	select#pref_theme{
+		font-size: 14px;
 	}
 
 

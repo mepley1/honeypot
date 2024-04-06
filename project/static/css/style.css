@@ -51,7 +51,6 @@ F55D3E peach ish
 */
 .theme-darkice {
 	--main-bg-color: #0b0d0e; /* Slightly darker version. */
-	/*--main-bg-color: #0b0d0e;*/ /* Slightly brighter version of above. */
 	--main-bg-color-trans: #0e1012ee; /* for modal window; same as above, but transparent. */
 	--main-accent-color: #6FFFE9;
 	--main-heading-color: #e4e8eb;
@@ -575,18 +574,10 @@ td{
 	resize: both;
 	min-width: 5ch;
 	max-width: 400px;
-	/* width: 9%; */
 }
-
-/* Limit max width of Headers and Post Data columns, otherwise they get huge */
-/*
-td.dataHeaders, td.dataPostData, td.dataURL {
-	max-width: 600px;
-}
-*/
 
 td.dataMethod{
-	/* width: 5%; */
+	width: fit-content;
 }
 
 /* For a couple columns that I want to shrink a little */
@@ -689,16 +680,15 @@ div#dataToggles, div#dataToggles > label {
 /* END TABLE DATA */
 
 /* SINGLE-REQUEST HEADERS PAGE */
-.header_single{
+table.header_single{
 	/*font-family: var(--mono-font);*/
 	text-align: left;
 	width: auto;
-	font-size: 18px;
-
+	font-size: 16px;
 }
 
 table.header_single td{
-	padding: 12px;
+	padding: 8px;
 }
 
 /* END SINGLE_REQUEST PAGE */
@@ -761,16 +751,15 @@ select#pref_theme *{
 }
 
 /* Add class fa_icon to Font Awesome icons. */
-footer i.fa_icon {
+footer .fa_icon {
 	color: var(--main-accent-color);
-	/*display: none;*/
 	cursor: pointer;
 	margin: 0px;
 	font-size: 20px;
 }
 
-footer i.fa_icon:hover {
-	opacity: 0.6;
+footer .fa_icon:hover {
+	opacity: 0.5;
 }
 
 /* End Footer */

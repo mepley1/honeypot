@@ -13,11 +13,19 @@
 
             <h2>Headers sent in request #<a href="{{ url_for('main.stats_by_id', request_id=request_id) }}">{{ request_id }}</a></h2>
 
+            <div class="pagination">
+                <p>
+                    <a href="{{ url_for('main.headers_single_json', request_id=prev_request_id) }}" class="pagination">Previous</a>&nbsp;-&nbsp;<a href="{{ url_for('main.headers_single_json', request_id=next_request_id) }}" class="pagination">Next</a>
+                </p>
+            </div>
+
             <table class="header_single">
-                <tr class="dim">
-                    <td>Header</td>
-                    <td>Value</td>
-                </tr>
+                <thead>
+                    <tr class="dim">
+                        <th>Header</th>
+                        <th>Value</th>
+                    </tr>
+                </thead>
                 {% for header_name, header_value in stats.items(): %}
                 <tr>
                     <td>{{header_name|e}}</td>
@@ -25,11 +33,6 @@
                 </tr>
                 {% endfor %}
             </table>
-            <div class="pagination">
-                <p>
-                    <a href="{{ url_for('main.headers_single_json', request_id=prev_request_id) }}" class="pagination">Previous</a>&nbsp;-&nbsp;<a href="{{ url_for('main.headers_single_json', request_id=next_request_id) }}" class="pagination">Next</a>
-                </p>
-            </div>
 
         </article>
 {% endblock %}

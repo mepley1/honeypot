@@ -1,8 +1,8 @@
-<a href="{{url_for('analysis.total_per_day', num_of_days=7)}}">Total hits/day, 7 days</a>
-<a href="{{url_for('analysis.total_per_day', num_of_days=30)}}">Total hits/day, 30 days</a>
-<a href="{{url_for('analysis.ip_per_day', days=30, ip='*:*')}}">IPv6 total/day, 30 days</a>
-<a href="{{url_for('analysis.ip_per_day', days=7, ip='*')}}">IP per day</a>
-<a href="{{url_for('analysis.top_ips', limit=36)}}">Top IPs</a>
-<a href="{{url_for('analysis.top_ten_paths', limit=25)}}">Top Paths</a>
-<a href="{{url_for('analysis.top_uas', limit=25)}}">Top User-Agents</a>
-<a href="{{url_for('analysis.top_cts', limit=25)}}">Top Content-Type</a>
+<a href="{{url_for('analysis.total_per_day', num_of_days=7)}}" title="Total hits/day, past 7 days">Total hits/day, 7 days</a>
+<a href="{{url_for('analysis.total_per_day', num_of_days=30)}}" title="Total hits/day, past 30 days">Total hits/day, 30 days</a>
+<a href="{{url_for('analysis.ip_per_day', days=30, ip='*:*')}}" title="Total IPv6 hits/day, past 30 days">IPv6 total/day, 30 days</a>
+<a href="{{url_for('analysis.ip_per_day', days=7, ip='*')}}" title="Total hits/day from any given IP">IP per day</a>
+<a href="{{url_for('analysis.top_ips', limit=36)}}" title="Most common IPs">Top IPs</a>
+<a href="{{url_for('analysis.top_ten_paths', limit=25)}}" title="Most common paths">Top Paths</a>
+<a href="{{url_for('analysis.top_uas', limit=25)}}" title="Most common User-Agent values">Top User-Agents</a>
+<a href="{{url_for('analysis.top_cts', limit=25)}}" title="Most common Content-Type values">Top Content-Types</a>

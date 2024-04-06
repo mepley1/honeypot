@@ -3,7 +3,9 @@
 
  <nav class="mobile">
  <div class="topnav" id="myTopnav">
+    <a href="{{url_for('main.stats', page=1)}}" class="active">{{SUBDOMAIN}}{{TLD}}</a>
     <a href="{{url_for('main.stats', page=1)}}">Home</a>
+    <a href="{{url_for('main.about')}}">About</a>
     {% if not current_user.is_authenticated %}
       <a href="{{url_for('auth.login')}}">Login</a>
     {% endif %}
@@ -23,8 +25,8 @@
     {% endif %}
 
       <!-- Menu toggle button -->
-    <a href="javascript:void(0);" class="icon" id="nav_toggle_btn"><!-- &#x2630; -->
-      <i class="fa fa-bars"></i>
+    <a href="javascript:void(0);" class="icon" id="nav_toggle_btn" title="Menu"><!-- &#x2630; -->
+      <i class="fa fa-bars" title="&#x2630; Menu"></i>
    </a>
  </div> 
  <script src="{{ url_for('static', filename='js/nav-mobile.js') }}"></script>

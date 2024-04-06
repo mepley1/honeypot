@@ -26,14 +26,14 @@
 
 /* Add an active class to highlight the current page */
 .topnav a.active {
-  background-color: var(--main-bg-color);
-  color: var(--lightgray);
   /*border-right: 1px solid var(--midgray);*/
+  font-family: var(--header-font);
+  letter-spacing: 1px;
+  border: none;
 }
 
-/* Hide the link that should open and close the topnav on small screens */
+/* Nav menu hamburger icon */
 .topnav .icon {
-  display: none;
   padding-left: 36px; /* A little extra thumb room */
   padding-right: 24px;
 } 

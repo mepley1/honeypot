@@ -1,6 +1,6 @@
 <footer class="footer">
     <div class="flex-container">
-        <a href="{{url_for('main.return_search_page')}}" title="Search"><i class="fa-solid fa-magnifying-glass fa_icon"></i></a>
+        <a href="{{url_for('main.return_search_page')}}"><i class="fa-solid fa-magnifying-glass fa_icon" title="Search"></i></a>
 
         <!-- style selection form -->
         <form action="{{ url_for('main.set_pref_theme') }}" method="POST" id="theme_form">
@@ -16,7 +16,7 @@
         <!-- end style selection-->
 
         <!-- "Back to top" button, uses JS event listener -->
-        <!--<span id="toTop" title="Back to Top">&#8593;</span>-->
+        <!-- &#8593; -->
         <i class="fa-solid fa-circle-up fa_icon" id="toTop" title="Back to Top"></i>
 
         <!-- testing media query for mobiles -->

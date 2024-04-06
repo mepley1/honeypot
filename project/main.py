@@ -190,8 +190,6 @@ HTTP_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'T
 @main.route('/<path:u_path>', methods = HTTP_METHODS)
 def index(u_path):
     """ Catch-all route. Grab and save all the request data into the database. """
-    req_version = request.environ.get('SERVER_PROTOCOL') #http version
-    logging.info(f'{request} {req_version}')
 
     ## note: I *really* need to change these variable names to match the database/headers better
     
@@ -220,6 +218,9 @@ def index(u_path):
     req_host = request.host
     req_path = request.path
     req_referer = request.headers.get('Referer', '')
+    req_version = request.environ.get('SERVER_PROTOCOL') #http version
+    logging.info(f'{req_ip} {request} {req_version}')
+
     #add to db schema later
     req_args_j = json.dumps(request.args) #So I can have a jsonified version as well
 

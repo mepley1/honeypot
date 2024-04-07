@@ -811,9 +811,11 @@ p.mobile_device_test{
 /* Phones/tablets */
 @media only screen and (orientation: portrait) and ((pointer: coarse) or (pointer: none)){
 	/* something */
+	/* Show the 'mobile device detected' text, for testing */
 	p.mobile_device_test{
 		display: block;
 	}
+	/* Set line-break for analysis results so it doesn't extend past the screen width */
 	#analysis_results{
 		line-break: anywhere;
 	}
@@ -835,6 +837,7 @@ p.mobile_device_test{
 	div.contentSmall, article.contentSmall{
 		width: fit-content;
 	}
+	/* Limit analysis results image to screen width */
 	p.plot_image{
 		max-width: 100vw;
 	}
@@ -842,8 +845,13 @@ p.mobile_device_test{
 		/*width: 75%;*/
 		max-width: 100%;
 	}
+	/* Smaller font-size for theme select element */
 	select#pref_theme{
 		font-size: 14px;
+	}
+	/* Change footer layout so it's easier to touch the buttons */
+	footer > .flex-container {
+		justify-content: space-around;
 	}
 
 

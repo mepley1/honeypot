@@ -515,6 +515,11 @@ def is_zyxel_rci(request):
     else:
         return ZYXEL_PATH.lower() in request.path.lower()
 
+def is_dlink_backdoor(request):
+    """ CVE-2024-3272/CVE-2024-3273 Command Injection and Backdoor Account in D-Link NAS Devices """
+    EXPLOIT_PATH = '/cgi-bin/nas_sharing.cgi'
+    return request.path == EXPLOIT_PATH
+
 # more generic rules
 
 def is_post_request(request):
@@ -522,7 +527,7 @@ def is_post_request(request):
     return request.method == 'POST'
 
 def no_host_header(request):
-    """ True if request contains no 'Host' header. """
+    """ True if request contains no 'Host' header. Not *necessarily* malicious, but suspicious. """
     host_header = request.headers.get('Host')
     return host_header is None
 
@@ -758,6 +763,7 @@ def check_all_rules():
         (is_datadog_trace, 'Unauthorized probe/scan', ['21']),
         (is_tpl_exploit, 'CVE-2023-1389', ['15','21','23']),
         (is_zyxel_rci, 'Zyxel CVE-2022-30525', ['15','21','23']),
+        (is_dlink_backdoor, 'D-Link CVE-2024-3272/CVE-2024-3273', ['15','21','23']),
         (is_post_request, 'Suspicious POST request', ['21']),
         (no_host_header, 'No Host header', ['21']),
         (is_misc_get_probe, 'GET with unexpected args', ['21']),

@@ -520,6 +520,19 @@ def is_dlink_backdoor(request):
     EXPLOIT_PATH = '/cgi-bin/nas_sharing.cgi'
     return request.path == EXPLOIT_PATH
 
+def is_tbk_auth_bypass(request):
+    """ CVE-2018-9995 TBK DVR4104/DVR4216 - Authentication bypass """
+    EXPLOIT_PATH = '/device.rsp'
+    EXPLOIT_PATTERN = r'^opt=.*&cmd=.*$'
+    regex = re.compile(EXPLOIT_PATTERN, re.IGNORECASE)
+    if (
+        request.path == EXPLOIT_PATH
+        and regex.search(request.query_string.decode(errors='replace'))
+    ):
+        return True
+    else:
+        return False
+
 # more generic rules
 
 def is_post_request(request):
@@ -764,6 +777,7 @@ def check_all_rules():
         (is_tpl_exploit, 'CVE-2023-1389', ['15','21','23']),
         (is_zyxel_rci, 'Zyxel CVE-2022-30525', ['15','21','23']),
         (is_dlink_backdoor, 'D-Link CVE-2024-3272/CVE-2024-3273', ['15','21','23']),
+        (is_tbk_auth_bypass, 'CVE-2018-9995', ['21','23']),
         (is_post_request, 'Suspicious POST request', ['21']),
         (no_host_header, 'No Host header', ['21']),
         (is_misc_get_probe, 'GET with unexpected args', ['21']),
@@ -777,7 +791,7 @@ def check_all_rules():
 
     # Now check against each detection rule, and if positive(True), then append to the report.
     for detection_rule, log_message, category_code in rules:
-        if detection_rule(request):
+        if detection_rule(request): #If rule returns true/truthy, i.e. rule matched
             report_comment = append_to_report(
                 f'{log_message}\n',
                 category_code,

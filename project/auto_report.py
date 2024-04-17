@@ -528,6 +528,7 @@ def is_tbk_auth_bypass(request):
     if (
         request.path == EXPLOIT_PATH
         and regex.search(request.query_string.decode(errors='replace'))
+        and request.cookies.get('uid', None) == 'admin'
     ):
         return True
     else:

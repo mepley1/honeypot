@@ -256,6 +256,8 @@ def index(u_path):
             try:
                 logging.debug('Serialize form data...')
                 req_body = json.dumps(dict(request.form)) #This is resulting in an empty string if it can't parse it
+                if req_body == '{}':
+                    req_body = ''
             except TypeError as e:
                 logging.debug('Form data not serializable, trying get_data()...')
                 req_body = request.get_data().decode('utf-8', errors = 'replace')

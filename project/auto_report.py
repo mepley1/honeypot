@@ -197,9 +197,11 @@ def is_injection_attack(request):
         '|sh',
         '.sh;',
         'sh+',
+        '.sh%20%7C', #i.e. curl example.sh | something
         '/tmp;',
         '+/tmp',
-        'file=', # might need to adjust this one, could be a real query
+        '%2Ftmp',
+        'file=', # might need to adjust this one, could hit on a real query
         ';wget',
         'wget+',
         '&wget',
@@ -210,7 +212,7 @@ def is_injection_attack(request):
         ';rm -rf', #formatted with spaces in headers injection
         'rm+-rf',
         ' && ',
-        '<?php', 'shell_exec', 'base64_decode', #php injection
+        '<?php', 'shell_exec', 'base64_decode', 'base64-decode', #php injection
         '/bin/bash',
         'chmod 777',
         'eval(', 'echo(',
@@ -528,7 +530,7 @@ def is_tbk_auth_bypass(request):
     if (
         request.path == EXPLOIT_PATH
         and regex.search(request.query_string.decode(errors='replace'))
-        and request.cookies.get('uid', None) == 'admin'
+        and request.cookies.get('uid', 'None') == 'admin'
     ):
         return True
     else:

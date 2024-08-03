@@ -216,6 +216,7 @@ def is_injection_attack(request):
         '/bin/bash',
         'chmod 777',
         'eval(', 'echo(',
+        '||',
         # ';', #semicolon in the path would be injection but not headers
     ]
     # Check for signatures in the path+query, POSTed data, and headers
@@ -410,6 +411,7 @@ def is_mirai_jaws(request):
         ';wget',
         '/jaws;sh',
         '/tmp/jaws',
+        'http',
     ]
     if path.lower() != MIRAI_JAWS_PATH:
         return False
@@ -655,6 +657,7 @@ def is_research(request):
         'keycdn-tools/perf', #KeyCDN Performance Test
         'Mozilla/5.0 (compatible; GenomeCrawlerd/1.0; +https://www.nokia.com/networks/ip-networks/deepfield/genome/)', #Nokia Deepfield Genome
         'Mozilla/5.0 (compatible; NetcraftSurveyAgent/1.0; +info@netcraft.com)', #Netcraft
+        '(compatible; Netcraft Web Server Survey)',#Mozilla/4.0 (compatible; Netcraft Web Server Survey)
         'Cloud mapping experiment. Contact research@pdrlabs.net',
         '(+http://code.google.com/appengine; appid: s~virustotalcloud)', #VirusTotal URL check
         '(scanner.ducks.party)',#Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36 (scanner.ducks.party)

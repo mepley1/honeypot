@@ -8,7 +8,7 @@ function toggle_res_class() {
     }
   } 
 
-// Toggle nav menu responsive class on icon click (event listener for above)
+// Toggle nav menu responsive class on hamburger icon click (event listener for above)
 $("#nav_toggle_btn").click(function() {
     toggle_res_class();
 });
@@ -34,4 +34,3 @@ $(document).ready(function() {
     $(menuItems).toggle();
   });
 });
-

@@ -11,7 +11,7 @@
                 {% endif %}
             {% endwith %}
 
-            <h2>Headers sent in request #<a href="{{ url_for('main.stats_by_id', request_id=request_id) }}">{{ request_id }}</a></h2>
+            <h2>Headers received in request #<a href="{{ url_for('main.stats_by_id', request_id=request_id) }}">{{ request_id }}</a></h2>
 
             <div class="pagination">
                 <p>

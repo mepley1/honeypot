@@ -8,6 +8,7 @@ import datetime
 import logging
 import ipaddress
 import re
+import time
 from .auto_report import check_all_rules, get_real_ip #The new report module. Will check rules + report
 from socket import gethostbyaddr, herror
 from flask import request, redirect, url_for, render_template, jsonify, Response, send_from_directory, g, after_this_request, flash, Blueprint, current_app, make_response
@@ -193,7 +194,8 @@ def index(u_path):
     """ Catch-all route. Grab and save all the request data into the database. """
 
     ## note: I *really* need to change these variable names to match the database/headers better
-    
+    t1 = time.perf_counter()
+
     # Need to get real IP from behind Nginx reverse proxy
     req_ip = get_real_ip()
     req_url = request.url
@@ -291,7 +293,10 @@ def index(u_path):
     # Check request against detection rules, and submit report
     # Adding try/except temporarily while I test some things
     try:
+        t3 = time.perf_counter()
         reported = check_all_rules() #see auto_report.py
+        t4 = time.perf_counter()
+        logging.debug(f'TIME TO CHECK RULES: {t4 - t3}')
     except Exception as e:
         logging.error(f'Exception while executing detections: {str(e)}')
         reported = 0
@@ -331,6 +336,9 @@ def index(u_path):
         #Clear the cache so this request can appear on main.stats
         cache.clear()
 
+        t2 = time.perf_counter()
+        time_to_run = t2 - t1
+        logging.debug(f'TIME: {time_to_run}')
         #logging.debug(response.status) #For testing
         return response
 

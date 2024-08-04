@@ -2,7 +2,7 @@
 
 [![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fmepley1%2Fhoneypot&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=hits&edge_flat=false)](https://hits.seeyoufarm.com)
 
-![AbuseIPDB contributor badge](https://www.abuseipdb.com/contributor/62444.svg)
+<img src="https://www.abuseipdb.com/contributor/62444.svg" alt="AbuseIPDB contributor badge" width="200" height="100" />
 
 A simple HTTP honeypot + analysis webapp for capturing and analyzing HTTP requests + auto reporting. 
 Stores request data in a SQLite database and includes some stats views for easier analysis of wild bot(net)/scanner traffic. Includes a catch-all route to catch requests using any HTTP method for (almost) any URI.

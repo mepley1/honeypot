@@ -7,7 +7,7 @@
 It's too much data to display at once, I'm not going to bother making it very responsive.
 I'll just make a simpler stats page with less data that will be better for mobile devices. */
 
-body, .theme-blue {
+:root, body, .theme-blue {
 	--main-bg-color: #111828;
 	--main-bg-color-trans: #111828ee; /* for modal window */
 	--main-accent-color: #2563ea;
@@ -51,7 +51,6 @@ F55D3E peach ish
 */
 .theme-darkice {
 	--main-bg-color: #0b0d0e; /* Slightly darker version. */
-	/*--main-bg-color: #0b0d0e;*/ /* Slightly brighter version of above. */
 	--main-bg-color-trans: #0e1012ee; /* for modal window; same as above, but transparent. */
 	--main-accent-color: #6FFFE9;
 	--main-heading-color: #e4e8eb;
@@ -88,7 +87,7 @@ F55D3E peach ish
 	--size-notifications: 20px;
 }
 
-:root, body, .theme-darkgreen {
+.theme-darkgreen {
 	--main-bg-color: #090a0c; /* Slightly darker version. */
 	/*--main-bg-color: #0b0d0e;*/ /* Slightly brighter version of above. */
 	--main-bg-color-trans: #090a0cee; /* for modal window; same as above, but transparent. */
@@ -136,7 +135,7 @@ F55D3E peach ish
 */
 
 html{
-	font-family: var(--text-font), sans-serif;
+	font-family: var(--text-font);
 	/*background-color: var(--main-bg-color);*/
 	/*filter: invert(100%);*/
 }
@@ -236,7 +235,7 @@ label {
 	color: var(--button-text-alternate);
 	padding: 10px 16px;
 	transition: all 0.4s;
-	font-family: var(--text-font), sans-serif;
+	font-family: var(--text-font);
 	cursor: pointer;
 }
 
@@ -246,38 +245,12 @@ label {
 	color: var(--main-heading-color);
 }
 
-#pref_theme{
-	margin: 0;
-}
-
-#pref_theme_btn{
-	/*border: 2px solid var(--main-accent-color);*/
-	border: none;
-	/*border-radius: 8px;*/
-	border-radius: 0;
-	/*font-size: 20px;*/
-	background-color: var(--main-accent-color);
-	/* color: #FFFFFF;*/
-	color: var(--button-text-alternate);
-	/*padding: 10px 16px;*/
-	padding: 0px;
-	margin: 0px;
-	transition: all 0.4s;
-	font-family: var(--text-font), sans-serif;
-	cursor: pointer;
-}
-
-#pref_theme_btn:Hover{
-	/*border: 2px solid var(--main-accent-color);*/
-	background-color: var(--form-bg-color);
-	color: var(--main-heading-color);
-}
 
 .form-box{
 	width: 90%;
 	border: none;
 	border-radius: 8px;
-	font-family: var(--text-font), sans-serif;
+	font-family: var(--text-font);
 	font-size: 20px;
 	background-color: var(--main-bg-color);
 	color: var(--lightergray);
@@ -298,20 +271,12 @@ input:focus:invalid{
 	/* background-color: var(--input-invalid); */
 }
 
-/* You can't do much with option element, it's styled by the OS */
-select > option, optgroup, optgroup > option{
-	font-size: 16px;
-	font-family: var(--text-font);
-	color: var(--lightgray);
-	background-color: var(--main-bg-color);
-}
-
 .h-captcha{
 	margin: 30px;
 }
 
 h1, h2, h3, h4{
-	font-family: var(--header-font), sans-serif;
+	font-family: var(--header-font);
 	color: var(--main-heading-color);
 	text-align: center;
 	font-weight: 300;
@@ -336,7 +301,7 @@ h4{
 }
 
 p{
-	font-family: var(--text-font), sans-serif;
+	font-family: var(--text-font);
 	font-size: 14px;
 }
 
@@ -581,6 +546,7 @@ table{
 	/*font-size: 0.8em;*/
 	font-size: 14px;
 	text-align: left;
+	font-family: var(--text-font);
 }
 
 tr{
@@ -606,19 +572,12 @@ td{
 	padding-left: 8px;
 	padding-right: 8px;
 	resize: both;
+	min-width: 5ch;
 	max-width: 400px;
-	/* width: 9%; */
 }
-
-/* Limit max width of Headers and Post Data columns, otherwise they get huge */
-/*
-td.dataHeaders, td.dataPostData, td.dataURL {
-	max-width: 600px;
-}
-*/
 
 td.dataMethod{
-	/* width: 5%; */
+	width: fit-content;
 }
 
 /* For a couple columns that I want to shrink a little */
@@ -721,16 +680,15 @@ div#dataToggles, div#dataToggles > label {
 /* END TABLE DATA */
 
 /* SINGLE-REQUEST HEADERS PAGE */
-.header_single{
+table.header_single{
 	/*font-family: var(--mono-font);*/
 	text-align: left;
 	width: auto;
-	font-size: 18px;
-
+	font-size: 16px;
 }
 
 table.header_single td{
-	padding: 12px;
+	padding: 8px;
 }
 
 /* END SINGLE_REQUEST PAGE */
@@ -748,54 +706,65 @@ a.pagination:hover{
 
 /* end pagination */
 
-/* Footer */
+footer > .flex-container {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+}
+
+/* ### Footer */
 footer.footer{
-	display: inline-block;
+	/*display: inline-block;*/
 	position: fixed;
 	bottom: 0;
 	left: 0;
+	right: 0;
 	width: 100%;
 	text-align: center;
 	background-color: var(--content-bg-color);
 	border-top: 1px solid var(--midgray);
+	font-size: 16px;
 }
 
-footer > p, footer > p > *{
-	margin: 0px;
-	padding-top: 0px;
-	padding-left: 8px;
-	padding-right: 8px;
+footer.footer *, footer.footer > * {
+	margin: 0;
+	padding: 0;
 }
 
 footer > form{
 	width:fit-content;
-	margin: auto;
 }
 
-p#footer_loading_note{
+/* You can't do much with option element, it's styled by the OS */
+/*select#pref_theme, select#pref_theme * { */
+select#pref_theme *{
+	font-size: 16px;
+	font-family: var(--text-font);
+	color: var(--lightgray);
+	background-color: var(--main-bg-color);
+}
+
+#footer_loading_note{
 	display: none;
 	margin: 0px;
 	padding: 0px;
 }
 
-#toTop {
-	font-size: 20px;
-	color: var(--blue1);
-	position: fixed;
-	bottom: 20px;
-	right: 20px;
-	z-index: 1;
-	display: none;
+/* Add class fa_icon to Font Awesome icons. */
+footer .fa_icon {
+	color: var(--main-accent-color);
 	cursor: pointer;
-	/* add round button style */
-	background-color: var(--content-bg-color);
-	border-radius: 128px;
-	width: 32px;
+	margin: 0px;
+	font-size: 20px;
+}
+
+footer .fa_icon:hover {
+	opacity: 0.5;
 }
 
 /* End Footer */
 
-/* Tops */
+/* Tops (top IP stats on /stats route */
 div#tops{
 	display: block;
 	border: 1px solid var(--main-bg-color);
@@ -817,10 +786,6 @@ picture.plot_image, picture *{
 @media only screen and (max-width: 1920px) {
 	table {
 		font-size: 12px;
-	}
-	.everything {
-		/*max-width: 92vw;*/
-		/*max-width: none;*/
 	}
 	ul.navigation {
 		padding-left: 0;
@@ -846,9 +811,11 @@ p.mobile_device_test{
 /* Phones/tablets */
 @media only screen and (orientation: portrait) and ((pointer: coarse) or (pointer: none)){
 	/* something */
+	/* Show the 'mobile device detected' text, for testing */
 	p.mobile_device_test{
 		display: block;
 	}
+	/* Set line-break for analysis results so it doesn't extend past the screen width */
 	#analysis_results{
 		line-break: anywhere;
 	}
@@ -870,12 +837,21 @@ p.mobile_device_test{
 	div.contentSmall, article.contentSmall{
 		width: fit-content;
 	}
+	/* Limit analysis results image to screen width */
 	p.plot_image{
 		max-width: 100vw;
 	}
 	p.plot_image > img{
 		/*width: 75%;*/
 		max-width: 100%;
+	}
+	/* Smaller font-size for theme select element */
+	select#pref_theme{
+		font-size: 14px;
+	}
+	/* Change footer layout so it's easier to touch the buttons */
+	footer > .flex-container {
+		justify-content: space-around;
 	}
 
 
@@ -893,7 +869,7 @@ button.modal_btn {
 	/*color: var(--main-heading-color);*/
 	padding: 10px 16px;
 	transition: all 0.4s;
-	font-family: var(--text-font), sans-serif;
+	font-family: var(--text-font);
 	cursor: pointer;
 }
 

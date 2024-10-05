@@ -193,13 +193,6 @@
                     <td class="dataLinks ipToLink sv0"><a href="https://www.abuseipdb.com/check/{{row['remoteaddr']}}" target="_blank">AbuseIPDB</a> <span class="dim">|</span> <a href="https://ipinfo.io/{{row['remoteaddr']}}" target="_blank">IPinfo.io</a> <span class="dim">|</span> <a href="https://virustotal.com/gui/ip-address/{{row['remoteaddr']}}" target="_blank">VirusTotal</a> <span class="dim">|</span> <a href="{{url_for('analysis.ip_per_day', ip=row['remoteaddr'], days=30)}}" target="_blank">Graph</a></td>
                     {% if current_user.is_admin %} {# Only show delete button+modal if user is admin #}
                     <td class="dataDeleteRow dataToLink dim hidden">
-                        <!-- OLD delete-button, leave here until modal+JS are working fully -->
-                        <!--<form action="{{ url_for('main.delete_record_by_id', request_id=row['id']) }}" method="POST" id="delete_button_{{row['id']}}">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="delete-button">&#10060; Delete</button>
-                        </form>-->
-                        <!-- end OLD delete-button -->
-
                         <!-- delete button; opens delete confirmation modal -->
                         <button class="delete-button" id="delete_button_{{row['id']}}" for_id="{{row['id']}}">&#10060;</button>
                         <!-- delete confirmation modal -->
@@ -224,20 +217,26 @@
                 {% endfor %}
             </table>
             <!-- pagination -->
+            {# NOTE: When passing args_for_pagination, must use request.args if route uses query args,
+                otherwise use request.view_args if route uses URL patterns!
+                It is used to build the URLs for pagination links. #}
+
             {% if page %}
-            {% if total_pages > 1 %}
-            <div class="pagination"><p>
-                {% if page > 1 %}<a href="?page={{ page - 1 }}" class="pagination">[ Previous ]</a>{% endif %}
-                &nbsp;Page {{page}} of {{total_pages}}&nbsp;
-                {% if page < total_pages %}<a href="?page={{ page + 1 }}" class="pagination">[ Next ]</a>{% endif %}
-                <br/>
-                {% for num in range(1, total_pages + 1) %}
-                    {% if num <= 10 or (num <= 100 and num % 10 == 0) or num % 100 == 0 or num == total_pages %}
-                    <a href="?page={{ num }}" class="pagination">{{ num }}</a>
-                    {% endif %}
-                {% endfor %}
-            </p></div>
-            {% endif %}
+                {% set next_page = page+1 %}
+                {% set prev_page = page-1 %}
+                {% if total_pages > 1 %}
+                    <div class="pagination"><p>
+                        {% if page > 1 %}<a href="{{ url_for(request.endpoint, page=prev_page, **args_for_pagination) }}" class="pagination">[ Previous ]</a>{% endif %}
+                        &nbsp;Page {{page}} of {{total_pages}}&nbsp;
+                        {% if page < total_pages %}<a href="{{ url_for(request.endpoint, page=next_page, **args_for_pagination) }}" class="pagination">[ Next ]</a>{% endif %}
+                        <br/>
+                        {% for num in range(1, total_pages + 1) %}
+                            {% if num <= 10 or (num <= 100 and num % 10 == 0) or num % 100 == 0 or num == total_pages %}
+                            <a href="{{ url_for(request.endpoint, page=num, **args_for_pagination) }}" class="pagination">{{ num }}</a>
+                            {% endif %}
+                        {% endfor %}
+                    </p></div>
+                {% endif %}
             {% endif %}
             <!-- end pagination -->
             {% endif %}

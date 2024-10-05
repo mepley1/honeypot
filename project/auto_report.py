@@ -197,9 +197,11 @@ def is_injection_attack(request):
         '|sh',
         '.sh;',
         'sh+',
+        '.sh%20%7C', #i.e. curl example.sh | something
         '/tmp;',
         '+/tmp',
-        'file=', # might need to adjust this one, could be a real query
+        '%2Ftmp',
+        'file=', # might need to adjust this one, could hit on a real query
         ';wget',
         'wget+',
         '&wget',
@@ -210,10 +212,11 @@ def is_injection_attack(request):
         ';rm -rf', #formatted with spaces in headers injection
         'rm+-rf',
         ' && ',
-        '<?php', 'shell_exec', 'base64_decode', #php injection
+        '<?php', 'shell_exec', 'base64_decode', 'base64-decode', #php injection
         '/bin/bash',
         'chmod 777',
         'eval(', 'echo(',
+        '||',
         # ';', #semicolon in the path would be injection but not headers
     ]
     # Check for signatures in the path+query, POSTed data, and headers
@@ -408,6 +411,7 @@ def is_mirai_jaws(request):
         ';wget',
         '/jaws;sh',
         '/tmp/jaws',
+        'http',
     ]
     if path.lower() != MIRAI_JAWS_PATH:
         return False
@@ -515,6 +519,25 @@ def is_zyxel_rci(request):
     else:
         return ZYXEL_PATH.lower() in request.path.lower()
 
+def is_dlink_backdoor(request):
+    """ CVE-2024-3272/CVE-2024-3273 Command Injection and Backdoor Account in D-Link NAS Devices """
+    EXPLOIT_PATH = '/cgi-bin/nas_sharing.cgi'
+    return request.path == EXPLOIT_PATH
+
+def is_tbk_auth_bypass(request):
+    """ CVE-2018-9995 TBK DVR4104/DVR4216 - Authentication bypass """
+    EXPLOIT_PATH = '/device.rsp'
+    EXPLOIT_PATTERN = r'^opt=.*&cmd=.*$'
+    regex = re.compile(EXPLOIT_PATTERN, re.IGNORECASE)
+    if (
+        request.path == EXPLOIT_PATH
+        and regex.search(request.query_string.decode(errors='replace'))
+        and request.cookies.get('uid', 'None') == 'admin'
+    ):
+        return True
+    else:
+        return False
+
 # more generic rules
 
 def is_post_request(request):
@@ -522,7 +545,7 @@ def is_post_request(request):
     return request.method == 'POST'
 
 def no_host_header(request):
-    """ True if request contains no 'Host' header. """
+    """ True if request contains no 'Host' header. Not *necessarily* malicious, but suspicious. """
     host_header = request.headers.get('Host')
     return host_header is None
 
@@ -634,6 +657,7 @@ def is_research(request):
         'keycdn-tools/perf', #KeyCDN Performance Test
         'Mozilla/5.0 (compatible; GenomeCrawlerd/1.0; +https://www.nokia.com/networks/ip-networks/deepfield/genome/)', #Nokia Deepfield Genome
         'Mozilla/5.0 (compatible; NetcraftSurveyAgent/1.0; +info@netcraft.com)', #Netcraft
+        '(compatible; Netcraft Web Server Survey)',#Mozilla/4.0 (compatible; Netcraft Web Server Survey)
         'Cloud mapping experiment. Contact research@pdrlabs.net',
         '(+http://code.google.com/appengine; appid: s~virustotalcloud)', #VirusTotal URL check
         '(scanner.ducks.party)',#Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36 (scanner.ducks.party)
@@ -758,6 +782,8 @@ def check_all_rules():
         (is_datadog_trace, 'Unauthorized probe/scan', ['21']),
         (is_tpl_exploit, 'CVE-2023-1389', ['15','21','23']),
         (is_zyxel_rci, 'Zyxel CVE-2022-30525', ['15','21','23']),
+        (is_dlink_backdoor, 'D-Link CVE-2024-3272/CVE-2024-3273', ['15','21','23']),
+        (is_tbk_auth_bypass, 'CVE-2018-9995', ['21','23']),
         (is_post_request, 'Suspicious POST request', ['21']),
         (no_host_header, 'No Host header', ['21']),
         (is_misc_get_probe, 'GET with unexpected args', ['21']),
@@ -771,7 +797,7 @@ def check_all_rules():
 
     # Now check against each detection rule, and if positive(True), then append to the report.
     for detection_rule, log_message, category_code in rules:
-        if detection_rule(request):
+        if detection_rule(request): #If rule returns true/truthy, i.e. rule matched
             report_comment = append_to_report(
                 f'{log_message}\n',
                 category_code,

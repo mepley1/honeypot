@@ -20,20 +20,22 @@
 
 /* Change the color of links on hover */
 .topnav a:hover {
-  /*background-color: #0b0d0e;*/
+  background-color: var(--main-bg-color);
   /*color: var(--main-bg-color);*/
 }
 
 /* Add an active class to highlight the current page */
 .topnav a.active {
-  background-color: var(--main-bg-color);
-  color: var(--lightgray);
   /*border-right: 1px solid var(--midgray);*/
+  font-family: var(--header-font);
+  letter-spacing: 1px;
+  border: none;
 }
 
-/* Hide the link that should open and close the topnav on small screens */
+/* Nav menu hamburger icon */
 .topnav .icon {
-  display: none;
+  padding-left: 36px; /* A little extra thumb room */
+  padding-right: 24px;
 } 
 
  /* Hide all links, except one with class .active. Show the link that contains should open and close the topnav (.icon) */
@@ -61,6 +63,9 @@
     display: block;
     text-align: left;
   }
+  .topnav.responsive a.active{
+    display: none;
+  }
 }
 
 /* Dropdown menus */
@@ -71,25 +76,17 @@
 .drop_btn_1::before, .drop_btn_2::before, .drop_btn_3::before {
   content: '+ ';
 }
-/*
-.drop_btn_1:hover::before, .drop_btn_2:hover::before, .drop_btn_3:hover::before {
-content: '- ';
-}
-.drop_btn_1::after, .drop_btn_2::after, .drop_btn_3::after {
-content: ' ->';
-}
-.drop_btn_1:hover::after, .drop_btn_2:hover::after, .drop_btn_3:hover::after {
-content: ' -->';
-}
-*/
 
 span.drop_hidden_1, span.drop_hidden_2, span.drop_hidden_3 {
   display: none;
 }
-
+/* Dropdown colors opposite from 1st level */
 span.drop_hidden_1 > *, span.drop_hidden_2 > *, span.drop_hidden_3 > *{
   background-color: var(--main-bg-color);
   /*padding-left: 36px;*/
+}
+span.drop_hidden_1 > *:hover, span.drop_hidden_2 > *:hover, span.drop_hidden_3 > *:hover{
+  background-color: var(--content-bg-color);
 }
 
 /* End dropdowns */
@@ -100,6 +97,8 @@ span.drop_hidden_1 > *, span.drop_hidden_2 > *, span.drop_hidden_3 > *{
 /* Default: Hide mobile nav unless surely a mobile device. */
 nav.mobile {
   content-visibility: hidden;
+  position: sticky;
+  top: 0;
 }
 
 /* Mobiles - show mobile nav */

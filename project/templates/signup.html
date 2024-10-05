@@ -1,42 +1,32 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Signup</title>
-    <link rel="stylesheet" href="{{url_for('static', filename='css/style.css')}}">
-</head>
-<body>
-    {% include 'header.html' %}
-    <div class="everything">
-        <h1>Signup</h1>
-        <div id="form-div">
-            <h2>Create Account</h2>
-            
-            <form action="/signup" method="POST" id="loginForm">
-                <p>
-                    <!-- <label for="username"><b>Username</b></label> -->
-                    <input type="username" id="username" name="username" placeholder="Username" class="form-box" title="Enter your username/email" required />
-                </p>
-                <p>
-                    <!-- <label for="password"><b>Password</b></label> -->
-                    <input type="password" id="password" name="password" placeholder="Password" class="form-box" title="Password" />
-                </p>
-                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                <p>
-                    <button class="submit-button">Create Account</button>
-                </p>
-            </form>
-        {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, msg in messages %}
-                        <p class="{{category}}">{{msg}}</p>
-                    {% endfor %}
-                {% endif %}
-        {% endwith %}
+{% extends 'base.html' %}
+{% block title %}Profile{% endblock %}
+{% block content %}
+    <h1>Signup</h1>
+    <div id="form-div">
+        <h2>Create Account</h2>
 
-        </div>
+        <form action="/signup" method="POST" id="loginForm">
+            <p>
+                <!-- <label for="username"><b>Username</b></label> -->
+                <input type="username" id="username" name="username" placeholder="Username" class="form-box" title="Enter your username/email" required />
+            </p>
+            <p>
+                <!-- <label for="password"><b>Password</b></label> -->
+                <input type="password" id="password" name="password" placeholder="Password" class="form-box" title="Password" />
+            </p>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <p>
+                <button class="submit-button">Create Account</button>
+            </p>
+        </form>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, msg in messages %}
+                <p class="{{category}}">{{msg}}</p>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
     </div>
-    
-</body>
-</html>
+{% endblock %}

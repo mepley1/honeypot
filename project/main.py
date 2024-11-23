@@ -333,18 +333,25 @@ def index(u_path):
             conn.commit()
         conn.close()
 
-        #Clear the cache so this request can appear on main.stats
+        # Clear the cache so this request can appear on main.stats
         cache.clear()
 
+        # Calculate and log run time
         t2 = time.perf_counter()
         time_to_run = t2 - t1
-        logging.debug(f'TIME: {time_to_run}')
+        logging.debug(f'RUN TIME: {time_to_run}')
         #logging.debug(response.status) #For testing
         return response
 
-    #return jsonify(req_ip)
-    flash(f'IP: {req_ip}', 'info')
-    return render_template('index.html')
+    # Decide what to return, based on config. (Configure in config.py)
+    match current_app.config.get('INDEX_RESPONSE_TYPE'):
+        case 1: # HTML page
+            flash(f'IP: {req_ip}', 'info')
+            return render_template('index.html')
+        case 2: # Client IP
+            return jsonify(req_ip)
+        case 3 | _: # Only status code
+            return ('', 200)
 
 ### STATS ROUTES
 

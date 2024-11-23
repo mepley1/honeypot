@@ -45,6 +45,13 @@ EXEMPT_SUBNETS = [
 ### If the following option is set to True, then no passwords will be logged at all. (Default: True)
 DONT_LOG_PASSWORDS = True
 
+### Configure the main catch-all route to return either an HTML page, 
+### the client IP, or just a 200 status code.
+### Returning only the client IP or status code may reduce being quickly fingerprinted
+### as an instance of this honeypot, at least if no application routes are requested.
+### Values: 1 = HTML page (default), 2 = IP, 3 = Status code
+INDEX_RESPONSE_TYPE = 1
+
 ################################################
 ### Database URI examples for various database systems. Default: SQLite (/honeypot/instance/db.sqlite)
 ### Uncomment/configure one if using something else. Users db only.

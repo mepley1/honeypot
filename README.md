@@ -73,7 +73,7 @@ To understand how the rules are structured, see `auto_report.py`. Each detection
 # Deploying with Gunicorn+Nginx+Systemd, see deployment.md 
 
 An example systemd service unit file is included, see `/etc/systemd/system/honeypot.service`. After configuring the service unit, place it in your systemd units directory (on Debian `/etc/systemd/system/`). Then you can run it as a systemd unit. Use `sudo systemctl enable honeypot.service && sudo systemctl start honeypot.service` to enable and start it; `journalctl -u honeypot.service` with any other journalctl options to view logs. By default it will produce a lot of logs, at least a few lines per request; if you want less you can change the log level in `__init__.py`. `DEBUG` (default), `INFO` and `ERROR` are the only levels I've used much in the code, with one or two `WARNING`.
-
+If serving behind Nginx/other reverse proxy, be mindful of any configuration that affects the request headers; analysis can be done most accurately if all headers are passed to the honepot as-is.
 To-do: Deployment guide. Include Nginx proxy conf & systemd service unit. 
 
 # Extra scripts for testing
@@ -93,9 +93,9 @@ To-do: Deployment guide. Include Nginx proxy conf & systemd service unit.
 - Querying for records by POST request body fails to find anything in some cases due to encoding discrepancies.
 
 # To-do:
-- Pagination
+- Standardize error responses.
 - Rewrite detection rules using regex instead of string searches. Move the bigger lists to a separate file to import at run time rather than defining each list inside the functions- should greatly improve performance, and will allow for easier custom rules.
 - Deployment guide - deployment.md - Include Nginx vhost conf file, systemd service unit example
-- Some graphs/charts - do some analysis on top IPs/paths/location data/etc.
+- Some graphs/charts - do some analysis + visualization on top IPs/paths/location data/etc.
 - Per-account login IP whitelist.
 - Separate stats routes into another blueprint

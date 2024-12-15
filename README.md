@@ -9,7 +9,7 @@ Stores request data in a SQLite database and includes some stats views for easie
 
 Very much a work in progress. 
 
-[Live Demo](https://x2.mepley.com/stats) Note: May not be active at any given time. 
+[Live Demo](https://x3.mepley.com/stats) Note: May not be active at any given time. 
 Demo login: 
 user: `demo` 
 pw: `0xDEADBEEF` 

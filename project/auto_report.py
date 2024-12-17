@@ -430,19 +430,27 @@ def is_mirai_ua(request):
     return user_agent == MIRAI_USER_AGENT
 
 def is_androx(request):
-    """ AndroxGh0st malware, searching for leaked app secrets in exposed Laravel/other .env.
-    Method usually POST as form data. Path varies. Almost always preceded by `GET /.env` 
-    True if 0x[] or 0x01[] in form data keys. """
-    ANDROX_SIGS = [
-        #'androxgh0st', 'legion', 'ridho', 'janc0xsec', #values I've seen so far
+    """ AndroxGh0st malware, sends a POST after searching for leaked app secrets in exposed Laravel/other .env.
+    Method is POST; content-type is set as form data. Path varies.
+    Almost always preceded by a request like `GET /.env`, which will probably get reported before this POST request does.
+    Return True if 0x[] or 0x01[] etc found in form data keys. """
+
+    '''ANDROX_SIGS = [
+        # Just a few examples I've seen. Leaving this here for reference.
+        #'androxgh0st', 'legion', 'ridho', 'janc0xsec', 'CREX' #some values I've seen so far
+        # Keys:
         '0x[]',
-        '0x%5B%5D',
+        '0x%5B%5D', #Depending on how I decode it.
         '0x01[]', #legion
         '0x01%5B%5D', #legion
-    ]
+    ]'''
+
     if request.method == 'POST' and request.content_type == 'application/x-www-form-urlencoded':
-        form_data_keys = [item.lower() for item in request.form.keys()]
-        return any(target.lower() in form_data_keys for target in ANDROX_SIGS)
+        form_data_keys = [item for item in request.form.keys()]
+        # Match for "0x" followed by 0-8 (arbitrary, could be more but I've only seen up to 4) of any char, then brackets "[]". Example "0x[]" or "0x01[]"
+        ANDROX_SIG_REGEX = r'^0x.{0,8}\[\]$'
+        regex = re.compile(ANDROX_SIG_REGEX, re.IGNORECASE)
+        return any(regex.search(_) for _ in form_data_keys)
     return False
 
 def is_cobalt_strike_scan(request):
@@ -499,7 +507,8 @@ def is_datadog_trace(request):
     return False
 
 def is_tpl_exploit(request):
-    """ CVE-2023-1389 TP-Link AX21 router exploit. Usually seen downloading a Mirai loader 'tenda.sh' """
+    """ CVE-2023-1389 TP-Link AX21 router exploit.
+    Usually seen downloading a Mirai loader 'tenda.sh' - probably applies to some Tenda gear as well. """
     TPL_EXP_PATH = '/cgi-bin/luci/;stok=/locale'
     TPL_EXP_PATTERN = r'^form=country&operation=write&country=.'
     regex = re.compile(TPL_EXP_PATTERN, re.IGNORECASE)
@@ -633,7 +642,8 @@ def is_dns_probe(request):
 def is_research(request):
     """ Reduce score if it's known benign research orgs/scanners, don't need to report them.
     Can be easily spoofed though, so don't just zero it. Most just request /, but some trigger
-    other rules while checking for vulnerabilities. """
+    other rules while checking for vulnerabilities.
+    TO-DO: Check for hostnames as well- import from a text file. """
     user_agent = request.headers.get('User-Agent')
     RESEARCH_USER_AGENTS = [
         'CensysInspect', #Mozilla/5.0 (compatible; CensysInspect/1.1; +https://about.censys.io/)
@@ -662,6 +672,7 @@ def is_research(request):
         '(+http://code.google.com/appengine; appid: s~virustotalcloud)', #VirusTotal URL check
         '(scanner.ducks.party)',#Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/112.0.0.0 Safari/537.36 (scanner.ducks.party)
         '+https://leakix.net)',#Mozilla/5.0 (l9scan/2.0.734313e20373e21323e2430313; +https://leakix.net)
+        '+http://archive.org/details/archive.org_bot', #archive.org bot, ex: Mozilla/5.0 (compatible; archive.org_bot +http://archive.org/details/archive.org_bot) Zeno/501a4cd warc/v0.8.57
     ]
     if user_agent is None:
         return False

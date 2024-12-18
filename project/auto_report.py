@@ -9,6 +9,7 @@ import re
 import sqlite3
 from flask import request, current_app
 from dateutil.parser import parse
+from urllib.parse import urlparse
 
 requests_db = 'bots.db'
 
@@ -470,7 +471,7 @@ def is_systembc_path(request):
     """ systembc malware paths I see requested. """
     path = request.path
     SYSTEMBC_PATHS = [
-        '/systembc',
+        '/systembc', #This will match 1st, but adding others for reference.
         '/systembc/geoip',
         '/systembc/geoip/geoip2.phar',
         '/systembc/geoip/GeoLite2-City.mmdb',
@@ -636,6 +637,30 @@ def is_dns_probe(request):
             return True
     return False
 
+def host_is_ip_v4(request) -> bool:
+    """ Return true if request.host is an IPv4 address. """
+    #rhost = request.host
+    #rhost = rhost.split(":", 1)[0] #Remove port if present
+    # Use urlparse instead:
+    rhost = urlparse(request.base_url)
+    rhost = rhost.hostname
+    try:
+        val = ipaddress.IPv4Address(rhost)
+        return True
+    except ipaddress.AddressValueError:
+        return False
+
+def host_is_ip_v6(request) -> bool:
+    """ Return true if request.host is an IPv6 address. """
+    rhost = urlparse(request.base_url)
+    rhost = rhost.hostname
+    # Validate as an IPv6 addr, via ipaddress module
+    try:
+        val = ipaddress.IPv6Address(rhost)
+        return True
+    except ipaddress.AddressValueError:
+        return False
+
 # Some misc rules to help prevent false positives.
 # Don't be that oblivious admin who reports NTP servers etc.
 
@@ -643,7 +668,7 @@ def is_research(request):
     """ Reduce score if it's known benign research orgs/scanners, don't need to report them.
     Can be easily spoofed though, so don't just zero it. Most just request /, but some trigger
     other rules while checking for vulnerabilities.
-    TO-DO: Check for hostnames as well- import from a text file. """
+    TODO: Check for hostnames as well- import from a text file. """
     user_agent = request.headers.get('User-Agent')
     RESEARCH_USER_AGENTS = [
         'CensysInspect', #Mozilla/5.0 (compatible; CensysInspect/1.1; +https://about.censys.io/)
@@ -802,6 +827,8 @@ def check_all_rules():
         (is_xmlhttprequest, 'Automated user-agent', ['21']),
         (is_proxy_attempt, 'Sent proxy headers', ['21']),
         (is_dns_probe, 'Probe DNS-over-HTTPS', ['2','14']),
+        (host_is_ip_v4, 'Host is IP addr (v4)', ['21']),
+        (host_is_ip_v6, 'Host is IP addr (v6)', ['21']),
         (matches_custom_rule, 'Custom rule', ['21']),
         (matches_custom_regex, 'Custom regex', ['21'])
     ]

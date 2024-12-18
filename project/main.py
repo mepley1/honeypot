@@ -202,7 +202,7 @@ def index(u_path):
 
     try: # Get hostname by performing a DNS lookup
         req_hostname = gethostbyaddr(req_ip)[0]
-    except herror as e:
+    except (herror, OSError) as e:
         req_hostname = ''
         logging.debug(f'No hostname available, or no connection: {str(e)}')
 

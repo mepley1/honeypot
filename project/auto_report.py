@@ -827,10 +827,10 @@ def check_all_rules():
         (is_xmlhttprequest, 'Automated user-agent', ['21']),
         (is_proxy_attempt, 'Sent proxy headers', ['21']),
         (is_dns_probe, 'Probe DNS-over-HTTPS', ['2','14']),
-        (host_is_ip_v4, 'Host is IP addr (v4)', ['21']),
-        (host_is_ip_v6, 'Host is IP addr (v6)', ['21']),
+        (host_is_ip_v4, 'Access via IP addr (v4)', ['21']),
+        (host_is_ip_v6, 'Access via IP addr (v6)', ['21']),
         (matches_custom_rule, 'Custom rule', ['21']),
-        (matches_custom_regex, 'Custom regex', ['21'])
+        (matches_custom_regex, 'Custom regex', ['21']),
     ]
 
     # Now check against each detection rule, and if positive(True), then append to the report.

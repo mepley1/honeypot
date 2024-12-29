@@ -184,7 +184,39 @@ def compare_time_b(timestamp, num_days):
     timestamp_p = parse(timestamp).astimezone(datetime.timezone.utc)
     return timestamp_p > cutoff
 
-### Define Flask app routes
+### Other utility functions
+
+def get_pagination_data(stats, view_args: bool = False):
+    ''' Pagination logic. Returns a dict of variables used for pagination of results. 
+    Args:
+    <stats>: Results from query in the route; final data to be sent to the HTML template.
+    <view_args>: Bool. Routes that define view args need to use request.view_args instead of request.args to build the pagination. Set to 1/True for these routes, otherwise 0/False.'''
+    page = int(request.args.get('page', 1))
+    items_per_page = int(request.args.get('per_page', 100))
+    total_items = len(stats)
+    total_pages = ceil(total_items / items_per_page)
+    start_index = (page - 1) * items_per_page
+    end_index = min(start_index + items_per_page, total_items)
+
+    stats_on_page = stats[start_index:end_index]
+
+    # Prepare arguments for pagination links
+    if view_args:
+        args_for_pagination = request.view_args
+    else:
+        args_for_pagination = request.args.to_dict()
+        # Remove the page# from the URL, so we can add a new one to the pagination links
+        if 'page' in args_for_pagination:
+            del args_for_pagination['page']
+
+    return {
+        'stats_on_page': stats_on_page,
+        'page': page,
+        'total_pages': total_pages,
+        'args_for_pagination': args_for_pagination
+    }
+
+### Flask app routes
 
 # Will use this in a couple places so I don't have to list them all out
 HTTP_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'TRACE', 'PATCH', 'BIND', 'CHECKOUT', 'UPDATE', 'PRI', 'SEARCH', 'MKCALENDAR', 'ORDERPATCH', 'PROPFIND', 'UNLINK']
@@ -433,30 +465,14 @@ def stats():
         c.close()
     conn.close()
 
-    #pagination
-    page = int(request.args.get('page', 1))
-    items_per_page = int(request.args.get('per_page', 100))
-    total_items = len(stats)
-    total_pages = ceil(total_items / items_per_page)
-    start_index = (page - 1) * items_per_page
-    end_index = min(start_index + items_per_page, total_items)
-
-    stats_on_page = stats[start_index:end_index]
-
-    args_for_pagination = request.args.to_dict()
-    if 'page' in args_for_pagination:
-        # Remove the page# so we can add a new one to the pagination links
-        del args_for_pagination['page']
-    #End pagination
+    pagination_data = get_pagination_data(stats)
 
     return render_template('stats.html',
-        #stats = stats,
-        stats = stats_on_page, #pagination
-        page = page, #pagination
-        total_pages = total_pages, #pagination
-        args_for_pagination = args_for_pagination, #pagination
+        stats = pagination_data['stats_on_page'],
+        page = pagination_data['page'],
+        total_pages = pagination_data['total_pages'],
+        args_for_pagination = pagination_data['args_for_pagination'],
         totalHits = totalHits,
-        #statName = f'Most Recent {records_limit} HTTP Requests',
         statName = 'Most recent HTTP requests',
         top_ip = top_ip,
         top_ip_weekly = top_ip_weekly,
@@ -514,33 +530,22 @@ def ipStats(ipAddr):
         sql_query = "SELECT * FROM bots WHERE (remoteaddr GLOB ?) ORDER BY id DESC;"
         data_tuple = (ipAddr,)
         c.execute(sql_query, data_tuple)
-        ipStats = c.fetchall()
+        stats = c.fetchall()
 
         c.close()
     conn.close()
 
-    # Pagination
-    page = int(request.args.get('page', 1))
-    items_per_page = int(request.args.get('per_page', 100))
-    total_items = len(ipStats)
-    total_pages = ceil(total_items / items_per_page)
-    start_index = (page - 1) * items_per_page
-    end_index = min(start_index + items_per_page, total_items)
-
-    stats_on_page = ipStats[start_index:end_index]
-
-    args_for_pagination = request.view_args
-    # End pagination
+    pagination_data = get_pagination_data(stats, True)
 
     flash('Note: Use * for wildcard, i.e. /stats/ip/1.2.3.*', 'info')
     return render_template('stats.html',
-        #stats = ipStats,
-        stats = stats_on_page, #pagination
-        page = page, #pagination
-        total_pages = total_pages, #pagination
-        args_for_pagination = args_for_pagination, #pagination
-        totalHits = len(ipStats),
-        statName = ipAddr)
+        stats = pagination_data['stats_on_page'],
+        page = pagination_data['page'],
+        total_pages = pagination_data['total_pages'],
+        args_for_pagination = pagination_data['args_for_pagination'],
+        totalHits = len(stats),
+        statName = ipAddr
+    )
 
 @main.route('/stats/subnet', methods = ['GET'])
 @login_required
@@ -555,7 +560,7 @@ def subnet_stats():
         logging.error(f'Invalid CIDR: {str(e)}')
         return ('Bad request: Must be a valid CIDR subnet.', 400)
 
-    """ Get rows that came from a given CIDR subnet. """
+    """ Get rows that originated from a given CIDR subnet. """
     with sqlite3.connect(requests_db) as conn:
         #create user function, have to create it each time the connection is created
         conn.create_function("CIDR", 2, cidr_match)
@@ -569,34 +574,21 @@ def subnet_stats():
             logging.error(f'{str(e)}')
             #flash('invalid input', 'errorn')
             return redirect(url_for('main.index'))
-        subnet_stats = c.fetchall()
+        stats = c.fetchall()
 
         c.close()
     conn.close()
 
-    #pagination
-    page = int(request.args.get('page', 1))
-    items_per_page = int(request.args.get('per_page', 100))
-    total_items = len(subnet_stats)
-    total_pages = ceil(total_items / items_per_page)
-    start_index = (page - 1) * items_per_page
-    end_index = min(start_index + items_per_page, total_items)
-
-    stats_on_page = subnet_stats[start_index:end_index]
-
-    args_for_pagination = request.args.to_dict()
-    if 'page' in args_for_pagination:
-        # Remove the page# so we can add a new one to the pagination links
-        del args_for_pagination['page']
+    pagination_data = get_pagination_data(stats, False)
 
     return render_template('stats.html',
-        #stats = subnet_stats,
-        stats = stats_on_page, #pagination
-        page = page, #pagination
-        total_pages = total_pages, #pagination
-        args_for_pagination = args_for_pagination, #pagination
-        totalHits = len(subnet_stats),
-        statName = f'CIDR Subnet: {test_subnet}')
+        stats = pagination_data['stats_on_page'],
+        page = pagination_data['page'],
+        total_pages = pagination_data['total_pages'],
+        args_for_pagination = pagination_data['args_for_pagination'],
+        totalHits = len(stats),
+        statName = f'CIDR Subnet: {test_subnet}'
+    )
 
 @main.route('/stats/ip/topten', methods = ['GET'])
 @login_required
@@ -640,7 +632,7 @@ def top_ten_ips():
         stats = results,
         totalHits = len(results),
         statName = f'Top {_num_of_ips} most common IPs'
-        )
+    )
 
 @main.route('/stats/method/<method>', methods = ['GET'])
 @login_required
@@ -659,31 +651,20 @@ def methodStats(method):
             """
         data_tuple = (method,)
         c.execute(sql_query, data_tuple)
-        methodStats = c.fetchall()
+        stats = c.fetchall()
         c.close()
     conn.close()
 
-    #pagination
-    page = int(request.args.get('page', 1))
-    items_per_page = int(request.args.get('per_page', 100))
-    total_items = len(methodStats)
-    total_pages = ceil(total_items / items_per_page)
-    start_index = (page - 1) * items_per_page
-    end_index = min(start_index + items_per_page, total_items)
-
-    stats_on_page = methodStats[start_index:end_index]
-
-    args_for_pagination = request.view_args
+    pagination_data = get_pagination_data(stats, True)
 
     return render_template('stats.html',
-        #stats = methodStats,
-        stats = stats_on_page, #pagination
-        page = page, #pagination
-        total_pages = total_pages, #pagination
-        args_for_pagination = args_for_pagination, #pagination
-        totalHits = len(methodStats),
-        statName = method
-        )
+        stats = pagination_data['stats_on_page'],
+        page = pagination_data['page'],
+        total_pages = pagination_data['total_pages'],
+        args_for_pagination = pagination_data['args_for_pagination'],
+        totalHits = len(stats),
+        statName = method,
+    )
 
 @main.route('/stats/useragent', methods = ['GET'])
 @login_required
@@ -700,34 +681,20 @@ def uaStats():
         """
         data_tuple = (ua,)
         c.execute(sql_query, data_tuple)
-        uaStats = c.fetchall()
+        stats = c.fetchall()
         c.close()
     conn.close()
 
-    #pagination
-    page = int(request.args.get('page', 1))
-    items_per_page = int(request.args.get('per_page', 100))
-    total_items = len(uaStats)
-    total_pages = ceil(total_items / items_per_page)
-    start_index = (page - 1) * items_per_page
-    end_index = min(start_index + items_per_page, total_items)
-
-    stats_on_page = uaStats[start_index:end_index]
-
-    args_for_pagination = request.args.to_dict()
-    if 'page' in args_for_pagination:
-        # Remove the page# so we can add a new one to the pagination links
-        del args_for_pagination['page']
+    pagination_data = get_pagination_data(stats, False)
 
     return render_template('stats.html',
-        #stats = uaStats,
-        stats = stats_on_page, #pagination
-        page = page, #pagination
-        total_pages = total_pages, #pagination
-        args_for_pagination = args_for_pagination, #pagination
-        totalHits = len(uaStats),
+        stats = pagination_data['stats_on_page'],
+        page = pagination_data['page'],
+        total_pages = pagination_data['total_pages'],
+        args_for_pagination = pagination_data['args_for_pagination'],
+        totalHits = len(stats),
         statName = f"User-Agent: {ua}"
-        )
+    )
 
 @main.route('/stats/url', methods = ['GET'])
 @login_required
@@ -744,35 +711,21 @@ def urlStats():
             """
         data_tuple = (url,)
         c.execute(sql_query, data_tuple)
-        urlStats = c.fetchall()
+        stats = c.fetchall()
         c.close()
     conn.close()
 
-    #pagination
-    page = int(request.args.get('page', 1))
-    items_per_page = int(request.args.get('per_page', 100))
-    total_items = len(urlStats)
-    total_pages = ceil(total_items / items_per_page)
-    start_index = (page - 1) * items_per_page
-    end_index = min(start_index + items_per_page, total_items)
-
-    stats_on_page = urlStats[start_index:end_index]
-
-    args_for_pagination = request.args.to_dict()
-    if 'page' in args_for_pagination:
-        # Remove the page# so we can add a new one to the pagination links
-        del args_for_pagination['page']
+    pagination_data = get_pagination_data(stats, False)
 
     flash('Note: Use * for wildcard, i.e. url=*.example.com/*', 'info')
     return render_template('stats.html',
-        #stats = urlStats,
-        stats = stats_on_page, #pagination
-        page = page, #pagination
-        total_pages = total_pages, #pagination
-        args_for_pagination = args_for_pagination, #pagination
-        totalHits = len(urlStats),
+        stats = pagination_data['stats_on_page'],
+        page = pagination_data['page'],
+        total_pages = pagination_data['total_pages'],
+        args_for_pagination = pagination_data['args_for_pagination'],
+        totalHits = len(stats),
         statName = f"URL: {url}"
-        )
+    )
 
 @main.route('/stats/path', methods = ['GET'])
 @login_required
@@ -790,35 +743,21 @@ def path_stats():
             """
         data_tuple = (path,)
         c.execute(sql_query, data_tuple)
-        path_stats = c.fetchall()
+        stats = c.fetchall()
         c.close()
     conn.close()
 
-    #pagination
-    page = int(request.args.get('page', 1))
-    items_per_page = int(request.args.get('per_page', 100))
-    total_items = len(path_stats)
-    total_pages = ceil(total_items / items_per_page)
-    start_index = (page - 1) * items_per_page
-    end_index = min(start_index + items_per_page, total_items)
-
-    stats_on_page = path_stats[start_index:end_index]
-
-    args_for_pagination = request.args.to_dict()
-    if 'page' in args_for_pagination:
-        # Remove the page# so we can add a new one to the pagination links
-        del args_for_pagination['page']
+    pagination_data = get_pagination_data(stats, False)
 
     flash('Note: Use % for wildcard, i.e. path=/admin/%', 'info')
     return render_template('stats.html',
-        #stats = path_stats,
-        stats = stats_on_page, #pagination
-        page = page, #pagination
-        total_pages = total_pages, #pagination
-        args_for_pagination = args_for_pagination, #pagination
-        totalHits = len(path_stats),
+        stats = pagination_data['stats_on_page'],
+        page = pagination_data['page'],
+        total_pages = pagination_data['total_pages'],
+        args_for_pagination = pagination_data['args_for_pagination'],
+        totalHits = len(stats),
         statName = f"PATH: {path}"
-        )
+    )
 
 @main.route('/stats/host', methods = ['GET'])
 @login_required
@@ -835,35 +774,20 @@ def host_stats():
             """
         data_tuple = (host,)
         c.execute(sql_query, data_tuple)
-        host_stats = c.fetchall()
+        stats = c.fetchall()
         c.close()
     conn.close()
 
-    #Pagination
-    page = int(request.args.get('page', 1))
-    items_per_page = int(request.args.get('per_page', 100))
-    total_items = len(host_stats)
-    total_pages = ceil(total_items / items_per_page)
-    start_index = (page - 1) * items_per_page
-    end_index = min(start_index + items_per_page, total_items)
-
-    stats_on_page = host_stats[start_index:end_index]
-
-    args_for_pagination = request.args.to_dict()
-    if 'page' in args_for_pagination:
-        # Remove the page# so we can add a new one to the pagination links
-        del args_for_pagination['page']
-    #End pagination
+    pagination_data = get_pagination_data(stats, False)
 
     return render_template('stats.html',
-        #stats = host_stats,
-        stats = stats_on_page, #pagination
-        page = page, #pagination
-        total_pages = total_pages, #pagination
-        args_for_pagination = args_for_pagination, #pagination
-        totalHits = len(host_stats),
+        stats = pagination_data['stats_on_page'],
+        page = pagination_data['page'],
+        total_pages = pagination_data['total_pages'],
+        args_for_pagination = pagination_data['args_for_pagination'],
+        totalHits = len(stats),
         statName = f"Host: {host}"
-        )
+    )
 
 @main.route('/stats/query', methods = ['GET'])
 @login_required
@@ -880,34 +804,20 @@ def queriesStats():
             """
         data_tuple = (query_params,)
         c.execute(sql_query, data_tuple)
-        queriesStats = c.fetchall()
+        stats = c.fetchall()
         c.close()
     conn.close()
 
-    #pagination
-    page = int(request.args.get('page', 1))
-    items_per_page = int(request.args.get('per_page', 100))
-    total_items = len(queriesStats)
-    total_pages = ceil(total_items / items_per_page)
-    start_index = (page - 1) * items_per_page
-    end_index = min(start_index + items_per_page, total_items)
-
-    stats_on_page = queriesStats[start_index:end_index]
-
-    args_for_pagination = request.args.to_dict()
-    if 'page' in args_for_pagination:
-        # Remove the page# so we can add a new one to the pagination links
-        del args_for_pagination['page']
+    pagination_data = get_pagination_data(stats, False)
 
     return render_template('stats.html',
-        #stats = queriesStats,
-        stats = stats_on_page, #pagination
-        page = page, #pagination
-        total_pages = total_pages, #pagination
-        args_for_pagination = args_for_pagination, #pagination
-        totalHits = len(queriesStats),
+        stats = pagination_data['stats_on_page'],
+        page = pagination_data['page'],
+        total_pages = pagination_data['total_pages'],
+        args_for_pagination = pagination_data['args_for_pagination'],
+        totalHits = len(stats),
         statName = f"Query String like: {query_params}",
-        )
+    )
 
 @main.route('/stats/body', methods = ['GET'])
 @login_required
@@ -924,36 +834,21 @@ def bodyStats():
             """
         data_tuple = (body,)
         c.execute(sql_query, data_tuple)
-        bodyStats = c.fetchall()
+        stats = c.fetchall()
         c.close()
     conn.close()
 
-    #pagination
-    page = int(request.args.get('page', 1))
-    items_per_page = int(request.args.get('per_page', 100))
-    total_items = len(bodyStats)
-    total_pages = ceil(total_items / items_per_page)
-    start_index = (page - 1) * items_per_page
-    end_index = min(start_index + items_per_page, total_items)
-
-    stats_on_page = bodyStats[start_index:end_index]
-
-    args_for_pagination = request.args.to_dict()
-    if 'page' in args_for_pagination:
-        # Remove the page# so we can add a new one to the pagination links
-        del args_for_pagination['page']
-
+    pagination_data = get_pagination_data(stats, False)
     #flash('Note: LIKE query- %25 for wildcard', 'info')
     return render_template('stats.html',
-        #stats = bodyStats,
-        stats = stats_on_page, #pagination
-        page = page, #pagination
-        total_pages = total_pages, #pagination
-        args_for_pagination = args_for_pagination, #pagination
-        totalHits = len(bodyStats),
+        stats = pagination_data['stats_on_page'],
+        page = pagination_data['page'],
+        total_pages = pagination_data['total_pages'],
+        args_for_pagination = pagination_data['args_for_pagination'],
+        totalHits = len(stats),
         statName = f"Request Body like:",
         subtitle = f'{body}',
-        )
+    )
 
 @main.route('/stats/body_raw', methods = ['GET'])
 @login_required
@@ -969,34 +864,21 @@ def bodyRawStats():
         sql_query = '''SELECT * FROM bots WHERE body_raw REGEXP (?) ORDER BY id DESC;'''
         data_tuple = (body,)
         c.execute(sql_query, data_tuple)
-        bodyStats = c.fetchall()
+        stats = c.fetchall()
         c.close()
     conn.close()
 
-    #pagination
-    page = int(request.args.get('page', 1))
-    items_per_page = int(request.args.get('per_page', 100))
-    total_items = len(bodyStats)
-    total_pages = ceil(total_items / items_per_page)
-    start_index = (page - 1) * items_per_page
-    end_index = min(start_index + items_per_page, total_items)
-
-    stats_on_page = bodyStats[start_index:end_index]
-
-    args_for_pagination = request.args.to_dict()
-    if 'page' in args_for_pagination:
-        # Remove the page# so we can add a new one to the pagination links
-        del args_for_pagination['page']
+    pagination_data = get_pagination_data(stats, False)
 
     return render_template('stats.html',
-        stats = stats_on_page, #pagination
-        page = page, #pagination
-        total_pages = total_pages, #pagination
-        args_for_pagination = args_for_pagination, #pagination
-        totalHits = len(bodyStats),
+        stats = pagination_data['stats_on_page'],
+        page = pagination_data['page'],
+        total_pages = pagination_data['total_pages'],
+        args_for_pagination = pagination_data['args_for_pagination'],
+        totalHits = len(stats),
         statName = f"Request body like:",
         subtitle = f'{body}',
-        )
+    )
 
 @main.route('/stats/content-type', methods = ['GET'])
 @login_required
@@ -1020,34 +902,20 @@ def content_type_stats():
             """
         data_tuple = (ct,)
         c.execute(sql_query, data_tuple)
-        ct_stats = c.fetchall()
+        stats = c.fetchall()
         c.close()
     conn.close()
 
-    #pagination
-    page = int(request.args.get('page', 1))
-    items_per_page = int(request.args.get('per_page', 100))
-    total_items = len(ct_stats)
-    total_pages = ceil(total_items / items_per_page)
-    start_index = (page - 1) * items_per_page
-    end_index = min(start_index + items_per_page, total_items)
-
-    stats_on_page = ct_stats[start_index:end_index]
-
-    args_for_pagination = request.args.to_dict()
-    if 'page' in args_for_pagination:
-        # Remove the page# so we can add a new one to the pagination links
-        del args_for_pagination['page']
+    pagination_data = get_pagination_data(stats, False)
 
     return render_template('stats.html',
-        #stats = ct_stats,
-        stats = stats_on_page, #pagination
-        page = page, #pagination
-        total_pages = total_pages, #pagination
-        args_for_pagination = args_for_pagination, #pagination
-        totalHits = len(ct_stats),
+        stats = pagination_data['stats_on_page'],
+        page = pagination_data['page'],
+        total_pages = pagination_data['total_pages'],
+        args_for_pagination = pagination_data['args_for_pagination'],
+        totalHits = len(stats),
         statName = f"Content-Type: {ct}",
-        )
+    )
 
 @main.route('/stats/date', methods = ['GET'])
 @login_required
@@ -1082,35 +950,21 @@ def date_stats():
             """
         data_tuple = (date_q,)
         c.execute(sql_query, data_tuple)
-        date_stats = c.fetchall()
+        stats = c.fetchall()
         c.close()
     conn.close()
 
-    #pagination
-    page = int(request.args.get('page', 1))
-    items_per_page = int(request.args.get('per_page', 100))
-    total_items = len(date_stats)
-    total_pages = ceil(total_items / items_per_page)
-    start_index = (page - 1) * items_per_page
-    end_index = min(start_index + items_per_page, total_items)
-
-    stats_on_page = date_stats[start_index:end_index]
-
-    args_for_pagination = request.args.to_dict()
-    if 'page' in args_for_pagination:
-        # Remove the page# so we can add a new one to the pagination links
-        del args_for_pagination['page']
+    pagination_data = get_pagination_data(stats, False)
 
     return render_template('stats.html',
-        #stats = date_stats,
-        stats = stats_on_page, #pagination
-        page = page, #pagination
-        total_pages = total_pages, #pagination
-        args_for_pagination = args_for_pagination, #pagination
-        totalHits = len(date_stats),
+        stats = pagination_data['stats_on_page'],
+        page = pagination_data['page'],
+        total_pages = pagination_data['total_pages'],
+        args_for_pagination = pagination_data['args_for_pagination'],
+        totalHits = len(stats),
         statName = f"Time: {date}",
         subtitle = f'Accuracy: {u_of_m} - {date_q}',
-        )
+    )
 
 @main.route('/stats/reported', methods = ['GET'])
 @login_required
@@ -1133,7 +987,7 @@ def reported_stats():
             """
         data_tuple = (reported_status,)
         c.execute(sql_query, data_tuple)
-        reported_stats = c.fetchall()
+        stats = c.fetchall()
 
         # Get total number of reports, most reported IP
         sql_query = """
@@ -1153,22 +1007,7 @@ def reported_stats():
         c.close()
     conn.close()
 
-    #pagination
-    page = int(request.args.get('page', 1))
-    items_per_page = int(request.args.get('per_page', 100))
-    total_items = len(reported_stats)
-    total_pages = ceil(total_items / items_per_page)
-    start_index = (page - 1) * items_per_page
-    end_index = min(start_index + items_per_page, total_items)
-
-    stats_on_page = reported_stats[start_index:end_index]
-
-    args_for_pagination = request.args.to_dict()
-    if 'page' in args_for_pagination:
-        # Remove the page# so we can add a new one to the pagination links
-        del args_for_pagination['page']
-
-    # End pagination
+    pagination_data = get_pagination_data(stats, False)
 
     # Flash a message based on reported or unreported
     if reported_status == '1' and top_reported:
@@ -1180,15 +1019,14 @@ def reported_stats():
 
     flash(top_reported_ip_message, 'info')
     return render_template('stats.html',
-        #stats = reported_stats,
-        stats = stats_on_page, #pagination
-        page = page, #pagination
-        total_pages = total_pages, #pagination
-        args_for_pagination = args_for_pagination, #pagination
-        totalHits = len(reported_stats),
+        stats = pagination_data['stats_on_page'],
+        page = pagination_data['page'],
+        total_pages = pagination_data['total_pages'],
+        args_for_pagination = pagination_data['args_for_pagination'],
+        totalHits = len(stats),
         statName = f'Reported (1=True, 0=False): {reported_status}',
         #top_ip = top_reported
-        )
+    )
 
 # query for Proxy-Connection header
 @main.route('/stats/headers/proxy-connection', methods = ['GET'])
@@ -1207,36 +1045,20 @@ def proxy_connection_header_stats():
             """
         data_tuple = (header_string,)
         c.execute(sql_query, data_tuple)
-        proxy_connection_stats = c.fetchall()
+        stats = c.fetchall()
         c.close()
     conn.close()
 
-    #pagination
-    page = int(request.args.get('page', 1))
-    items_per_page = int(request.args.get('per_page', 100))
-    total_items = len(proxy_connection_stats)
-    total_pages = ceil(total_items / items_per_page)
-    start_index = (page - 1) * items_per_page
-    end_index = min(start_index + items_per_page, total_items)
-
-    stats_on_page = proxy_connection_stats[start_index:end_index]
-
-    args_for_pagination = request.args.to_dict()
-    if 'page' in args_for_pagination:
-        # Remove the page# so we can add a new one to the pagination links
-        del args_for_pagination['page']
-
-    # End pagination
+    pagination_data = get_pagination_data(stats, False)
 
     return render_template('stats.html',
-        #stats = proxy_connection_stats,
-        stats = stats_on_page, #pagination
-        page = page, #pagination
-        total_pages = total_pages, #pagination
-        args_for_pagination = args_for_pagination, #pagination
-        totalHits = len(proxy_connection_stats),
+        stats = pagination_data['stats_on_page'],
+        page = pagination_data['page'],
+        total_pages = pagination_data['total_pages'],
+        args_for_pagination = pagination_data['args_for_pagination'],
+        totalHits = len(stats),
         statName = 'Proxy attempts (sent Proxy-Connection header)',
-        )
+    )
 
 @main.route('/stats/headers/contains', methods = ['GET'])
 @login_required
@@ -1256,36 +1078,20 @@ def header_string_search():
             LIMIT 100000;"""
         data_tuple = (header_string_q,)
         c.execute(sql_query, data_tuple)
-        headers_contains_stats = c.fetchall()
+        stats = c.fetchall()
         c.close()
     conn.close()
 
-    #pagination
-    page = int(request.args.get('page', 1))
-    items_per_page = int(request.args.get('per_page', 100))
-    total_items = len(headers_contains_stats)
-    total_pages = ceil(total_items / items_per_page)
-    start_index = (page - 1) * items_per_page
-    end_index = min(start_index + items_per_page, total_items)
-
-    stats_on_page = headers_contains_stats[start_index:end_index]
-
-    args_for_pagination = request.args.to_dict()
-    if 'page' in args_for_pagination:
-        # Remove the page# so we can add a new one to the pagination links
-        del args_for_pagination['page']
-
-    # End pagination
+    pagination_data = get_pagination_data(stats, False)
 
     return render_template('stats.html',
-        #stats = headers_contains_stats,
-        stats = stats_on_page, #pagination
-        page = page, #pagination
-        total_pages = total_pages, #pagination
-        args_for_pagination = args_for_pagination, #pagination
-        totalHits = len(headers_contains_stats),
+        stats = pagination_data['stats_on_page'],
+        page = pagination_data['page'],
+        total_pages = pagination_data['total_pages'],
+        args_for_pagination = pagination_data['args_for_pagination'],
+        totalHits = len(stats),
         statName = f'In Headers: {header_string}',
-        )
+    )
 
 @main.route('/stats/hostname', methods = ['GET'])
 @login_required
@@ -1301,38 +1107,22 @@ def hostname_stats():
         sql_query = "SELECT * FROM bots WHERE (hostname LIKE ?) ORDER BY id DESC;"
         data_tuple = (hostname_q,)
         c.execute(sql_query, data_tuple)
-        hostname_stats = c.fetchall()
+        stats = c.fetchall()
 
         c.close()
     conn.close()
 
-    #pagination
-    page = int(request.args.get('page', 1))
-    items_per_page = int(request.args.get('per_page', 100))
-    total_items = len(hostname_stats)
-    total_pages = ceil(total_items / items_per_page)
-    start_index = (page - 1) * items_per_page
-    end_index = min(start_index + items_per_page, total_items)
-
-    stats_on_page = hostname_stats[start_index:end_index]
-
-    args_for_pagination = request.args.to_dict()
-    if 'page' in args_for_pagination:
-        # Remove the page# so we can add a new one to the pagination links
-        del args_for_pagination['page']
-
-    # End pagination
+    pagination_data = get_pagination_data(stats, False)
 
     flash('Note: Includes hostnames that are subdomains of the query.', 'info')
     return render_template('stats.html',
-        #stats = hostname_stats,
-        stats = stats_on_page, #pagination
-        page = page, #pagination
-        total_pages = total_pages, #pagination
-        args_for_pagination = args_for_pagination, #pagination
-        totalHits = len(hostname_stats),
+        stats = pagination_data['stats_on_page'],
+        page = pagination_data['page'],
+        total_pages = pagination_data['total_pages'],
+        args_for_pagination = pagination_data['args_for_pagination'],
+        totalHits = len(stats),
         statName = f'Hostname: {hostname}'
-        )
+    )
 
 @main.route('/stats/headers/single/<request_id>', methods = ['GET'])
 @login_required
@@ -1406,7 +1196,7 @@ def headers_key_search():
         data_tuple = (f'$.{header_name}',)
         c.execute(sql_query, data_tuple)
         try:
-            results = c.fetchall()
+            stats = c.fetchall()
         except TypeError as e:
             flash(f'{str(e)}', 'error')
             return render_template('index.html')
@@ -1419,32 +1209,16 @@ def headers_key_search():
         c.close()
     conn.close()
 
-    #pagination
-    page = int(request.args.get('page', 1))
-    items_per_page = int(request.args.get('per_page', 100))
-    total_items = len(results)
-    total_pages = ceil(total_items / items_per_page)
-    start_index = (page - 1) * items_per_page
-    end_index = min(start_index + items_per_page, total_items)
-
-    stats_on_page = results[start_index:end_index]
-
-    args_for_pagination = request.args.to_dict()
-    if 'page' in args_for_pagination:
-        # Remove the page# so we can add a new one to the pagination links
-        del args_for_pagination['page']
-
-    # End pagination
+    pagination_data = get_pagination_data(stats, False)
 
     return render_template('stats.html',
-        #stats = results,
-        stats = stats_on_page, #pagination
-        page = page, #pagination
-        total_pages = total_pages, #pagination
-        args_for_pagination = args_for_pagination, #pagination
+        stats = pagination_data['stats_on_page'],
+        page = pagination_data['page'],
+        total_pages = pagination_data['total_pages'],
+        args_for_pagination = pagination_data['args_for_pagination'],
         statName = f'In header keys: {header_name}',
-        totalHits = len(results),
-        )
+        totalHits = len(stats),
+    )
 
 @main.route('/stats/id/<int:request_id>', methods = ['GET'])
 @login_required
@@ -1467,8 +1241,8 @@ def stats_by_id(request_id):
 
     return render_template('stats.html',
         stats = id_stats,
-        #totalHits = len(id_stats),
-        statName = f'ID: {request_id}')
+        statName = f'ID: {request_id}'
+    )
 
 @main.route('/stats/id/multiple', methods = ['GET'])
 @login_required
@@ -1521,38 +1295,22 @@ def full_search():
         #data_list = [q for i in range(len(columns))]
         data_list = [q for i in enumerate(columns)]
         c.execute(sql_query, data_list)
-        results = c.fetchall()
+        stats = c.fetchall()
 
         c.close()
     conn.close()
 
-    #pagination
-    page = int(request.args.get('page', 1))
-    items_per_page = int(request.args.get('per_page', 100))
-    total_items = len(results)
-    total_pages = ceil(total_items / items_per_page)
-    start_index = (page - 1) * items_per_page
-    end_index = min(start_index + items_per_page, total_items)
-
-    stats_on_page = results[start_index:end_index]
-
-    args_for_pagination = request.args.to_dict()
-    if 'page' in args_for_pagination:
-        # Remove the page# so we can add a new one to the pagination links
-        del args_for_pagination['page']
-
-    # End pagination
+    pagination_data = get_pagination_data(stats, False)
 
     return render_template('stats.html',
-        #stats = results,
-        stats = stats_on_page, #pagination
-        page = page, #pagination
-        total_pages = total_pages, #pagination
-        args_for_pagination = args_for_pagination, #pagination
-        totalHits = len(results),
+        stats = pagination_data['stats_on_page'],
+        page = pagination_data['page'],
+        total_pages = pagination_data['total_pages'],
+        args_for_pagination = pagination_data['args_for_pagination'],
+        totalHits = len(stats),
         statName = f'Full db search',
         subtitle = q,
-        )
+    )
 
 @main.route('/admin/delete_single', methods = ['POST'])
 @login_required

@@ -110,7 +110,10 @@
                     <input type="checkbox" name="dataCheckbox" class="sv0" value="dataURL" id="cbURL">URL
                 </label>
                 <label>
-                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataPostData" id="cbBody" checked>Body
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataBodyBytes" id="cbBodyBytes">Body (raw)
+                </label>
+                <label>
+                    <input type="checkbox" name="dataCheckbox" class="sv0" value="dataPostData" id="cbBody" checked>Body (processed)
                 </label>
                 <label>
                     <input type="checkbox" name="dataCheckbox" class="sv0" value="dataContentType" id="cbContentType">Content-Type
@@ -158,7 +161,8 @@
                     <th class="dataPath sv1">Path</th>
                     <th class="dataQueryString sv0">Query String</th>
                     <th class="dataURL hidden sv0">URL</th>
-                    <th class="dataPostData sv0">Body</th>
+                    <th class="dataBodyBytes hidden sv0">Body (raw)</th>
+                    <th class="dataPostData sv0">Body (processed)</th>
                     <th class="dataContentType hidden sv0">Content-Type</th>
                     <th class="dataHostname sv0">Hostname</th>
                     <th class="dataTime sv0">Time</th>
@@ -181,7 +185,8 @@
                     <td class="dataPath dataToLink sv1"><a href="{{url_for('main.path_stats', path=row['path'])}}">{{ row['path'] }}</a></td>
                     <td class="dataQueryString dataToLink mono smaller sv0"><a href="{{url_for('main.queriesStats', query=row['querystring']|urlencode)}}">{{row['querystring']|e}}</a></td>
                     <td class="dataURL dataToLink hidden sv0"><a href="{{url_for('main.urlStats', url=row['url'])}}">{{row['url']|e}}</a></td>
-                    <td class="dataPostData dataToLink mono smaller sv0"><a href="{{url_for('main.bodyStats', body=row['postjson']|quote_plus)}}">{{row['postjson']|e}}</a></td>
+                    <td class="dataBodyBytes dataToLink mono smaller hidden sv0"><a href="{{url_for('main.bodyRawStats', body=row['body_raw'].decode(errors='replace')|urlencode)}}">{{row['body_raw'].decode(errors='replace')|e}}</a></td>
+                    <td class="dataPostData dataToLink mono smaller sv0"><a href="{{url_for('main.bodyStats', body=row['body_processed']|quote_plus)}}">{{row['body_processed']|e}}</a></td>
                     <td class="dataContentType dataToLink hidden sv0"><a href="{{url_for('main.content_type_stats', ct=row['contenttype']) }}">{{row['contenttype']|e}}</a></td>
                     <td class="dataHostname dataToLink sv0"><a href="{{url_for('main.hostname_stats', hostname=row['hostname'])}}">{{row['hostname']}}</a></td>
                     <td class="dataTime dataToLink sv0"><a href="{{url_for('main.date_stats', date=row['time'], accuracy=16)}}">{{row['time']}}</a></td>

@@ -38,7 +38,8 @@ def createDatabase(): # note: change column names to just match http headers, th
             "requestmethod"	TEXT CHECK(length("requestmethod") <= 8),
             "querystring"	TEXT,
             "time"	DATETIME CHECK(length("time") <= 1024),
-            "postjson"	TEXT,
+            "body_raw"    BLOB,
+            "body_processed"	TEXT,
             "headers"	TEXT,
             "headers_json"	TEXT,
             "url"	TEXT,
@@ -140,7 +141,7 @@ def validate_id_numeric(_id):
         return False
 
 def validate_header_key(_hk):
-    """ Letters + hyphen. """
+    """ Validate an HTTP header name. Letters + hyphen. """
     pattern = r'^[a-zA-Z\-_]+$'
     if re.match(pattern, _hk):
         return True
@@ -224,9 +225,11 @@ def index(u_path):
     req_version = request.environ.get('SERVER_PROTOCOL') #http version
     logging.info(f'{req_ip} {request} {req_version}')
 
-    #add to db schema later
-    req_args_j = json.dumps(request.args) #So I can have a jsonified version as well
+    #add to db schema later (unused right now)
+    #req_args_j = json.dumps(request.args) #So I can have a jsonified version as well
 
+    # Save body un-processed, so I have a consistent column.
+    req_body_raw = request.get_data()
 
     # NEW SECTION: Get the POST request body
     # Get the request body. Could be any content-type, format, encoding, etc, try to capture
@@ -303,14 +306,15 @@ def index(u_path):
 
     # Request data to insert into the database
     sql_query = """INSERT INTO bots
-        (id,remoteaddr,hostname,useragent,requestmethod,querystring,time,postjson,headers,headers_json,url,reported,contenttype,country,from_contact,scheme,host,path,referer)
-        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"""
+        (id,remoteaddr,hostname,useragent,requestmethod,querystring,time,body_raw,body_processed,headers,headers_json,url,reported,contenttype,country,from_contact,scheme,host,path,referer)
+        VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);"""
     data_tuple = (req_ip,
                 req_hostname,
                 req_user_agent,
                 req_method,
                 req_query,
                 req_time,
+                req_body_raw,
                 req_body,
                 str(req_headers),
                 headers_json,
@@ -908,7 +912,7 @@ def queriesStats():
 @main.route('/stats/body', methods = ['GET'])
 @login_required
 def bodyStats():
-    """ Get records matching the POST request body. """
+    """ Get records matching the request body. (Query body_processed column, stored as decoded text) """
     body = unquote(request.args.get('body', ''))
 
     with sqlite3.connect(requests_db) as conn:
@@ -916,7 +920,7 @@ def bodyStats():
         c = conn.cursor()
         # Query for matching request body
         sql_query = """
-            SELECT * FROM bots WHERE (postjson LIKE ?) ORDER BY id DESC;
+            SELECT * FROM bots WHERE (body_processed LIKE ?) ORDER BY id DESC;
             """
         data_tuple = (body,)
         c.execute(sql_query, data_tuple)
@@ -948,6 +952,49 @@ def bodyStats():
         args_for_pagination = args_for_pagination, #pagination
         totalHits = len(bodyStats),
         statName = f"Request Body like:",
+        subtitle = f'{body}',
+        )
+
+@main.route('/stats/body_raw', methods = ['GET'])
+@login_required
+def bodyRawStats():
+    """ Get records matching the request body. Regex query. (body_raw column, stored as blob) """
+    body = unquote(request.args.get('body', ''))
+
+    with sqlite3.connect(requests_db) as conn:
+        conn.row_factory = sqlite3.Row
+        c = conn.cursor()
+        # Query for matching request body, order by most recent.
+        conn.create_function("REGEXP", 2, regexp)
+        sql_query = '''SELECT * FROM bots WHERE body_raw REGEXP (?) ORDER BY id DESC;'''
+        data_tuple = (body,)
+        c.execute(sql_query, data_tuple)
+        bodyStats = c.fetchall()
+        c.close()
+    conn.close()
+
+    #pagination
+    page = int(request.args.get('page', 1))
+    items_per_page = int(request.args.get('per_page', 100))
+    total_items = len(bodyStats)
+    total_pages = ceil(total_items / items_per_page)
+    start_index = (page - 1) * items_per_page
+    end_index = min(start_index + items_per_page, total_items)
+
+    stats_on_page = bodyStats[start_index:end_index]
+
+    args_for_pagination = request.args.to_dict()
+    if 'page' in args_for_pagination:
+        # Remove the page# so we can add a new one to the pagination links
+        del args_for_pagination['page']
+
+    return render_template('stats.html',
+        stats = stats_on_page, #pagination
+        page = page, #pagination
+        total_pages = total_pages, #pagination
+        args_for_pagination = args_for_pagination, #pagination
+        totalHits = len(bodyStats),
+        statName = f"Request body like:",
         subtitle = f'{body}',
         )
 
@@ -1616,6 +1663,9 @@ def parse_search_form():
         body_string = query_text
         body_string = '%' + body_string + '%'
         return redirect(url_for('main.bodyStats', body = body_string))
+    elif chosen_query == 'body_raw':
+        q = query_text
+        return redirect(url_for('main.bodyRawStats', body = q))
     elif chosen_query == 'hostname_endswith':
         hostname_string = query_text.strip()
         return redirect(url_for('main.hostname_stats', hostname = hostname_string))

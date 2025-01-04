@@ -548,6 +548,24 @@ def is_tbk_auth_bypass(request):
     else:
         return False
 
+def is_hikvision_injection(request):
+    ''' CVE-2021-36260 Hikvision unauthenticated command injection. '''
+    # References: https://packetstorm.news/files/id/166167 https://www.cve.org/CVERecord?id=CVE-2021-36260
+    EXPLOIT_PATH = '/SDK/webLanguage'
+    # Return early if path doesn't match, to save CPU cycles.
+    if request.path.lower() == EXPLOIT_PATH.lower():
+        EXPLOIT_BODY_REGEX = r'^<\?xml version=.*encoding=.*>.*\s*.*<language>.*</language>.*$'
+        regex = re.compile(EXPLOIT_BODY_REGEX, re.IGNORECASE)
+        req_body_decoded = request.get_data().decode(errors='replace')
+        # Now check method and body
+        if (
+            request.method == 'PUT'
+            and regex.match(req_body_decoded)
+        ):
+            return True
+    else:
+        return False
+
 # more generic rules
 
 def is_post_request(request):
@@ -785,7 +803,7 @@ def check_all_rules():
 
     # Initialize categories+comment empty, then append_to_report() will fill in if any rules match.
     report_categories = set()
-    # Check whether request contains query args; if so, include it.
+    # Check whether request contains query args; if so, include it in report comment.
     if request.query_string is not None and len(request.query_string.decode()) > 2:
         report_comment = f'Detected malicious request: {request.method} {request.full_path} \nDetections triggered: '
     else:
@@ -820,6 +838,7 @@ def check_all_rules():
         (is_zyxel_rci, 'Zyxel CVE-2022-30525', ['15','21','23']),
         (is_dlink_backdoor, 'D-Link CVE-2024-3272/CVE-2024-3273', ['15','21','23']),
         (is_tbk_auth_bypass, 'CVE-2018-9995', ['21','23']),
+        (is_hikvision_injection, 'CVE-2021-36260 Hikvision IP camera command injection', ['21', '23']),
         (is_post_request, 'Suspicious POST request', ['21']),
         (no_host_header, 'No Host header', ['21']),
         (is_misc_get_probe, 'GET with unexpected args', ['21']),

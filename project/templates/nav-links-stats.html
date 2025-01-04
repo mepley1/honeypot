@@ -11,4 +11,4 @@
 <a href="{{url_for('main.hostname_stats', hostname='.cn')}}">Hostname: *.cn</a>
 <a href="{{url_for('main.uaStats', ua='%http%://%')}}">User-Agent: Contains URL</a>
 <a href="{{url_for('main.bodyStats', body='%25_%25') }}">Body: Any included</a>
-<a href="{{url_for('main.bodyStats', body='%25%255B%255D=%25') }}">Body: AndroxGh0st/variants</a>{# '0x%255B%255D=%25' #}
+<a href="{{url_for('main.bodyRawStats', body='^.*0x.*5B.*5D.*=.*$') }}">Body: AndroxGh0st/variants</a>

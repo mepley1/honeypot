@@ -185,7 +185,7 @@
                     <td class="dataPath dataToLink sv1"><a href="{{url_for('main.path_stats', path=row['path'])}}">{{ row['path'] }}</a></td>
                     <td class="dataQueryString dataToLink mono smaller sv0"><a href="{{url_for('main.queriesStats', query=row['querystring']|urlencode)}}">{{row['querystring']|e}}</a></td>
                     <td class="dataURL dataToLink hidden sv0"><a href="{{url_for('main.urlStats', url=row['url'])}}">{{row['url']|e}}</a></td>
-                    <td class="dataBodyBytes dataToLink mono smaller hidden sv0"><a href="{{url_for('main.bodyRawStats', body=row['body_raw'].decode(errors='replace')|urlencode)}}">{{row['body_raw'].decode(errors='replace')|e}}</a></td>
+                    <td class="dataBodyBytes dataToLink mono smaller hidden sv0"><a href="{{url_for('main.bodyRawStats', body=row['body_raw'].decode(errors='replace'))}}">{{row['body_raw'].decode(errors='replace')|e}}</a></td>
                     <td class="dataPostData dataToLink mono smaller sv0"><a href="{{url_for('main.bodyStats', body=row['body_processed']|quote_plus)}}">{{row['body_processed']|e}}</a></td>
                     <td class="dataContentType dataToLink hidden sv0"><a href="{{url_for('main.content_type_stats', ct=row['contenttype']) }}">{{row['contenttype']|e}}</a></td>
                     <td class="dataHostname dataToLink sv0"><a href="{{url_for('main.hostname_stats', hostname=row['hostname'])}}">{{row['hostname']}}</a></td>

@@ -882,8 +882,12 @@ def bodyStats():
 @login_required
 def bodyRawStats():
     ''' Get records matching the request body. Regex query. (body_raw column, stored as blob) '''
-    body_pattern = unquote(request.args.get('body', ''))
+    # NOTE: Unquoting it again is what was causing args containing a % to break.
+    # Flask url-encodes/decodes automatically.
+    body_pattern = request.args.get('body', '')
+    #logging.debug(f'body_raw regex pattern: {body_pattern}')
 
+    # Validate pattern
     if not body_pattern or not validate_regex(body_pattern):
         return create_error_response(400, 'Invalid param', 'Missing or invalid regex pattern.')
 
@@ -1153,7 +1157,7 @@ def hostname_stats():
         total_pages = pagination_data['total_pages'],
         args_for_pagination = pagination_data['args_for_pagination'],
         totalHits = len(stats),
-        statName = f'Hostname: {hostname}'
+        statName = f'Hostname: {hostname_q}'
     )
 
 @main.route('/stats/headers/single/<request_id>', methods = ['GET'])
@@ -1211,7 +1215,7 @@ def headers_single_json(request_id):
 @login_required
 def headers_key_search():
     """ Find requests which include a given header. """
-    header_name = request.args.get('key', 'no input')
+    header_name = request.args.get('key', 'no input').strip()
     if not validate_header_key(header_name):
         return create_error_response(400, 'Invalid param', 'Invalid header name; value may contain only letters and hyphen.')
 
@@ -1223,7 +1227,7 @@ def headers_key_search():
                     FROM bots
                     WHERE (JSON_EXTRACT(headers_json, ?)) IS NOT NULL
                     ORDER BY id DESC
-                    LIMIT 100000;
+                    LIMIT 1000000;
                     """
         data_tuple = (f'$.{header_name}',)
         c.execute(sql_query, data_tuple)
@@ -1357,14 +1361,14 @@ def full_search_regex():
         conn.row_factory = sqlite3.Row
         conn.create_function("REGEXP", 2, regexp)
         c = conn.cursor()
-        
+
         #Get column names
         sql_query = "PRAGMA table_info(bots)"
         c.execute(sql_query)
         columns = [column[1] for column in c.fetchall()]
-
+        # Construct sql query - join "<column> REGEXP <pattern> OR" for each column
         sql_query = "SELECT * FROM bots WHERE "
-        conditions = [f"{column} REGEXP ?" for column in columns] #If using regexp over LIKE
+        conditions = [f"{column} REGEXP ?" for column in columns]
         sql_query += ' OR '.join(conditions)
         sql_query += ' ORDER BY id DESC;'
         data_list = [q for i in enumerate(columns)]
@@ -1452,60 +1456,67 @@ def parse_search_form():
     """ Redirect to one of the other views, depending on which search was selected. """
     #logging.debug(request.args) #testing
     chosen_query = request.args.get('chosen_query', '')
-    query_text = request.args.get('query_text', '')
+    query_text = request.args.get('query_text', '').strip()
 
-    # Flash message if no query input
+    # Flash message and return search page again if no query input
     if not query_text or query_text is None:
         flash('No query input', 'error')
         return render_template('search.html')
 
     # Same, if no field was selected
     if not chosen_query or chosen_query is None:
-        flash('Must select a query.', 'error')
+        flash('Must select a field.', 'error')
         return render_template('search.html')
 
     #Parse and redirect, based on which field was selected
-    if chosen_query == 'ip_string':
-        ip_string = query_text
-        return redirect(url_for('main.ipStats', ipAddr = ip_string))
-    elif chosen_query == 'cidr_string':
-        cidr_string = query_text
-        return redirect(url_for('main.subnet_stats', net = cidr_string))
-    elif chosen_query == 'url':
-        url = query_text
-        url = '*' + url + '*'
-        return redirect(url_for('main.urlStats', url = url))
-    elif chosen_query == 'header_string':
-        header_string = query_text
-        return redirect(url_for('main.header_string_search', header_string = header_string))
-    elif chosen_query == 'header_key':
-        header_key = query_text.strip().title()
-        return redirect(url_for('main.headers_key_search', key = header_key))
-    elif chosen_query == 'content_type':
-        ct = query_text.strip()
-        ct = '%' + ct + '%'
-        return redirect(url_for('main.content_type_stats', ct = ct))
-    elif chosen_query == 'ua_string':
-        ua_string = query_text
-        ua_string = '%25' + ua_string + '%25'
-        return redirect(url_for('main.uaStats', ua = ua_string))
-    elif chosen_query == 'body_string':
-        body_string = query_text
-        body_string = '%' + body_string + '%'
-        return redirect(url_for('main.bodyStats', body = body_string))
-    elif chosen_query == 'body_raw':
-        q = query_text
-        return redirect(url_for('main.bodyRawStats', body = q))
-    elif chosen_query == 'hostname_endswith':
-        hostname_string = query_text.strip()
-        return redirect(url_for('main.hostname_stats', hostname = hostname_string))
-    elif chosen_query == 'hostname_contains':
-        hostname_string = query_text.strip()
-        hostname_string = hostname_string + '%'
-        return redirect(url_for('main.hostname_stats', hostname = hostname_string))
-    elif chosen_query == 'any_field':
-        q = query_text
-        return redirect(url_for('main.full_search', q = q))
+    match chosen_query:
+        case 'ip_string':
+            q = query_text
+            return redirect(url_for('main.ipStats', ipAddr = q))
+        case 'cidr_string':
+            q = query_text
+            return redirect(url_for('main.subnet_stats', net = q))
+        case 'url':
+            q = query_text
+            q = '*' + q + '*'
+            return redirect(url_for('main.urlStats', url = q))
+        case 'header_string':
+            q = query_text
+            return redirect(url_for('main.header_string_search', header_string = q))
+        case 'header_key':
+            q = query_text.title()
+            return redirect(url_for('main.headers_key_search', key = q))
+        case 'content_type':
+            q = query_text
+            q = '%' + q + '%'
+            return redirect(url_for('main.content_type_stats', ct = q))
+        case 'ua_string':
+            q = query_text
+            q = '%25' + q + '%25'
+            return redirect(url_for('main.uaStats', ua = q))
+        case 'body_string':
+            q = query_text
+            q = '%25' + q + '%25'
+            return redirect(url_for('main.bodyStats', body = q))
+        case 'body_raw':
+            q = query_text
+            return redirect(url_for('main.bodyRawStats', body = q))
+        case 'hostname_endswith':
+            q = query_text
+            return redirect(url_for('main.hostname_stats', hostname = q))
+        case 'hostname_contains':
+            q = query_text
+            # The view function will prepend another %, so only need to add a trailing one here.
+            q = q + '%' 
+            return redirect(url_for('main.hostname_stats', hostname = q))
+        case 'any_field':
+            q = query_text
+            return redirect(url_for('main.full_search', q = q))
+        case 'any_field_regex':
+            q = query_text
+            return redirect(url_for('main.full_search_regex', q = q))
+        case '' | _:
+            return create_error_response(400, 'Invalid param', 'Invalid value for field name.')
 
 # Misc routes
 

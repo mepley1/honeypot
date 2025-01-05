@@ -358,81 +358,49 @@ def is_nmap_vuln_probe(request):
 
 # More specific bots/malware
 
-def is_mirai_dvr(request):
-    """ Mirai botnet looking for Hi3520 dvr interfaces to exploit.
-    Usually a POST to /dvr/cmd with user-agent Abcd, posting XML including a wget command injection
-    to download a Mirai loader with varying filename, followed by another POST attempting to
-    trigger a device restart. """
-    path = request.path
-    MIRAI_DVR_PATH = '/dvr/cmd'
-    if request.method == 'POST' and path.lower() == MIRAI_DVR_PATH:
-        posted_data = request.get_data(as_text=True)
-        MIRAI_DVR_PAYLOADS = [
-            '<DVR Platform="Hi3520">',
-            '<SetConfiguration File="service.xml">',
-            '&wget',
-            '|sh',
-            'NTP Enable=',
-            'http://',
-        ]
-        # If path==/dvr/cmd and any of the payload strings are there, it's definitely an attempt,
-        # though not necessarily always Mirai- would have to check the file it downloads, but each one
-        # that I've seen has been a Mirai loader.
-        return any(target in posted_data for target in MIRAI_DVR_PAYLOADS)
+def is_mirai_dvr(request) -> bool:
+    """ Hisense Hi3520 dvr interface command injection vuln.
+    POST to /dvr/cmd, user-agent usually 'Abcd'. Body is XML, including a command injection
+    to download a Mirai/other loader with varying filename. Usually followed by another POST attempting
+    to trigger a device restart. """
+    EXPLOIT_PATH = '/dvr/cmd'
+    if request.method == 'POST' and request.path.lower() == EXPLOIT_PATH:
+        EXPLOIT_PATTERN = r'^.*<DVR Platform="Hi3520">.*<NTP Enable="True" Interval=.* Server=.*/>.*$'
+        regex = re.compile(EXPLOIT_PATTERN, re.IGNORECASE)
+        if regex.match(request.get_data(as_text=True)):
+            return True
     return False
- 
-def is_mirai_netgear(request):
+
+def is_mirai_netgear(request) -> bool:
     """ Attempts to exploit old Netgear DGN interface command injection vuln.
     Commonly exploited by Mirai/variants. """
-    # TODO: Refactor this to use regex, this is too sloppy.
-    path = request.path
-    MIRAI_NETGEAR_PATH = '/setup.cgi'
-    MIRAI_NETGEAR_SIGNATURES = [
-        'next_file=netgear.cfg',
-        'todo=syscmd',
-        'cmd=',
-        ';wget',
-        '/tmp/netgear',
-        'curpath=/&currentsetting.htm=1',
-    ]
-    # Exit early if path doesn't match, for performance.
-    if path.lower() != MIRAI_NETGEAR_PATH:
-        return False
-    # Check query params for the mirai signatures
-    if request.query_string is not None:
-        query_string_decoded = request.query_string.decode('utf-8', errors = 'replace')
-        return any(target in query_string_decoded for target in MIRAI_NETGEAR_SIGNATURES)
+    EXPLOIT_PATH = '/setup.cgi'
+    if request.path.lower() == EXPLOIT_PATH:
+        EXPLOIT_PATTERN = r'^(next_file=netgear.cfg&todo=syscmd&cmd=.*&curpath=.*&)?currentsetting.htm=.*$'
+        regex = re.compile(EXPLOIT_PATTERN, re.IGNORECASE)
+        # Check query string against pattern
+        if request.query_string:
+            query_string_decoded = request.query_string.decode('utf-8', errors = 'replace')
+            return regex.match(query_string_decoded)
     return False
 
-def is_mirai_jaws(request):
-    """ JAWS Webserver unauthenticated shell command execution.
+def is_mirai_jaws(request) -> bool:
+    """ JAWS Webserver unauthenticated shell command execution in MVPower/other DVRs.
+    Commonly exploited by Mirai.
     https://www.exploit-db.com/exploits/41471/ """
-    path = request.path
-    MIRAI_JAWS_PATH = '/shell'
-    MIRAI_JAWS_SIGNATURES = [
-        '/tmp;rm',
-        ';wget',
-        '/jaws;sh',
-        '/tmp/jaws',
-        'http',
-    ]
-    if path.lower() != MIRAI_JAWS_PATH:
-        return False
-    if request.query_string is not None:
-        query_string_decoded = request.query_string.decode()
-        return any(target in query_string_decoded for target in MIRAI_JAWS_SIGNATURES)
+    EXPLOIT_PATH = '/shell'
+    if request.path.lower() == EXPLOIT_PATH:
+        if request.query_string:
+            return True
     return False
 
-def is_mirai_ua(request):
-    """ Hello, world = UA commonly used in requests sent by Mirai botnet nodes. 
-    Not a guarantee that it's Mirai, but I haven't seen it anywhere else. """
+def is_mirai_ua(request) -> bool:
+    """ Hello, world = UA commonly used in requests from Mirai botnet hosts. """
     user_agent = request.headers.get('User-Agent', '')
-    MIRAI_USER_AGENT = [
-        'Hello, world',
-    ]
+    MIRAI_USER_AGENT = 'Hello, world'
     return user_agent == MIRAI_USER_AGENT
 
-def is_androx(request):
+def is_androx(request) -> bool:
     """ AndroxGh0st malware, sends a POST after searching for leaked app secrets in exposed Laravel/other .env.
     Method is POST; content-type is set as form data. Path varies.
     Almost always preceded by a request like `GET /.env`, which will probably get reported before this POST request does.
@@ -440,12 +408,10 @@ def is_androx(request):
 
     '''ANDROX_SIGS = [
         # Just a few examples I've seen. Leaving this here for reference.
-        #'androxgh0st', 'legion', 'ridho', 'janc0xsec', 'CREX' #some values I've seen so far
+        #'androxgh0st', 'legion', 'ridho', 'janc0xsec', 'CREX', '0x0day' #some values I've seen so far
         # Keys:
         '0x[]',
-        '0x%5B%5D', #Depending on how I decode it.
-        '0x01[]', #legion
-        '0x01%5B%5D', #legion
+        '0x01[]',
     ]'''
 
     if request.method == 'POST' and request.content_type == 'application/x-www-form-urlencoded':
@@ -839,9 +805,9 @@ def check_all_rules():
         (is_wordpress_attack, 'Wordpress attack', ['21']),
         (is_nmap_http_scan, 'Nmap HTTP scan', ['21']),
         (is_nmap_vuln_probe, 'Nmap probe', ['21']),
-        (is_mirai_dvr, 'HiSense DVR exploit, likely Mirai', ['23','21']),
-        (is_mirai_netgear, 'Netgear command injection exploit', ['23','21']),
-        (is_mirai_jaws, 'Jaws webserver command injection', ['23', '21']),
+        (is_mirai_dvr, 'HiSense DVR exploit', ['23','21']),
+        (is_mirai_netgear, 'Netgear DGN command injection exploit', ['23','21']),
+        (is_mirai_jaws, 'MVPower Jaws webserver command injection', ['23', '21']),
         (is_mirai_ua, 'User-agent associated with Mirai', ['23','19']),
         (is_androx, 'AndroxGh0st/variant', ['21']),
         (is_cobalt_strike_scan, 'Cobalt Strike path', ['21']),
@@ -849,7 +815,7 @@ def check_all_rules():
         (is_wsus_attack, 'Windows WSUS attack', ['21']),
         (is_rocketmq_probe, 'RocketMQ probe CVE-2023-33246', ['21']),
         (is_datadog_trace, 'Unauthorized probe/scan', ['21']),
-        (is_tpl_exploit, 'CVE-2023-1389', ['15','21','23']),
+        (is_tpl_exploit, 'TP-Link CVE-2023-1389', ['15','21','23']),
         (is_zyxel_rci, 'Zyxel CVE-2022-30525', ['15','21','23']),
         (is_dlink_backdoor, 'D-Link CVE-2024-3272/CVE-2024-3273', ['15','21','23']),
         (is_tbk_auth_bypass, 'CVE-2018-9995 TBK DVR auth bypass', ['21','23']),

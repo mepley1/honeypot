@@ -382,7 +382,9 @@ def is_mirai_dvr(request):
     return False
  
 def is_mirai_netgear(request):
-    """ Mirai attempting to exploit old Netgear DGN interface command injection vuln. """
+    """ Attempts to exploit old Netgear DGN interface command injection vuln.
+    Commonly exploited by Mirai/variants. """
+    # TODO: Refactor this to use regex, this is too sloppy.
     path = request.path
     MIRAI_NETGEAR_PATH = '/setup.cgi'
     MIRAI_NETGEAR_SIGNATURES = [
@@ -448,8 +450,8 @@ def is_androx(request):
 
     if request.method == 'POST' and request.content_type == 'application/x-www-form-urlencoded':
         form_data_keys = [item for item in request.form.keys()]
-        # Match for "0x" followed by 0-8 (arbitrary, could be more but I've only seen up to 4) of any char, then brackets "[]". Example "0x[]" or "0x01[]"
-        ANDROX_SIG_REGEX = r'^0x.{0,8}\[\]$'
+        # Match for "0x" followed by 0-8 (arbitrary, could be more but I've only seen up to ~5) of any char, then brackets "[]". Example "0x[]" or "0x01[]"
+        ANDROX_SIG_REGEX = r'^0x.{0,16}\[\]$'
         regex = re.compile(ANDROX_SIG_REGEX, re.IGNORECASE)
         return any(regex.search(_) for _ in form_data_keys)
     return False
@@ -562,6 +564,19 @@ def is_hikvision_injection(request):
             request.method == 'PUT'
             and regex.match(req_body_decoded)
         ):
+            return True
+    else:
+        return False
+
+def is_joomla_injection(request) -> bool:
+    """ CVE-2023-23752 - Joomla injection. """
+    EXPLOIT_PATH = '/api/index.php/v1/config/application'
+    if request.path.lower() == EXPLOIT_PATH.lower():
+        # Make pattern mostly optional, so probes for the path alone will match as well.
+        EXPLOIT_PATTERN = r'^(public=true(&page%5Boffset%5D=.*&page%5Blimit%5D=.*)?)?$'
+        regex = re.compile(EXPLOIT_PATTERN, re.IGNORECASE)
+        # Really only need to check path, but might as well check query too.
+        if regex.search(request.query_string.decode(errors='replace')):
             return True
     else:
         return False
@@ -825,8 +840,8 @@ def check_all_rules():
         (is_nmap_http_scan, 'Nmap HTTP scan', ['21']),
         (is_nmap_vuln_probe, 'Nmap probe', ['21']),
         (is_mirai_dvr, 'HiSense DVR exploit, likely Mirai', ['23','21']),
-        (is_mirai_netgear, 'Netgear command injection exploit, likely Mirai', ['23','21']),
-        (is_mirai_jaws, 'Jaws webserver command injection, likely Mirai', ['23', '21']),
+        (is_mirai_netgear, 'Netgear command injection exploit', ['23','21']),
+        (is_mirai_jaws, 'Jaws webserver command injection', ['23', '21']),
         (is_mirai_ua, 'User-agent associated with Mirai', ['23','19']),
         (is_androx, 'AndroxGh0st/variant', ['21']),
         (is_cobalt_strike_scan, 'Cobalt Strike path', ['21']),
@@ -837,8 +852,9 @@ def check_all_rules():
         (is_tpl_exploit, 'CVE-2023-1389', ['15','21','23']),
         (is_zyxel_rci, 'Zyxel CVE-2022-30525', ['15','21','23']),
         (is_dlink_backdoor, 'D-Link CVE-2024-3272/CVE-2024-3273', ['15','21','23']),
-        (is_tbk_auth_bypass, 'CVE-2018-9995', ['21','23']),
+        (is_tbk_auth_bypass, 'CVE-2018-9995 TBK DVR auth bypass', ['21','23']),
         (is_hikvision_injection, 'CVE-2021-36260 Hikvision IP camera command injection', ['21', '23']),
+        (is_joomla_injection, 'Joomla CVE-2023-23752', ['21','16']),
         (is_post_request, 'Suspicious POST request', ['21']),
         (no_host_header, 'No Host header', ['21']),
         (is_misc_get_probe, 'GET with unexpected args', ['21']),
@@ -867,7 +883,7 @@ def check_all_rules():
     # Lower the score for known benign researchers/scanners
     if is_research(request):
         if rules_matched > 0:
-            rules_matched -= 1
+            rules_matched -= 2
 
     # If any rules matched, report to AbuseIPDB.
     if rules_matched > 0:

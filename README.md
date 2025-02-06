@@ -94,8 +94,9 @@ To-do: Deployment guide. Include Nginx proxy conf & systemd service unit.
 
 # To-do:
 - Standardize error responses.
-- Rewrite detection rules using regex instead of string searches. Move the bigger lists to a separate file to import at run time rather than defining each list inside the functions- should greatly improve performance, and will allow for easier custom rules.
+- Restructure the whole detection rules process - define rules in a JSON file where each rule is an object containing an array of request property + regex pattern to match against said property.
 - Deployment guide - deployment.md - Include Nginx vhost conf file, systemd service unit example
 - Some graphs/charts - do some analysis + visualization on top IPs/paths/location data/etc.
 - Per-account login IP whitelist.
 - Separate stats routes into another blueprint
+- Rewrite some parts in Ziglang where able

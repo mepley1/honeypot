@@ -88,7 +88,6 @@ To-do: Deployment guide. Include Nginx proxy conf & systemd service unit.
 `deploy.sh` | This is NOT for production deployment, it only copies the main app files to another machine for development purposes - I use it to copy over new versions of the Flask blueprints to my "production" server where the app is already deployed, as an "update" script of sorts.
 
 # Notes/issues:
-- Will have to force Werkzeug=2.3.0 for a bit in requirements.txt until flask-login release a version compatible with Werkzeug 3.
 - When refreshing stats page after toggling column views, checkboxes get out of sync; to fix, either force refresh (Ctrl+F5) or click the navbar link again. Need a better way of hiding columns.
 - Querying for records by POST request body fails to find anything in some cases due to encoding discrepancies.
 
@@ -96,7 +95,7 @@ To-do: Deployment guide. Include Nginx proxy conf & systemd service unit.
 - Standardize error responses.
 - Restructure the whole detection rules process - define rules in a JSON file where each rule is an object containing an array of request property + regex pattern to match against said property.
 - Deployment guide - deployment.md - Include Nginx vhost conf file, systemd service unit example
-- Some graphs/charts - do some analysis + visualization on top IPs/paths/location data/etc.
+- More analysis + visualization of data.
 - Per-account login IP whitelist.
 - Separate stats routes into another blueprint
 - Rewrite some parts in Ziglang where able

@@ -250,8 +250,47 @@ def create_error_response(status_code: int = 400, error_msg: str = None, help_ms
 
 ### Flask app routes
 
-# Will use this in a couple places so I don't have to list them all out
-HTTP_METHODS = ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'OPTIONS', 'TRACE', 'PATCH', 'BIND', 'CHECKOUT', 'UPDATE', 'PRI', 'SEARCH', 'MKCALENDAR', 'ORDERPATCH', 'PROPFIND', 'UNLINK']
+HTTP_METHODS = [
+    'ACL',
+    'BASELINE-CONTROL',
+    'BIND',
+    'CHECKIN',
+    'CHECKOUT',
+    'CONNECT',
+    'COPY',
+    'DELETE',
+    'GET',
+    'HEAD',
+    'LABEL',
+    'LINK',
+    'LOCK',
+    'MERGE',
+    'MKACTIVITY',
+    'MKCALENDAR',
+    'MKCOL',
+    'MKREDIRECTREF',
+    'MKWORKSPACE',
+    'MOVE',
+    'OPTIONS',
+    'ORDERPATCH',
+    'PATCH',
+    'POST',
+    'PRI',
+    'PROPFIND',
+    'PROPPATCH',
+    'PUT',
+    'REBIND',
+    'REPORT',
+    'SEARCH',
+    'TRACE',
+    'UNBIND',
+    'UNCHECKOUT',
+    'UNLINK',
+    'UNLOCK',
+    'UPDATE',
+    'UPDATEREDIRECTREF',
+    'VERSION-CONTROL',
+]
 
 @main.route('/', methods = HTTP_METHODS, defaults = {'u_path': ''})
 @main.route('/<path:u_path>', methods = HTTP_METHODS)
